@@ -1,7 +1,7 @@
 "use client";
 
 import { Clapperboard, Flame, Zap } from "lucide-react";
-import { lessonsUsedToday, PLANS } from "@/lib/billing/plans";
+import { effectivePlan, lessonsUsedToday, PLANS } from "@/lib/billing/plans";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { currentStreak, useProgress } from "@/lib/progress/store";
 
@@ -12,7 +12,7 @@ export function StatsBar() {
   const streak = useProgress((s) => currentStreak(s.streak));
   const daily = useProgress((s) => s.daily);
 
-  const limit = PLANS[plan].dailyLessonLimit;
+  const limit = PLANS[effectivePlan(plan)].dailyLessonLimit;
   const left = limit === null ? "∞" : `${Math.max(0, limit - lessonsUsedToday(daily))}`;
 
   const items = [

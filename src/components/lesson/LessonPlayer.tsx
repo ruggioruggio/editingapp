@@ -7,6 +7,7 @@ import { Flame, Target, X, Zap } from "lucide-react";
 import { AiAssistantButton } from "@/components/ai/AiAssistantButton";
 import { Mascot } from "@/components/brand/Mascot";
 import { getLesson } from "@/content/lessons";
+import { features } from "@/config/features";
 import { canStartLesson, PLANS } from "@/lib/billing/plans";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import type { EditorTaskResult } from "@/lib/lessons/types";
@@ -187,16 +188,30 @@ function Paywall() {
     <div className="animate-pop mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-5 px-4 text-center">
       <Mascot size={120} mood="sleepy" />
       <h1 className="text-2xl font-extrabold">Per oggi hai finito le lezioni gratuite</h1>
-      <p className="text-ink-dim">
-        Il piano Free include {PLANS.free.dailyLessonLimit} lezioni al giorno. Torna domani, oppure passa a Pro per
-        lezioni illimitate e l&apos;assistente AI.
-      </p>
-      <Link href="/pricing" className="btn-3d w-full rounded-xl bg-pr py-3 font-bold uppercase text-pr-deep">
-        Passa a Pro
-      </Link>
-      <Link href="/learn" className="text-sm text-ink-mute hover:text-ink">
-        Torna al percorso
-      </Link>
+      {features.payments ? (
+        <>
+          <p className="text-ink-dim">
+            Il piano Free include {PLANS.free.dailyLessonLimit} lezioni al giorno. Torna domani, oppure passa a Pro per
+            lezioni illimitate e l&apos;assistente AI.
+          </p>
+          <Link href="/pricing" className="btn-3d w-full rounded-xl bg-pr py-3 font-bold uppercase text-pr-deep">
+            Passa a Pro
+          </Link>
+          <Link href="/learn" className="text-sm text-ink-mute hover:text-ink">
+            Torna al percorso
+          </Link>
+        </>
+      ) : (
+        <>
+          <p className="text-ink-dim">
+            Puoi fare {PLANS.free.dailyLessonLimit} lezioni al giorno: torna domani per continuare la serie! Il piano Pro
+            con lezioni illimitate è in arrivo.
+          </p>
+          <Link href="/learn" className="btn-3d w-full rounded-xl bg-success py-3 font-bold uppercase text-[#08311f]">
+            Torna al percorso
+          </Link>
+        </>
+      )}
     </div>
   );
 }

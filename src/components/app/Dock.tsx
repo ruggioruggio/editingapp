@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { BookOpen, ScrollText, Sparkles, Trophy, Users, type LucideIcon } from "lucide-react";
 import { AppIcon } from "@/components/brand/Mascot";
+import { features } from "@/config/features";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { todayState, useProgress } from "@/lib/progress/store";
@@ -81,7 +82,13 @@ export function Dock() {
           )}
         >
           <AppIcon size={64} />
-          <Sparkles size={16} className="absolute -right-1 -top-1 text-cheese drop-shadow" fill="currentColor" />
+          {features.squeakAi ? (
+            <Sparkles size={16} className="absolute -right-1 -top-1 text-cheese drop-shadow" fill="currentColor" />
+          ) : (
+            <span className="absolute -right-2 -top-2 rounded-full bg-cheese px-1.5 py-0.5 text-[9px] font-black uppercase text-[#3a2500] shadow">
+              presto
+            </span>
+          )}
         </span>
         <span className={clsx("text-[11px] font-black leading-none", aiActive ? "text-white" : "text-pr")}>Squeak AI</span>
       </Link>

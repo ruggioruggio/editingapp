@@ -1,22 +1,36 @@
 "use client";
 
-import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
+import { useMemo, useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { Stage } from "../Stage";
-import { Cheese, Clapperboard, DiscordBadge, FilmStrip, KeyframeDiamond, Scissors, TextSprite } from "../props";
+import {
+  Barrier,
+  Bricks,
+  Cheese,
+  Clapperboard,
+  DiscordLogo3D,
+  GraphPanel,
+  Hammer,
+  HardHat,
+  KeyframeDiamond,
+  SafetyVest,
+  TextSprite,
+  TrafficCone,
+  WorkSign,
+} from "../props";
 import { createRig, easeInOut, easeOut, lerp, phase, resetRig, Shadow, SqueakModel, walkCycle } from "../SqueakModel";
 
 // Scene del sito: "diorami" in 3D visti di lato, con la camera che oscilla
-// piano per dare profondità. Squeak cammina di profilo e si gira verso di noi.
+// piano per dare profondità. Squeak si muove di profilo e si gira verso di noi.
 
 const PROFILE_RIGHT = Math.PI / 2; // guarda verso +x
 
 /** Gruppo radice che ondeggia lentamente: rende evidente la prospettiva 3D. */
-function Diorama({ children, tilt = -0.28 }: { children: ReactNode; tilt?: number }) {
+function Diorama({ children, tilt = -0.22 }: { children: ReactNode; tilt?: number }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((state) => {
-    if (ref.current) ref.current.rotation.y = tilt + Math.sin(state.clock.elapsedTime * 0.35) * 0.12 + state.pointer.x * 0.12;
+    if (ref.current) ref.current.rotation.y = tilt + Math.sin(state.clock.elapsedTime * 0.35) * 0.08 + state.pointer.x * 0.08;
   });
   return <group ref={ref}>{children}</group>;
 }
@@ -29,70 +43,136 @@ function popScale(t: number, from: number, to: number) {
   return (p < 1 ? easeOut(p) * 1.15 : 1) * (1 - out);
 }
 
-// 1. Squeak arriva, si gira, taglia la pellicola con le forbici ed esulta
-function CutScene() {
-  const mouse = useRef<THREE.Group>(null);
-  const left = useRef<THREE.Group>(null);
-  const right = useRef<THREE.Group>(null);
-  const blade = useRef<THREE.Group>(null);
+function setWord(sprite: THREE.Sprite | null, k: number, size = 1) {
+  sprite?.scale.set(2.7 * k * size, k * size, 1);
+}
+
+// 1. Lo scivolo d'acqua: Squeak scende lungo una curva del Graph Editor di After Effects
+function SlideScene() {
+  const curve = useMemo(
+    () =>
+      new THREE.CubicBezierCurve3(
+        new THREE.Vector3(-3, 3.1, 0),
+        new THREE.Vector3(-1.1, 3.1, 0),
+        new THREE.Vector3(0.3, 0.45, 0),
+        new THREE.Vector3(2.1, 0.45, 0),
+      ),
+    [],
+  );
+  const rail = useMemo(() => new THREE.TubeGeometry(curve, 96, 0.12, 12), [curve]);
+  const water = useMemo(() => new THREE.TubeGeometry(curve, 96, 0.22, 20), [curve]);
+  // maniglie di Bézier come nel Graph Editor
+  const handles = useMemo(() => {
+    const geometry = new THREE.BufferGeometry().setFromPoints([curve.v0, curve.v1, curve.v3, curve.v2]);
+    const line = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: "#ffc93c" }));
+    return line;
+  }, [curve]);
+
+  const POOL = new THREE.Vector3(2.95, 0.12, 0);
+  const slider = useRef<THREE.Group>(null);
+  const turn = useRef<THREE.Group>(null);
   const word = useRef<THREE.Sprite>(null);
+  const drops = useRef<(THREE.Mesh | null)[]>([]);
   const rig = useRef(createRig());
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 4.2;
-    const m = mouse.current;
+    const t = state.clock.elapsedTime % 5.4;
+    const s = slider.current;
+    const y = turn.current;
     const r = rig.current;
-    if (!m || !left.current || !right.current) return;
+    if (!s || !y) return;
     resetRig(r);
 
-    if (t < 1.3) {
-      m.position.x = lerp(-3.4, 0, easeOut(phase(t, 0, 1.3)));
-      m.rotation.y = PROFILE_RIGHT;
-      walkCycle(r, t, 11);
+    if (t < 2.7) {
+      // in cima saluta, poi si gira e scivola sempre più veloce (ease-in, come la curva)
+      const u = t < 0.9 ? 0 : phase(t, 0.9, 2.7) ** 2;
+      const pos = curve.getPointAt(u);
+      const tan = curve.getTangentAt(u);
+      s.position.set(pos.x, pos.y + 0.2, pos.z);
+      s.rotation.z = Math.atan2(tan.y, tan.x);
+      y.rotation.y = t < 0.9 ? lerp(0.3, PROFILE_RIGHT, easeInOut(phase(t, 0.5, 0.9))) : PROFILE_RIGHT;
+      if (t < 0.6 && r.armR) r.armR.rotation.set(-2.6, 0, 0.3 + Math.sin(t * 14) * 0.35);
+      if (t > 0.9 && r.armL && r.armR) {
+        r.armL.rotation.set(-2.7, 0, -0.3);
+        r.armR.rotation.set(-2.7, 0, 0.3);
+      }
     } else {
-      m.position.x = 0;
-      m.rotation.y = lerp(PROFILE_RIGHT, 0, easeInOut(phase(t, 1.3, 1.7)));
+      // splash nella piscina, poi si gira e ci saluta
+      const p = easeOut(phase(t, 2.7, 3.1));
+      const end = curve.getPointAt(1);
+      s.position.set(lerp(end.x, POOL.x, p), lerp(end.y + 0.2, POOL.y, p) + Math.sin(t * 3) * 0.04, 0);
+      s.rotation.z = lerp(s.rotation.z, 0, 0.2);
+      y.rotation.y = lerp(PROFILE_RIGHT, 0.15, easeInOut(phase(t, 3.3, 3.8)));
+      if (t > 3.8 && r.armR) r.armR.rotation.set(-2.6, 0, 0.3 + Math.sin(t * 14) * 0.35);
     }
-    // braccio con le forbici verso la pellicola, poi il taglio
-    const reach = easeOut(phase(t, 1.6, 2.0));
-    if (r.armR) r.armR.rotation.set(-0.9 * reach, 0, 0.25 * reach);
-    if (blade.current) blade.current.rotation.z = t > 2.0 && t < 2.25 ? -0.5 : 0;
 
-    const split = easeOut(phase(t, 2.2, 2.7));
-    left.current.position.x = -0.95 - split * 0.35;
-    left.current.rotation.y = split * 0.25;
-    right.current.position.x = 0.95 + split * 0.35;
-    right.current.rotation.y = -split * 0.25;
-
-    const jump = phase(t, 2.5, 3.0);
-    if (r.body) r.body.position.y = Math.sin(jump * Math.PI) * 0.6;
-    if (t > 2.6 && r.armL) r.armL.rotation.set(-2.6 * easeOut(phase(t, 2.6, 2.9)), 0, -0.3);
-    if (word.current) {
-      const k = popScale(t, 2.2, 3.9);
-      word.current.scale.set(2.7 * k, k, 1);
-    }
+    drops.current.forEach((d, i) => {
+      if (!d) return;
+      const k = t - 2.8;
+      if (k < 0 || k > 0.75) {
+        d.scale.setScalar(0.001);
+        return;
+      }
+      const a = (i / drops.current.length) * Math.PI * 2;
+      d.position.set(POOL.x + Math.cos(a) * k * 1.6, 0.3 + 2.4 * k - 4.8 * k * k, Math.sin(a) * k * 1.1);
+      d.scale.setScalar(1);
+    });
+    setWord(word.current, popScale(t, 1.2, 2.9));
   });
 
   return (
-    <Diorama>
-      <group ref={left} position={[-0.95, 0, 1.3]}>
-        <FilmStrip length={1.9} />
+    <Diorama tilt={-0.18}>
+      {/* tutto un po' più piccolo e spostato a sinistra, così la piscina resta in quadro */}
+      <group scale={0.78} position={[-0.45, 0.35, 0]}>
+      <group position={[0, 1.75, -0.8]}>
+        <GraphPanel />
       </group>
-      <group ref={right} position={[0.95, 0, 1.3]}>
-        <FilmStrip length={1.9} />
+      <mesh geometry={rail}>
+        <meshStandardMaterial color="#ffc93c" roughness={0.35} />
+      </mesh>
+      <mesh geometry={water}>
+        <meshStandardMaterial color="#5ccfff" transparent opacity={0.45} roughness={0.1} />
+      </mesh>
+      <primitive object={handles} />
+      {[curve.v0, curve.v3].map((v, i) => (
+        <mesh key={`k${i}`} position={v} rotation={[0, 0, Math.PI / 4]}>
+          <boxGeometry args={[0.2, 0.2, 0.2]} />
+          <meshStandardMaterial color="#ffc93c" emissive="#ffc93c" emissiveIntensity={0.4} />
+        </mesh>
+      ))}
+      {[curve.v1, curve.v2].map((v, i) => (
+        <mesh key={`h${i}`} position={v}>
+          <sphereGeometry args={[0.07, 12, 10]} />
+          <meshBasicMaterial color="#ffc93c" />
+        </mesh>
+      ))}
+      {/* piscina d'arrivo */}
+      <mesh position={[POOL.x, 0.1, 0]}>
+        <cylinderGeometry args={[0.85, 0.85, 0.2, 40]} />
+        <meshStandardMaterial color="#5ccfff" transparent opacity={0.75} roughness={0.1} />
+      </mesh>
+      <mesh position={[POOL.x, 0.2, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.85, 0.07, 10, 40]} />
+        <meshStandardMaterial color="#f5f5f5" roughness={0.4} />
+      </mesh>
+      {Array.from({ length: 8 }, (_, i) => (
+        <mesh
+          key={`d${i}`}
+          ref={(el) => {
+            drops.current[i] = el;
+          }}
+        >
+          <sphereGeometry args={[0.07, 10, 8]} />
+          <meshStandardMaterial color="#9be3ff" transparent opacity={0.85} />
+        </mesh>
+      ))}
+      <group ref={slider}>
+        <group ref={turn} scale={0.52}>
+          <SqueakModel rig={rig} sitting />
+        </group>
       </group>
-      <group ref={mouse} scale={0.8}>
-        <Shadow />
-        <SqueakModel
-          rig={rig}
-          rightHand={
-            <group rotation={[Math.PI / 2, 0, 0]}>
-              <Scissors ref={blade} />
-            </group>
-          }
-        />
+      <TextSprite ref={word} text="Wheee!" position={[0.6, 3.0, 0.6]} color="#5ccfff" />
       </group>
-      <TextSprite ref={word} text="CUT!" position={[1.9, 2.7, 0]} />
     </Diorama>
   );
 }
@@ -117,15 +197,12 @@ function ClapScene() {
       stick.current.rotation.z = open * 0.65;
     }
     if (r.body) r.body.position.y = t > 1.02 && t < 1.4 ? Math.sin(phase(t, 1.02, 1.4) * Math.PI) * 0.25 : 0;
-    if (word.current) {
-      const k = popScale(t, 1.02, 2.8);
-      word.current.scale.set(2.7 * k, k, 1);
-    }
+    setWord(word.current, popScale(t, 1.02, 2.8), 0.9);
   });
 
   return (
-    <Diorama tilt={-0.15}>
-      <group ref={mouse} position={[-0.6, 0, 0]} scale={0.85}>
+    <Diorama tilt={-0.12}>
+      <group ref={mouse} position={[-0.5, 0, 0]} scale={0.8}>
         <Shadow />
         <SqueakModel
           rig={rig}
@@ -136,7 +213,7 @@ function ClapScene() {
           }
         />
       </group>
-      <TextSprite ref={word} text="CIAK!" position={[1.4, 3.1, 0]} />
+      <TextSprite ref={word} text="CIAK!" position={[1.2, 2.95, 0]} />
     </Diorama>
   );
 }
@@ -169,32 +246,29 @@ function CheeseScene() {
       if (r.armL) r.armL.rotation.set(-0.7 + pat, 0, 0.5);
       if (r.armR) r.armR.rotation.set(-0.7 - pat, 0, -0.5);
     }
-    if (word.current) {
-      const k = popScale(t, 2.6, 4.3);
-      word.current.scale.set(2.7 * k, k, 1);
-    }
+    setWord(word.current, popScale(t, 2.6, 4.3), 0.9);
   });
 
   return (
     <Diorama>
-      <group ref={mouse} position={[-1.1, 0, 0]} scale={0.85}>
+      <group ref={mouse} position={[-1.0, 0, 0]} scale={0.8}>
         <Shadow />
         <SqueakModel rig={rig} />
       </group>
       {/* il formaggio si "accorcia" dal lato del morso (il perno è sul lato destro) */}
-      <group ref={cheese} position={[2.25, 0, 0]}>
+      <group ref={cheese} position={[2.0, 0, 0]}>
         <group position={[-0.8, 0, 0]}>
           <Cheese />
         </group>
       </group>
-      <TextSprite ref={word} text="Gnam!" position={[-0.3, 3.2, 0]} />
+      <TextSprite ref={word} text="Gnam!" position={[-0.4, 3.0, 0]} />
     </Diorama>
   );
 }
 
 // 4. Keyframe: salta da un rombo all'altro e li accende
 function KeyframeScene() {
-  const xs = [-2.1, -0.7, 0.7, 2.1];
+  const xs = [-1.8, -0.6, 0.6, 1.8];
   const mouse = useRef<THREE.Group>(null);
   const diamonds = useRef<(THREE.Mesh | null)[]>([]);
   const rig = useRef(createRig());
@@ -208,7 +282,7 @@ function KeyframeScene() {
     const i = Math.floor(hop);
     const f = hop - i;
     const x = i >= 3 ? xs[3] : lerp(xs[i], xs[i + 1], easeInOut(f));
-    mouse.current.position.set(x, 0.56 + (i >= 3 ? 0 : Math.sin(f * Math.PI) * 1.3), 0);
+    mouse.current.position.set(x, 0.56 + (i >= 3 ? 0 : Math.sin(f * Math.PI) * 1.1), 0);
     mouse.current.rotation.y = t < 2.4 ? PROFILE_RIGHT : lerp(PROFILE_RIGHT, 0, easeInOut(phase(t, 2.4, 2.8)));
     if (t > 2.8 && r.armL && r.armR) {
       const up = easeOut(phase(t, 2.8, 3.1));
@@ -228,15 +302,19 @@ function KeyframeScene() {
   return (
     <Diorama>
       <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[5.6, 0.12]} />
+        <planeGeometry args={[4.6, 0.12]} />
         <meshStandardMaterial color="#3a3a3a" />
       </mesh>
       {xs.map((x, k) => (
-        <KeyframeDiamond key={x} position={[x, 0.3, 0]} ref={(el) => {
+        <KeyframeDiamond
+          key={x}
+          position={[x, 0.3, 0]}
+          ref={(el) => {
             diamonds.current[k] = el;
-          }} />
+          }}
+        />
       ))}
-      <group ref={mouse} scale={0.6}>
+      <group ref={mouse} scale={0.55}>
         <SqueakModel rig={rig} wow />
       </group>
     </Diorama>
@@ -265,7 +343,7 @@ function RunScene() {
   });
 
   return (
-    <Diorama tilt={-0.35}>
+    <Diorama tilt={-0.3}>
       {clips.map((c, i) => (
         <mesh key={i} position={[c.x, 0.06, 0.5 + c.lane * 0.55]}>
           <boxGeometry args={[c.w, 0.12, 0.45]} />
@@ -289,180 +367,110 @@ function RunScene() {
   );
 }
 
-// 6. Pro: passando sopra la timeline, il progetto diventa sempre più complesso
-const V_COLORS = ["#2d9be0", "#6cc8ff", "#a347d1", "#d63ab0", "#b5b53a"];
-const A_COLOR = "#4f9a2c";
-
-interface TimelineClip {
-  x: number;
-  w: number;
-  z: number;
-  color: string;
-  base: boolean;
-}
-
-function mulberry32(seed: number) {
-  return () => {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function buildTimeline(): TimelineClip[] {
-  const rand = mulberry32(7);
-  const out: TimelineClip[] = [];
-  const laneZ = (i: number, audio: boolean) => (audio ? 0.42 + i * 0.5 : -0.42 - i * 0.5);
-  // montaggio semplice iniziale: una traccia video e una audio
-  [[-4.2, 1.6], [-2.5, 2.1], [-0.3, 1.4], [1.2, 2.2], [3.5, 0.8]].forEach(([x, w]) =>
-    out.push({ x, w: w - 0.06, z: laneZ(0, false), color: V_COLORS[0], base: true }),
-  );
-  [[-4.2, 3.8], [-0.3, 3.6], [3.4, 0.9]].forEach(([x, w]) => out.push({ x, w: w - 0.06, z: laneZ(0, true), color: A_COLOR, base: true }));
-
-  // poi decine di clip: tagli fitti in V1/V2, inserti colorati in alto
-  for (let lane = 0; lane < 5; lane++) {
-    const density = [0.9, 0.75, 0.3, 0.2, 0.12][lane];
-    for (let x = -4.2; x < 4.2; ) {
-      const w = lane < 2 ? 0.05 + rand() * 0.18 : 0.06 + rand() * 0.35;
-      if (rand() < density) out.push({ x, w, z: laneZ(lane, false) + (lane === 0 ? 0 : 0), color: V_COLORS[lane], base: false });
-      x += w + (lane < 2 ? 0.03 : 0.2 + rand() * 0.5);
-    }
-  }
-  // audio a "scalini" come in un progetto vero
-  let lane = 1;
-  for (let x = -4.2; x < 4.2; ) {
-    const w = 0.25 + rand() * 0.6;
-    out.push({ x, w, z: laneZ(lane, true), color: rand() < 0.2 ? "#7fbf4d" : A_COLOR, base: false });
-    x += w + 0.05 + rand() * 0.25;
-    lane = Math.min(4, Math.max(1, lane + (rand() < 0.5 ? 1 : -1)));
-  }
-  return out.filter((c) => c.x + c.w < 4.3);
-}
-
-function ProTimelineScene() {
-  const clips = useMemo(buildTimeline, []);
-  const extra = useMemo(() => clips.filter((c) => !c.base), [clips]);
-  const base = useMemo(() => clips.filter((c) => c.base), [clips]);
-  const instanced = useRef<THREE.InstancedMesh>(null);
+// 6. Pro in arrivo: Squeak al cantiere, col caschetto, martella il cartello
+function ConstructionScene() {
   const mouse = useRef<THREE.Group>(null);
+  const word = useRef<THREE.Sprite>(null);
   const rig = useRef(createRig());
-  const dummy = useMemo(() => new THREE.Object3D(), []);
-
-  useLayoutEffect(() => {
-    const mesh = instanced.current;
-    if (!mesh) return;
-    const color = new THREE.Color();
-    extra.forEach((c, i) => mesh.setColorAt(i, color.set(c.color)));
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
-  }, [extra]);
+  const hits = [0.55, 1.25, 1.95];
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 8.5;
+    const t = state.clock.elapsedTime % 4.8;
     const r = rig.current;
-    const mesh = instanced.current;
-    if (!mesh || !mouse.current) return;
+    if (!mouse.current) return;
     resetRig(r);
 
-    // cammina da sinistra a destra lungo la linea tra video e audio
-    const walk = phase(t, 0, 6);
-    const mx = lerp(-4.8, 4.6, walk);
-    mouse.current.position.set(mx, 0, 0);
-    if (t < 6) {
-      mouse.current.rotation.y = PROFILE_RIGHT;
-      walkCycle(r, t, 11);
-    } else {
-      mouse.current.rotation.y = lerp(PROFILE_RIGHT, 0.3, easeInOut(phase(t, 6, 6.4)));
-      if (r.armL && r.armR) {
-        const up = easeOut(phase(t, 6.4, 6.8));
-        r.armL.rotation.set(-2.6 * up, 0, -0.25);
-        r.armR.rotation.set(-2.6 * up, 0, 0.25);
+    if (t < 2.4) {
+      mouse.current.rotation.y = PROFILE_RIGHT * 0.85;
+      // martellate: carica il colpo, poi giù veloce
+      let arm = -1.3;
+      for (const h of hits) {
+        if (t > h - 0.4 && t <= h) arm = lerp(-1.3, -2.8, easeOut(phase(t, h - 0.4, h - 0.1)));
+        if (t > h && t < h + 0.12) arm = lerp(-2.8, -1.0, phase(t, h, h + 0.08));
       }
+      if (r.armR) r.armR.rotation.set(arm, 0, 0.15);
+      const hitNow = hits.find((h) => t > h && t < h + 0.35);
+      setWord(word.current, hitNow ? popScale(t, hitNow, hitNow + 0.35) : 0.001, 0.7);
+    } else {
+      setWord(word.current, 0.001);
+      mouse.current.rotation.y = lerp(PROFILE_RIGHT * 0.85, 0.1, easeInOut(phase(t, 2.4, 2.8)));
+      if (t > 2.8 && t < 4.4) {
+        // si asciuga la fronte e saluta
+        if (r.armL) r.armL.rotation.set(-2.6, 0, -0.3 - Math.sin(t * 12) * 0.35);
+        if (r.head) r.head.rotation.z = Math.sin(t * 3) * 0.1;
+      }
+      if (t >= 4.4) mouse.current.rotation.y = lerp(0.1, PROFILE_RIGHT * 0.85, easeInOut(phase(t, 4.4, 4.8)));
     }
-
-    // le clip "nascono" dietro di lui; alla fine spariscono per ricominciare
-    const fade = 1 - easeInOut(phase(t, 7.8, 8.4));
-    extra.forEach((c, i) => {
-      const grow = easeOut(Math.min(1, Math.max(0, (mx - c.x) / 0.5))) * fade;
-      dummy.position.set(c.x + c.w / 2, 0.07 * grow, c.z);
-      dummy.scale.set(c.w, Math.max(0.001, 0.14 * grow), 0.4 * Math.max(0.001, grow));
-      dummy.updateMatrix();
-      mesh.setMatrixAt(i, dummy.matrix);
-    });
-    mesh.instanceMatrix.needsUpdate = true;
   });
 
   return (
-    <group rotation={[0, -0.12, 0]}>
-      {/* piano della timeline con le corsie */}
-      <mesh position={[0, -0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[9, 5.4]} />
-        <meshStandardMaterial color="#161616" />
-      </mesh>
-      {Array.from({ length: 10 }, (_, i) => {
-        const z = i < 5 ? -0.42 - i * 0.5 : 0.42 + (i - 5) * 0.5;
-        return (
-          <mesh key={i} position={[0, 0, z + 0.25 * Math.sign(z)]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[9, 0.012]} />
-            <meshBasicMaterial color="#2c2c2c" />
-          </mesh>
-        );
-      })}
-      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[9, 0.06]} />
-        <meshBasicMaterial color="#3a3a3a" />
-      </mesh>
-      {base.map((c, i) => (
-        <mesh key={i} position={[c.x + c.w / 2, 0.07, c.z]}>
-          <boxGeometry args={[c.w, 0.14, 0.4]} />
-          <meshStandardMaterial color={c.color} roughness={0.5} />
-        </mesh>
-      ))}
-      <instancedMesh ref={instanced} args={[undefined, undefined, extra.length]}>
-        <boxGeometry args={[1, 1, 1]} />
-        <meshStandardMaterial roughness={0.5} />
-      </instancedMesh>
-      <group ref={mouse} scale={0.55}>
-        <Shadow />
-        <SqueakModel rig={rig} />
+    <Diorama tilt={-0.15}>
+      <group position={[0, 0, -1.3]}>
+        <Barrier width={3.4} />
       </group>
-    </group>
+      <group position={[1.7, 0, -0.2]} rotation={[0, -0.45, 0]}>
+        <WorkSign lines={["SQUEAKEDIT PRO", "IN ARRIVO"]} />
+      </group>
+      <group position={[-2.3, 0, 0.4]}>
+        <TrafficCone />
+      </group>
+      <group position={[2.7, 0, 0.7]} scale={0.85}>
+        <TrafficCone />
+      </group>
+      <group position={[-1.5, 0, -0.5]} scale={0.8}>
+        <Bricks />
+      </group>
+      <group ref={mouse} position={[0.15, 0, 0.35]} scale={0.72}>
+        <Shadow />
+        <SqueakModel
+          rig={rig}
+          hat={<HardHat />}
+          outfit={<SafetyVest />}
+          rightHand={
+            <group rotation={[0, 0, 0]}>
+              <Hammer />
+            </group>
+          }
+        />
+      </group>
+      <TextSprite ref={word} text="TOC!" position={[1.4, 2.7, 0.3]} color="#ff9a5c" />
+    </Diorama>
   );
 }
 
-// 7. Community: Squeak mostra fiero il logo di Discord
+// 7. Community: Squeak tiene in mano il logo di Discord in 3D
 function DiscordScene() {
   const mouse = useRef<THREE.Group>(null);
-  const badge = useRef<THREE.Group>(null);
+  const logo = useRef<THREE.Group>(null);
   const rig = useRef(createRig());
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
-    const u = t % 4;
+    const u = t % 4.4;
     const r = rig.current;
-    if (!mouse.current || !badge.current) return;
+    if (!mouse.current || !logo.current) return;
     resetRig(r);
-    const lift = u > 2.4 && u < 3.6 ? Math.sin(phase(u, 2.4, 3.6) * Math.PI) : 0;
+    // ogni tanto lo alza sopra la testa, passando davanti al muso (mai attraverso)
+    const lift = u > 2.6 && u < 4.0 ? Math.sin(phase(u, 2.6, 4.0) * Math.PI) : 0;
     if (r.armL && r.armR) {
-      r.armL.rotation.set(-1.2 - lift * 1.1, 0, -0.45);
-      r.armR.rotation.set(-1.2 - lift * 1.1, 0, 0.45);
+      r.armL.rotation.set(-1.45 - lift * 1.2, 0, -0.35);
+      r.armR.rotation.set(-1.45 - lift * 1.2, 0, 0.35);
     }
-    if (r.body) r.body.position.y = lift * 0.35;
-    if (r.head) r.head.rotation.z = Math.sin(t * 1.5) * 0.12;
-    mouse.current.rotation.y = Math.sin(t * 0.8) * 0.35;
-    badge.current.position.set(0, 1.45 + lift * 1.15, 1.25 - lift * 0.3);
-    badge.current.rotation.set(-0.1, 0, Math.sin(t * 2) * 0.08);
+    if (r.body) r.body.position.y = lift * 0.25;
+    if (r.head) r.head.rotation.x = -lift * 0.35;
+    mouse.current.rotation.y = Math.sin(t * 0.8) * 0.3;
+    logo.current.position.set(0, 1.05 + lift * 2.1 + Math.sin(t * 2.2) * 0.04, 1.42 + Math.sin(lift * Math.PI) * 0.45);
+    logo.current.rotation.set(-0.08 - lift * 0.3, Math.sin(t * 1.3) * 0.25, Math.sin(t * 2) * 0.06);
   });
 
   return (
     <Diorama tilt={0}>
-      <group ref={mouse} scale={0.9}>
+      <group ref={mouse} scale={0.85}>
         <Shadow />
         <SqueakModel rig={rig} wow />
-        <group ref={badge}>
-          <group scale={1.35}>
-            <DiscordBadge />
+        <group ref={logo}>
+          <group scale={0.6}>
+            <DiscordLogo3D />
           </group>
         </group>
       </group>
@@ -470,22 +478,24 @@ function DiscordScene() {
   );
 }
 
-const SCENES = {
-  cut: { Component: CutScene, camera: [0, 2.4, 8.2] as [number, number, number], target: [0, 1.25, 0] as [number, number, number] },
-  clap: { Component: ClapScene, camera: [0, 2.3, 7.6] as [number, number, number], target: [0, 1.6, 0] as [number, number, number] },
-  cheese: { Component: CheeseScene, camera: [0, 2.4, 8.2] as [number, number, number], target: [0, 1.3, 0] as [number, number, number] },
-  keyframe: { Component: KeyframeScene, camera: [0, 2.3, 8.4] as [number, number, number], target: [0, 1.2, 0] as [number, number, number] },
-  run: { Component: RunScene, camera: [0, 3, 9.5] as [number, number, number], target: [0, 0.9, 0.6] as [number, number, number] },
-  pro: { Component: ProTimelineScene, camera: [0, 6.2, 7.6] as [number, number, number], target: [0, 0, 0.2] as [number, number, number] },
-  discord: { Component: DiscordScene, camera: [0, 2.2, 8.5] as [number, number, number], target: [0, 1.5, 0] as [number, number, number] },
+type V3 = [number, number, number];
+
+const SCENES: Record<string, { Component: () => ReactNode; camera: V3; target: V3 }> = {
+  slide: { Component: SlideScene, camera: [0, 2.1, 9.6], target: [0, 1.65, 0] },
+  clap: { Component: ClapScene, camera: [0, 2.3, 8.2], target: [0, 1.55, 0] },
+  cheese: { Component: CheeseScene, camera: [0, 2.4, 8.6], target: [0, 1.3, 0] },
+  keyframe: { Component: KeyframeScene, camera: [0, 2.3, 8.4], target: [0, 1.2, 0] },
+  run: { Component: RunScene, camera: [0, 3, 9.5], target: [0, 0.9, 0.6] },
+  construction: { Component: ConstructionScene, camera: [0, 2.4, 9], target: [0, 1.25, 0] },
+  discord: { Component: DiscordScene, camera: [0, 2.0, 7.4], target: [0, 1.5, 0] },
 };
 
-export type SiteSceneName = keyof typeof SCENES;
+export type SiteSceneName = "slide" | "clap" | "cheese" | "keyframe" | "run" | "construction" | "discord";
 
 export default function SiteScene({ name, className }: { name: SiteSceneName; className?: string }) {
   const { Component, camera, target } = SCENES[name];
   return (
-    <Stage className={className} camera={camera} target={target}>
+    <Stage className={className} camera={camera} target={target} fade>
       <Component />
     </Stage>
   );

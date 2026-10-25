@@ -100,7 +100,7 @@ export default function LoungeHero({ className }: { className?: string }) {
   const { handlers, step } = useDragYaw();
   return (
     <div className={className} {...handlers} style={{ touchAction: "pan-y", cursor: "grab" }}>
-      <Stage eager className="h-full w-full" camera={[0, 2.3, 10]} target={[0, 1.35, 0]} fov={30}>
+      <Stage eager fade className="h-full w-full" camera={[0, 2.3, 10.5]} target={[0, 1.35, 0]} fov={30}>
         <Lounge yaw={step} />
       </Stage>
     </div>

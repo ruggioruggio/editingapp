@@ -12,7 +12,7 @@ export const brand = {
   description:
     "Il modo gratuito e divertente di imparare montaggio, color correction e motion graphics: micro-lezioni ed esercizi in un editor stile Premiere Pro.",
   // Segnaposto finché non ci sono gli account reali
-  discordUrl: "https://discord.gg/your-invite",
+  discordUrl: "https://discord.gg/Xx2XrR9ug9",
   appStoreUrl: null as string | null,
   playStoreUrl: null as string | null,
 } as const;

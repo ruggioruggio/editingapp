@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import clsx from "clsx";
 import { Markdown } from "@/components/ai/Markdown";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
-import { getLegalDoc, LEGAL_DOCS, LEGAL_UPDATED } from "@/content/legal";
+import { getLegalDoc, LEGAL_UPDATED, PUBLISHED_LEGAL_DOCS as LEGAL_DOCS } from "@/content/legal";
 
 type Props = { params: Promise<{ slug: string }> };
 

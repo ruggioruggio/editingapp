@@ -2,6 +2,8 @@
 // quadre] e fatti verificare da un legale prima della pubblicazione.
 // Formato: Markdown semplice (titoli ##, elenchi, **grassetto**).
 
+import { features } from "@/config/features";
+
 export const LEGAL_UPDATED = "25 ottobre 2026";
 
 const COMPANY = "[RAGIONE SOCIALE], con sede in [INDIRIZZO], P.IVA [P.IVA]";
@@ -13,6 +15,8 @@ export interface LegalDoc {
   title: string;
   summary: string;
   body: string;
+  /** visibile solo quando i pagamenti sono attivi (vedi config/features.ts) */
+  needsPayments?: boolean;
 }
 
 export const LEGAL_DOCS: LegalDoc[] = [
@@ -25,7 +29,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
 SqueakEdit è un servizio di ${COMPANY} ("**noi**"). Per qualsiasi domanda puoi scriverci a ${EMAIL}.
 
 ## 2. Accettazione
-Usando SqueakEdit (sito, app web, app per telefono e computer) accetti questi Termini, l'Informativa privacy, le Condizioni di acquisto e le Regole della community. Se non li accetti, non usare il servizio.
+Usando SqueakEdit (sito, app web, app per telefono e computer) accetti questi Termini, l'Informativa privacy e le Regole della community. Quando saranno disponibili funzioni a pagamento, il loro acquisto sarà regolato da apposite Condizioni di acquisto. Se non li accetti, non usare il servizio.
 
 ## 3. Età minima
 - Per creare un account devi avere almeno **14 anni**.
@@ -39,11 +43,11 @@ Usando SqueakEdit (sito, app web, app per telefono e computer) accetti questi Te
 ## 5. Cosa offriamo
 - Lezioni di montaggio, quiz ed esercizi in un editor nel browser che simula programmi professionali.
 - Funzioni social: amici, chat, serie condivise e attività degli amici.
-- Con il piano Pro: lezioni illimitate e **Squeak AI**.
+- In futuro, con il piano Pro: lezioni illimitate e **Squeak AI** (oggi in arrivo, non ancora disponibili).
 SqueakEdit **non è affiliato ad Adobe**: Premiere Pro e After Effects sono marchi di Adobe Inc. e vengono citati solo a scopo didattico.
 
 ## 6. Piano gratuito e Pro
-Il piano gratuito permette fino a 5 lezioni al giorno. Le condizioni economiche del piano Pro sono descritte nelle Condizioni di acquisto. Possiamo modificare contenuti e funzioni per migliorare il servizio; se una modifica riduce in modo sostanziale ciò che hai pagato, te lo comunichiamo con anticipo.
+SqueakEdit oggi è gratuito e permette fino a 5 lezioni al giorno. Il piano Pro è in preparazione: prezzi e condizioni verranno pubblicati prima che sia possibile acquistarlo. Possiamo modificare contenuti e funzioni per migliorare il servizio; se una modifica riduce in modo sostanziale ciò che hai pagato, te lo comunichiamo con anticipo.
 
 ## 7. Squeak AI
 - Squeak AI è un assistente basato su intelligenza artificiale. Le risposte possono contenere **errori**: verificale prima di applicarle, soprattutto su progetti importanti. Fai sempre un backup del progetto prima di modificarlo.
@@ -82,8 +86,8 @@ ${COMPANY}. Contatto per la privacy: ${PRIVACY_EMAIL}.
 - **Account**: email, nome utente, password (salvata solo in forma cifrata dal fornitore di autenticazione), eventuale nome mostrato.
 - **Progressi**: lezioni completate, XP, serie, quest, obiettivi, statistiche degli esercizi.
 - **Social**: richieste di amicizia, elenco amici, messaggi in chat, attività condivise con gli amici (lezioni completate, obiettivi sbloccati, serie).
-- **Squeak AI**: le domande che scrivi e i file che carichi (immagini, PDF, progetti Premiere o After Effects). I file di progetto possono contenere nomi di file e percorsi del tuo computer.
-- **Acquisti**: stato dell'abbonamento e storico dei pagamenti. I dati della carta sono gestiti direttamente dal fornitore di pagamento (Stripe, Apple o Google): noi non li vediamo.
+- **Squeak AI** (quando sarà disponibile): le domande che scrivi e i file che carichi (immagini, PDF, progetti Premiere o After Effects). I file di progetto possono contenere nomi di file e percorsi del tuo computer.
+- **Acquisti** (quando il piano Pro sarà disponibile): stato dell'abbonamento e storico dei pagamenti. I dati della carta sono gestiti direttamente dal fornitore di pagamento (Stripe, Apple o Google): noi non li vediamo.
 - **Dati tecnici**: indirizzo IP, tipo di dispositivo e browser, registri di errore, necessari per sicurezza e funzionamento.
 
 ## 3. Perché e su quale base giuridica
@@ -129,6 +133,7 @@ Usiamo connessioni cifrate, accesso ai dati limitato per utente (regole di sicur
     slug: "acquisti",
     title: "Condizioni di acquisto e abbonamenti",
     summary: "Prezzi, rinnovo, disdetta, recesso e rimborsi del piano Pro.",
+    needsPayments: true,
     body: `
 ## 1. Venditore
 ${COMPANY}. Assistenza acquisti: ${EMAIL}.
@@ -231,4 +236,7 @@ A seconda della gravità: avviso, blocco temporaneo della chat, sospensione o ch
   },
 ];
 
-export const getLegalDoc = (slug: string) => LEGAL_DOCS.find((d) => d.slug === slug);
+/** Documenti pubblicati ora: le condizioni di acquisto restano nascoste finché non si vende. */
+export const PUBLISHED_LEGAL_DOCS = LEGAL_DOCS.filter((d) => !d.needsPayments || features.payments);
+
+export const getLegalDoc = (slug: string) => PUBLISHED_LEGAL_DOCS.find((d) => d.slug === slug);

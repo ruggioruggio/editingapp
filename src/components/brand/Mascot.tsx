@@ -91,8 +91,8 @@ export function Mascot({
 }
 
 /**
- * Icona dell'app: la testa di Squeak di profilo che "entra" dall'angolo in basso
- * a destra e guarda in alto a sinistra, su gradiente nero/grigio scuro.
+ * Icona dell'app: la testa tonda di Squeak che sbuca dall'angolo in basso a
+ * destra e guarda in alto a sinistra, su gradiente nero/grigio scuro.
  * Stesso disegno di app/icon.svg.
  */
 export function AppIcon({ size = 32, className }: { size?: number; className?: string }) {
@@ -111,10 +111,10 @@ export function AppIcon({ size = 32, className }: { size?: number; className?: s
           <stop offset="0.5" stopColor="#1a1a1e" />
           <stop offset="1" stopColor="#050506" />
         </linearGradient>
-        <radialGradient id="sq-icon-head" cx="0.35" cy="0.3" r="0.85">
+        <radialGradient id="sq-icon-head" cx="0.35" cy="0.3" r="0.8">
           <stop offset="0" stopColor="#ffffff" />
-          <stop offset="0.65" stopColor="#e3e5ec" />
-          <stop offset="1" stopColor="#b3b7c6" />
+          <stop offset="0.7" stopColor="#e6e8ef" />
+          <stop offset="1" stopColor="#bfc3d0" />
         </radialGradient>
         <clipPath id="sq-icon-clip">
           <rect width="100" height="100" rx="24" />
@@ -122,25 +122,43 @@ export function AppIcon({ size = 32, className }: { size?: number; className?: s
       </defs>
       <g clipPath="url(#sq-icon-clip)">
         <rect width="100" height="100" fill="url(#sq-icon-bg)" />
-        {/* orecchie */}
-        <circle cx="62" cy="23" r="17" fill="#cfd2dc" />
-        <circle cx="62" cy="23" r="10.5" fill="#ffaec6" />
-        <circle cx="87" cy="31" r="15" fill="#b9bdca" />
-        <circle cx="87" cy="31" r="9" fill="#f39ab5" />
-        {/* testa con muso a punta verso l'alto a sinistra */}
-        <path
-          d="M104 104 L104 52 C104 34 88 26 70 31 C55 35 38 40 24 44 C14 47 13 58 22 61 C36 65 46 76 50 104 Z"
-          fill="url(#sq-icon-head)"
-        />
-        <g stroke="#8d909c" strokeWidth="1.6" strokeLinecap="round">
-          <path d="M27 55 L7 50" />
-          <path d="M27 58 L8 60" />
-          <path d="M29 61 L12 69" />
+        {/* orecchie tonde */}
+        <circle cx="32" cy="42" r="17" fill="#cdd1dc" />
+        <circle cx="33" cy="43" r="10.5" fill="#ffadc5" />
+        <circle cx="66" cy="26" r="17" fill="#cdd1dc" />
+        <circle cx="66" cy="27" r="10.5" fill="#ffadc5" />
+        {/* testa tonda che sbuca dall'angolo */}
+        <circle cx="64" cy="74" r="42" fill="url(#sq-icon-head)" />
+        <ellipse cx="51" cy="78" rx="13" ry="9.5" transform="rotate(-18 51 78)" fill="#ffffff" />
+        <ellipse cx="35" cy="73" rx="5" ry="3.4" transform="rotate(-18 35 73)" fill="#ffadc5" opacity="0.7" />
+        <ellipse cx="72" cy="66" rx="5" ry="3.4" transform="rotate(-18 72 66)" fill="#ffadc5" opacity="0.7" />
+        {/* occhioni lucidi che guardano in alto a sinistra */}
+        <g transform="rotate(-15 46 61)">
+          <ellipse cx="46" cy="61" rx="6" ry="7.6" fill="#15151b" />
+          <circle cx="44" cy="58.2" r="2.5" fill="#fff" />
+          <circle cx="48" cy="64" r="1.1" fill="#fff" />
         </g>
-        <ellipse cx="46" cy="47" rx="4.6" ry="7.6" transform="rotate(-28 46 47)" fill="#0d0d12" />
-        <circle cx="44.6" cy="43.6" r="1.6" fill="#fff" />
-        <circle cx="20" cy="51" r="5.2" fill="#ff6f9a" />
-        <path d="M30 63 Q34 66 38 64" stroke="#55586a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        <g transform="rotate(-15 66 55)">
+          <ellipse cx="66" cy="55" rx="6" ry="7.6" fill="#15151b" />
+          <circle cx="64" cy="52.2" r="2.5" fill="#fff" />
+          <circle cx="68" cy="58" r="1.1" fill="#fff" />
+        </g>
+        <ellipse cx="47" cy="73.5" rx="4.8" ry="3.6" transform="rotate(-18 47 73.5)" fill="#ff6f9a" />
+        <circle cx="45.6" cy="72.4" r="1.2" fill="#fff" opacity="0.8" />
+        <path
+          d="M43 80 q3 3.4 6 0 q3 3.4 6 0"
+          transform="rotate(-18 49 80)"
+          stroke="#5a5d6e"
+          strokeWidth="1.6"
+          fill="none"
+          strokeLinecap="round"
+        />
+        <g stroke="#9ca0ad" strokeWidth="1.4" strokeLinecap="round">
+          <path d="M36 79 L22 77" />
+          <path d="M37 82.5 L24 87" />
+          <path d="M63 74 L76 70" />
+          <path d="M64 77.5 L77 78" />
+        </g>
       </g>
     </svg>
   );

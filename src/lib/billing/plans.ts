@@ -1,4 +1,5 @@
 import { brand } from "@/config/brand";
+import { features } from "@/config/features";
 import { todayKey } from "@/lib/date";
 import type { DailyUsage } from "@/lib/progress/store";
 
@@ -46,12 +47,15 @@ export function lessonsUsedToday(daily: DailyUsage): number {
   return daily.day === todayKey() ? daily.lessonIds.length : 0;
 }
 
+/** Finché i pagamenti sono spenti, tutti sono sul piano gratuito. */
+export const effectivePlan = (plan: PlanId): PlanId => (features.payments ? plan : "free");
+
 /** Rifare una lezione già iniziata oggi non consuma un altro slot. */
 export function canStartLesson(plan: PlanId, daily: DailyUsage, lessonId: string): boolean {
-  const limit = PLANS[plan].dailyLessonLimit;
+  const limit = PLANS[effectivePlan(plan)].dailyLessonLimit;
   if (limit === null) return true;
   if (daily.day === todayKey() && daily.lessonIds.includes(lessonId)) return true;
   return lessonsUsedToday(daily) < limit;
 }
 
-export const hasAiAssistant = (plan: PlanId) => PLANS[plan].aiAssistant;
+export const hasAiAssistant = (plan: PlanId) => features.squeakAi && PLANS[effectivePlan(plan)].aiAssistant;

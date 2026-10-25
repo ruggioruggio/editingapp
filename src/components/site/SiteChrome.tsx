@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { brand } from "@/config/brand";
+import { features } from "@/config/features";
 
 export function SiteHeader() {
   return (
@@ -54,7 +55,7 @@ const FOOTER: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: "Termini di servizio", href: "/legal/termini" },
       { label: "Privacy", href: "/legal/privacy" },
-      { label: "Acquisti e abbonamenti", href: "/legal/acquisti" },
+      ...(features.payments ? [{ label: "Acquisti e abbonamenti", href: "/legal/acquisti" }] : []),
       { label: "Cookie", href: "/legal/cookie" },
       { label: "Regole della community", href: "/legal/community" },
     ],

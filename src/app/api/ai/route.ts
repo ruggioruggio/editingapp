@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse, type NextRequest } from "next/server";
+import { features } from "@/config/features";
 import { getLesson } from "@/content/lessons";
 import { isPracticeId } from "@/content/practice";
 import { analyzeFile, FileRejected, MAX_FILES } from "@/lib/ai/files";
@@ -74,6 +75,7 @@ function errorMessage(err: unknown): string {
 }
 
 export async function POST(request: NextRequest) {
+  if (!features.squeakAi) return fail(503, "Squeak AI è in arrivo: non è ancora disponibile.");
   const access = await checkAccess();
   if (access instanceof NextResponse) return access;
   if (rateLimited(access.key)) return fail(429, "Hai fatto molte domande di fila: riprova tra qualche minuto.");

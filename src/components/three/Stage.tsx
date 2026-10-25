@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 import clsx from "clsx";
+
+const EDGES =
+  "linear-gradient(to right, transparent, #000 9%, #000 91%, transparent), linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)";
+const FADE_EDGES: CSSProperties = {
+  maskImage: EDGES,
+  WebkitMaskImage: EDGES,
+  maskComposite: "intersect",
+  WebkitMaskComposite: "source-in",
+};
 
 /**
  * Contenitore delle scene 3D. Il canvas WebGL esiste solo quando la scena è
@@ -16,6 +25,7 @@ export function Stage({
   target = [0, 1.2, 0],
   fov = 30,
   eager = false,
+  fade = false,
 }: {
   children: ReactNode;
   className?: string;
@@ -24,6 +34,8 @@ export function Stage({
   fov?: number;
   /** monta subito, senza aspettare che sia visibile (hero, splash) */
   eager?: boolean;
+  /** sfuma i bordi: ciò che esce dall'inquadratura svanisce invece di essere tagliato */
+  fade?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(eager);
@@ -38,7 +50,7 @@ export function Stage({
   }, [eager]);
 
   return (
-    <div ref={ref} className={clsx("relative", className)}>
+    <div ref={ref} className={clsx("relative", className)} style={fade ? FADE_EDGES : undefined}>
       {visible && (
         <Canvas
           dpr={[1, 2]}

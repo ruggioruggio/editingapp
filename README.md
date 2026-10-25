@@ -62,6 +62,14 @@ Come funziona:
 - `friendships`: richieste e amicizie; solo chi riceve la richiesta può accettarla.
 - Al login i progressi da ospite vengono fusi con quelli dell'account ([`lib/progress/merge.ts`](src/lib/progress/merge.ts)); poi ogni modifica viene salvata dopo 1,5 s ([`SupabaseSync`](src/components/app/SupabaseSync.tsx)). Al logout i dati locali vengono cancellati.
 
+## Funzioni a pagamento (in pausa)
+
+Per ora SqueakEdit è gratuito. In [`config/features.ts`](src/config/features.ts) due interruttori spengono tutto ciò che è a pagamento:
+- `payments: false` → il piano Pro appare "In arrivo", nessuno può attivarlo e le **Condizioni di acquisto** restano nel codice ma non vengono pubblicate.
+- `squeakAi: false` → la tab Squeak AI mostra un'anteprima "in arrivo" e l'API risponde che non è ancora disponibile.
+
+Quando ci sarà un venditore in regola basta metterli a `true`.
+
 ## Amici
 
 Con un account: chat in tempo reale (solo tra amici), **serie condivise** (giorni consecutivi in cui entrambi fate lezione) e la bacheca con lezioni completate, obiettivi sbloccati e traguardi di serie degli amici. Le attività vengono pubblicate da [`SupabaseSync`](src/components/app/SupabaseSync.tsx) quando cambiano i progressi.

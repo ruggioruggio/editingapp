@@ -5,6 +5,7 @@ import { Dock } from "@/components/app/Dock";
 import { Splash } from "@/components/app/Splash";
 import { StatsBar } from "@/components/app/StatsBar";
 import { Logo } from "@/components/brand/Logo";
+import { features } from "@/config/features";
 
 export default function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -20,7 +21,7 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
               aria-label="SqueakEdit Pro"
               className="flex items-center gap-1 rounded-full bg-linear-to-r from-cheese to-[#ff9a5c] px-2.5 py-1 text-xs font-black text-[#3a2500] shadow-[0_2px_12px_rgb(255_201_60/0.35)] hover:brightness-110"
             >
-              <Crown size={14} /> <span className="hidden sm:inline">PRO</span>
+              <Crown size={14} /> <span className="hidden sm:inline">PRO{features.payments ? "" : " · presto"}</span>
             </Link>
             <AccountMenu />
           </div>

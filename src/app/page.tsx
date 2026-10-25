@@ -9,6 +9,7 @@ import {
   Diamond,
   Film,
   Flame,
+  Hammer,
   MessagesSquare,
   Palette,
   Scissors,
@@ -25,6 +26,7 @@ import { Reveal } from "@/components/site/Reveal";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { StoreButtons } from "@/components/site/StoreButtons";
 import { brand } from "@/config/brand";
+import { COMING_SOON, features } from "@/config/features";
 import { allLessons, sections } from "@/content/course";
 
 const TOPICS = [
@@ -132,7 +134,7 @@ export default function LandingPage() {
             passi dal primo taglio a un montaggio completo.
           </>
         }
-        art={<SiteScene name="cut" className="aspect-[5/4] w-full" />}
+        art={<SiteScene name="slide" className="aspect-[5/4] w-full" />}
       />
 
       <FeatureRow
@@ -195,17 +197,27 @@ export default function LandingPage() {
             <div>
               <p className="mb-2 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-cheese">
                 <Crown size={18} /> {brand.appName} Pro
+                {!features.payments && (
+                  <span className="rounded-full bg-cheese/20 px-2 py-0.5 text-[11px] tracking-normal">{COMING_SOON}</span>
+                )}
               </p>
               <h2 className="mb-3 text-3xl font-black md:text-4xl">Lezioni illimitate e {brand.aiName}</h2>
               <p className="mb-6 text-ink-dim">
                 Niente limite giornaliero e un assistente che guarda la tua timeline e ti spiega cosa non va.
+                {!features.payments && " Squeak ci sta lavorando: arriva presto!"}
               </p>
-              <Link href="/pricing" className="btn-3d inline-block rounded-2xl bg-pr px-8 py-3.5 font-black uppercase text-pr-deep">
-                Scopri Pro
-              </Link>
+              {features.payments ? (
+                <Link href="/pricing" className="btn-3d inline-block rounded-2xl bg-pr px-8 py-3.5 font-black uppercase text-pr-deep">
+                  Scopri Pro
+                </Link>
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-2xl border-2 border-cheese/40 px-6 py-3 font-black uppercase text-cheese">
+                  <Hammer size={18} /> Lavori in corso
+                </span>
+              )}
             </div>
-            {/* Squeak attraversa la timeline: da pochi tagli a un progetto con 10 tracce */}
-            <SiteScene name="pro" className="aspect-[4/3] w-full" />
+            {/* Squeak al cantiere: Pro è in costruzione */}
+            <SiteScene name="construction" className="aspect-[4/3] w-full" />
           </div>
         </Reveal>
       </section>
@@ -213,7 +225,7 @@ export default function LandingPage() {
       {/* Community */}
       <section className="mx-auto max-w-5xl px-6 pb-16">
         <Reveal className="flex flex-col items-center gap-6 rounded-[32px] border border-line bg-panel p-8 text-center md:flex-row md:text-left">
-          <SiteScene name="discord" className="aspect-square w-48 shrink-0" />
+          <SiteScene name="discord" className="aspect-square w-56 shrink-0" />
           <div className="flex-1">
             <h2 className="mb-2 text-2xl font-black">Entra nella community</h2>
             <p className="text-ink-dim">Aggiornamenti, sfide di montaggio e feedback diretto: ci vediamo su Discord.</p>

@@ -4,10 +4,11 @@ import { useEffect, useRef, useState, type DragEvent, type FormEvent, type Keybo
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
-import { ArrowUp, Crown, FileVideo, ImageIcon, Lock, Paperclip, Play, Square, X } from "lucide-react";
+import { ArrowUp, Crown, FileVideo, Hammer, ImageIcon, Lock, Paperclip, Play, Square, X } from "lucide-react";
 import { AppIcon } from "@/components/brand/Mascot";
 import { Squeak3D } from "@/components/brand/Squeak3DLazy";
 import { brand } from "@/config/brand";
+import { COMING_SOON, features } from "@/config/features";
 import { getLesson } from "@/content/lessons";
 import type { PracticeScenarioId } from "@/content/practice";
 import type { AiHistoryItem, AiStreamEvent } from "@/lib/ai/types";
@@ -67,6 +68,7 @@ export function AiChat() {
 
   if (!hydrated) return <div className="h-96" />;
   // il server controlla comunque il piano: questo è solo per mostrare l'invito
+  if (!features.squeakAi) return <ComingSoonState />;
   if (!hasAiAssistant(plan)) return <LockedState />;
 
   const addFiles = (list: FileList | File[]) => {
@@ -348,6 +350,12 @@ function Thinking() {
   );
 }
 
+const AI_PERKS = [
+  "Fai qualsiasi domanda su Premiere Pro e After Effects",
+  "Allega screenshot e progetti .prproj o .aep: Squeak li esamina",
+  "Ricevi la soluzione passo passo e provala subito nell'editor di SqueakEdit",
+];
+
 function LockedState() {
   return (
     <div className="flex flex-col items-center text-center">
@@ -361,15 +369,41 @@ function LockedState() {
         {brand.aiName} è incluso in <span className="text-cheese">Pro</span>
       </h1>
       <ul className="mt-5 max-w-md space-y-2 text-left text-ink-dim">
-        <li>• Fai qualsiasi domanda su Premiere Pro e After Effects</li>
-        <li>• Allega screenshot e progetti .prproj o .aep: Squeak li esamina</li>
-        <li>• Ricevi la soluzione passo passo e provala subito nell&apos;editor di SqueakEdit</li>
+        {AI_PERKS.map((p) => (
+          <li key={p}>• {p}</li>
+        ))}
       </ul>
       <Link
         href="/pricing"
         className="btn-3d mt-7 flex items-center gap-2 rounded-2xl bg-linear-to-r from-cheese to-[#ff9a5c] px-8 py-3.5 font-black uppercase text-[#3a2500]"
       >
         <Crown size={18} /> Passa a Pro
+      </Link>
+    </div>
+  );
+}
+
+/** Finché Squeak AI non è attiva: anteprima di cosa farà. */
+function ComingSoonState() {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <div className="relative">
+        <Squeak3D mode="turntable" className="h-56 w-56" />
+        <span className="absolute right-4 top-6 flex items-center gap-1 rounded-full bg-cheese px-3 py-1.5 text-xs font-black text-[#3a2500] shadow-lg">
+          <Hammer size={14} /> {COMING_SOON}
+        </span>
+      </div>
+      <h1 className="text-3xl font-black">
+        {brand.aiName} sta <span className="text-cheese">arrivando</span>
+      </h1>
+      <p className="mt-2 max-w-md text-ink-dim">Squeak ci sta ancora lavorando. Ecco cosa potrai fare:</p>
+      <ul className="mt-5 max-w-md space-y-2 text-left text-ink-dim">
+        {AI_PERKS.map((p) => (
+          <li key={p}>• {p}</li>
+        ))}
+      </ul>
+      <Link href="/learn" className="btn-3d mt-7 rounded-2xl bg-success px-8 py-3.5 font-black uppercase text-[#08311f]">
+        Intanto continua a imparare
       </Link>
     </div>
   );

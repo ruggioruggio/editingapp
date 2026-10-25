@@ -1,8 +1,9 @@
 "use client";
 
 import clsx from "clsx";
-import { Check, Crown } from "lucide-react";
-import { PLANS, type PlanId } from "@/lib/billing/plans";
+import { Check, Crown, Hammer } from "lucide-react";
+import { COMING_SOON, features } from "@/config/features";
+import { effectivePlan, PLANS, type PlanId } from "@/lib/billing/plans";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useProgress } from "@/lib/progress/store";
 import { useAuth } from "@/lib/supabase/auth";
@@ -11,7 +12,7 @@ const eur = (n: number) => n.toLocaleString("it-IT", { style: "currency", curren
 
 export function PricingTable() {
   const hydrated = useHydrated();
-  const plan = useProgress((s) => s.plan);
+  const plan = useProgress((s) => effectivePlan(s.plan));
   const setPlan = useProgress((s) => s.setPlan);
   // con un account il piano arriva dal server: la simulazione vale solo da ospite
   const signedIn = useAuth((s) => s.status === "user");
@@ -22,6 +23,7 @@ export function PricingTable() {
         const p = PLANS[id];
         const isPro = id === "pro";
         const isCurrent = hydrated && plan === id;
+        const comingSoon = isPro && !features.payments;
         return (
           <div
             key={id}
@@ -35,17 +37,29 @@ export function PricingTable() {
                 {isPro && <Crown size={20} className="text-cheese" />}
                 {p.name}
               </h2>
-              {isCurrent && (
-                <span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs font-bold text-accent">Piano attuale</span>
+              {isCurrent && <span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs font-bold text-accent">Piano attuale</span>}
+              {comingSoon && (
+                <span className="flex items-center gap-1 rounded-full bg-cheese/20 px-2 py-0.5 text-xs font-black text-cheese">
+                  <Hammer size={12} /> {COMING_SOON}
+                </span>
               )}
             </div>
-            <p className="mb-1 text-3xl font-extrabold">
-              {p.priceMonthlyEur === 0 ? "Gratis" : eur(p.priceMonthlyEur)}
-              {p.priceMonthlyEur > 0 && <span className="text-sm font-medium text-ink-mute"> /mese</span>}
-            </p>
-            <p className="mb-6 text-sm text-ink-mute">
-              {p.priceYearlyEur > 0 ? `oppure ${eur(p.priceYearlyEur)} all'anno` : "Per sempre"}
-            </p>
+            {comingSoon ? (
+              <>
+                <p className="mb-1 text-3xl font-extrabold">{COMING_SOON}</p>
+                <p className="mb-6 text-sm text-ink-mute">Squeak ci sta lavorando: presto potrai sbloccare tutto.</p>
+              </>
+            ) : (
+              <>
+                <p className="mb-1 text-3xl font-extrabold">
+                  {p.priceMonthlyEur === 0 ? "Gratis" : eur(p.priceMonthlyEur)}
+                  {p.priceMonthlyEur > 0 && <span className="text-sm font-medium text-ink-mute"> /mese</span>}
+                </p>
+                <p className="mb-6 text-sm text-ink-mute">
+                  {p.priceYearlyEur > 0 ? `oppure ${eur(p.priceYearlyEur)} all'anno` : "Per sempre"}
+                </p>
+              </>
+            )}
             <ul className="mb-8 space-y-2.5">
               {p.features.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm">
@@ -54,17 +68,23 @@ export function PricingTable() {
                 </li>
               ))}
             </ul>
-            <button
-              type="button"
-              disabled={!hydrated || isCurrent || signedIn}
-              onClick={() => setPlan(id)}
-              className={clsx(
-                "btn-3d mt-auto rounded-xl py-3 font-bold uppercase tracking-wide disabled:opacity-50",
-                isPro ? "bg-pr text-pr-deep" : "bg-panel-3 text-ink",
-              )}
-            >
-              {isCurrent ? "Attivo" : signedIn ? "Pagamenti in arrivo" : isPro ? "Attiva Pro (demo)" : "Torna a Free"}
-            </button>
+            {comingSoon ? (
+              <button type="button" disabled className="btn-3d mt-auto rounded-xl bg-panel-3 py-3 font-bold uppercase tracking-wide text-ink-mute">
+                {COMING_SOON}
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={!hydrated || isCurrent || signedIn}
+                onClick={() => setPlan(id)}
+                className={clsx(
+                  "btn-3d mt-auto rounded-xl py-3 font-bold uppercase tracking-wide disabled:opacity-50",
+                  isPro ? "bg-pr text-pr-deep" : "bg-panel-3 text-ink",
+                )}
+              >
+                {isCurrent ? "Attivo" : signedIn ? "Pagamenti in arrivo" : isPro ? "Attiva Pro (demo)" : "Torna a Free"}
+              </button>
+            )}
           </div>
         );
       })}

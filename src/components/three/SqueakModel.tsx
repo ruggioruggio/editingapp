@@ -86,12 +86,18 @@ export function SqueakModel({
   wow = false,
   leftHand,
   rightHand,
+  hat,
+  outfit,
 }: {
   rig?: MutableRefObject<SqueakRig>;
   sitting?: boolean;
   wow?: boolean;
   leftHand?: ReactNode;
   rightHand?: ReactNode;
+  /** accessorio in testa (coordinate della testa, centro a y=0) */
+  hat?: ReactNode;
+  /** accessorio sul corpo (es. gilet) */
+  outfit?: ReactNode;
 }) {
   const eyes = useRef<THREE.Group>(null);
   const set = (key: keyof SqueakRig) => (g: THREE.Group | null) => {
@@ -116,6 +122,7 @@ export function SqueakModel({
         <sphereGeometry args={[0.8, 32, 24]} />
         <meshStandardMaterial color={C.belly} roughness={0.8} />
       </mesh>
+      {outfit}
 
       {/* zampe: da seduto vanno in avanti */}
       {([-1, 1] as const).map((s) => (
@@ -184,6 +191,7 @@ export function SqueakModel({
         )}
         <Ear side={-1} />
         <Ear side={1} />
+        {hat}
       </group>
     </group>
   );
