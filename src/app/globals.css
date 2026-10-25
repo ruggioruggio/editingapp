@@ -1,0 +1,71 @@
+@import "tailwindcss";
+
+/* Palette ispirata all'interfaccia scura di Premiere Pro / After Effects */
+@theme {
+  --color-app: #141414;
+  --color-panel: #1d1d1d;
+  --color-panel-2: #252525;
+  --color-panel-3: #2f2f2f;
+  --color-line: #383838;
+  --color-line-soft: #2a2a2a;
+
+  --color-ink: #e8e8e8;
+  --color-ink-dim: #a6a6a6;
+  --color-ink-mute: #6f6f6f;
+
+  --color-accent: #2d8ceb; /* blu selezione Adobe / playhead */
+  --color-pr: #9999ff; /* viola Premiere */
+  --color-pr-deep: #00005b;
+  --color-cheese: #ffc93c; /* colore brand della mascotte */
+  --color-success: #3ecf8e;
+  --color-danger: #ff5f5f;
+
+  --color-vclip: #6f66e0; /* clip video in timeline */
+  --color-aclip: #2f8a57; /* clip audio in timeline */
+  --color-marker: #ffc93c;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+html,
+body {
+  background: var(--color-app);
+  color: var(--color-ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #444 transparent;
+}
+
+/* Bottoni "fisici" stile Duolingo */
+.btn-3d {
+  box-shadow: 0 4px 0 0 rgb(0 0 0 / 0.45);
+  transition:
+    transform 0.06s,
+    box-shadow 0.06s;
+}
+.btn-3d:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.45);
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.94);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-pop {
+  animation: pop 0.18s ease-out;
+}
