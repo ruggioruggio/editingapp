@@ -46,7 +46,7 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
     if (isLast) {
       const quizCount = lesson.steps.filter((s) => s.kind === "quiz").length;
       const accuracy = quizCount ? Math.round((100 * (quizCount - mistakes)) / quizCount) : 100;
-      completeLesson(lesson.id, lesson.xp);
+      completeLesson(lesson.id, lesson.xp, mistakes === 0);
       setFinished({ xp: lesson.xp, accuracy });
       return;
     }

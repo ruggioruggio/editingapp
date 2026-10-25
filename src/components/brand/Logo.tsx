@@ -1,14 +1,12 @@
 import Link from "next/link";
-import { brand } from "@/config/brand";
-import { Mascot } from "./Mascot";
+import { AppIcon } from "./Mascot";
 
-export function Logo({ href = "/" }: { href?: string }) {
+export function Logo({ href = "/", size = 30 }: { href?: string; size?: number }) {
   return (
-    <Link href={href} className="flex items-center gap-2 font-bold tracking-tight">
-      <Mascot size={30} />
-      <span className="text-lg">
-        {brand.mascotName}
-        <span className="text-pr"> {brand.productSuffix}</span>
+    <Link href={href} className="flex items-center gap-2 font-extrabold tracking-tight">
+      <AppIcon size={size} />
+      <span className="text-xl">
+        Squeak<span className="text-pr">Edit</span>
       </span>
     </Link>
   );

@@ -2,7 +2,7 @@
 
 /* Palette ispirata all'interfaccia scura di Premiere Pro / After Effects */
 @theme {
-  --color-app: #141414;
+  --color-app: #121212;
   --color-panel: #1d1d1d;
   --color-panel-2: #252525;
   --color-panel-3: #2f2f2f;
@@ -24,7 +24,7 @@
   --color-aclip: #2f8a57; /* clip audio in timeline */
   --color-marker: #ffc93c;
 
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 }
 
@@ -49,11 +49,27 @@ body {
   box-shadow: 0 4px 0 0 rgb(0 0 0 / 0.45);
   transition:
     transform 0.06s,
-    box-shadow 0.06s;
+    box-shadow 0.06s,
+    filter 0.15s;
+}
+.btn-3d:hover:not(:disabled) {
+  filter: brightness(1.08);
 }
 .btn-3d:active:not(:disabled) {
   transform: translateY(3px);
   box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.45);
+}
+
+/* Liquid glass stile Apple: traslucido, sfocato, con riflesso sul bordo */
+.glass {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.13), rgb(255 255 255 / 0.04));
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    inset 0 -1px 0 rgb(255 255 255 / 0.06),
+    0 12px 40px rgb(0 0 0 / 0.55);
 }
 
 @keyframes pop {
@@ -68,4 +84,107 @@ body {
 }
 .animate-pop {
   animation: pop 0.18s ease-out;
+}
+
+/* ---------- Squeak: animazioni base (idle) ---------- */
+.sq-anim * {
+  transform-box: fill-box;
+}
+@keyframes sq-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+@keyframes sq-tail {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(-16deg); }
+}
+@keyframes sq-ear {
+  0%, 84%, 100% { transform: rotate(0); }
+  89% { transform: rotate(-14deg); }
+  94% { transform: rotate(6deg); }
+}
+@keyframes sq-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes sq-sniff {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+.sq-idle .sq-eye { transform-origin: center; animation: sq-blink 3.6s infinite; }
+.sq-idle .sq-tail { transform-origin: 100% 0%; animation: sq-tail 1.6s ease-in-out infinite; }
+.sq-idle .sq-ear { transform-origin: 50% 100%; animation: sq-ear 4.2s infinite; }
+.sq-idle .sq-whole { animation: sq-bob 2.4s ease-in-out infinite; }
+.sq-idle .sq-nose { transform-origin: center; animation: sq-sniff 0.9s ease-in-out infinite; }
+
+/* ---------- Scene animate (splash + sito) ----------
+   --iter = 1 per lo splash, infinite per il sito. Durata comune 2.4s. */
+.scene * { transform-box: fill-box; }
+.scene .a { animation-duration: 2.4s; animation-iteration-count: var(--iter, infinite); animation-fill-mode: both; animation-timing-function: ease-in-out; }
+
+/* 1. Taglio */
+@keyframes cut-left { 0%, 42% { transform: none; } 60%, 88% { transform: translate(-22px, 8px) rotate(-6deg); } 100% { transform: none; } }
+@keyframes cut-right { 0%, 42% { transform: none; } 60%, 88% { transform: translate(22px, 8px) rotate(6deg); } 100% { transform: none; } }
+@keyframes snip { 0%, 22% { transform: rotate(0); } 30% { transform: rotate(-22deg); } 40% { transform: rotate(0); } 100% { transform: rotate(0); } }
+@keyframes word-pop { 0%, 44% { opacity: 0; transform: scale(0.3); } 54% { opacity: 1; transform: scale(1.2); } 62%, 88% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1); } }
+@keyframes jump { 0%, 55% { transform: translateY(0); } 65% { transform: translateY(-18px); } 75%, 100% { transform: translateY(0); } }
+.cut-left { animation-name: cut-left; transform-origin: 100% 50%; }
+.cut-right { animation-name: cut-right; transform-origin: 0% 50%; }
+.snip { animation-name: snip; transform-origin: 0% 50%; }
+.word-pop { animation-name: word-pop; transform-origin: center; }
+.jump { animation-name: jump; }
+
+/* 2. Formaggio */
+@keyframes nibble { 0%, 100% { transform: translateX(0); } 15%, 45%, 75% { transform: translateX(10px); } 25%, 55%, 85% { transform: translateX(0); } }
+@keyframes bite1 { 0%, 16% { opacity: 0; } 18%, 96% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes bite2 { 0%, 46% { opacity: 0; } 48%, 96% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes bite3 { 0%, 76% { opacity: 0; } 78%, 96% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes crumb { 0%, 15% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 1; } 60%, 100% { opacity: 0; transform: translate(-14px, 30px); } }
+.nibble { animation-name: nibble; }
+.bite1 { animation-name: bite1; }
+.bite2 { animation-name: bite2; }
+.bite3 { animation-name: bite3; }
+.crumb { animation-name: crumb; }
+
+/* 3. Ciak */
+@keyframes clap { 0%, 20% { transform: rotate(0); } 38% { transform: rotate(-32deg); } 48% { transform: rotate(0); } 100% { transform: rotate(0); } }
+@keyframes flash { 0%, 46% { opacity: 0; transform: scale(0.4); } 52% { opacity: 1; } 70%, 100% { opacity: 0; transform: scale(1.6); } }
+.clap { animation-name: clap; transform-origin: 0% 100%; }
+.flash { animation-name: flash; transform-origin: center; }
+
+/* 4. Corsa sulla timeline */
+@keyframes run-x { 0% { transform: translateX(-120px); } 100% { transform: translateX(400px); } }
+@keyframes run-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+@keyframes speed { 0% { opacity: 0; transform: translateX(10px); } 50% { opacity: 0.8; } 100% { opacity: 0; transform: translateX(-20px); } }
+.run-x { animation-name: run-x; animation-timing-function: linear !important; }
+.run-bob { animation: run-bob 0.3s ease-in-out infinite; }
+.speed { animation: speed 0.4s linear infinite; }
+
+/* 5. Salti sui keyframe */
+@keyframes hop-x { 0% { transform: translateX(0); } 100% { transform: translateX(240px); } }
+@keyframes hop-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-46px); } }
+@keyframes kf-light { 0% { fill: #3a3a3a; } 4%, 100% { fill: #ffc93c; } }
+.hop-x { animation-name: hop-x; animation-timing-function: linear !important; }
+.hop-y { animation: hop-y 0.8s ease-in-out var(--iter3, infinite) both; }
+.kf { animation-name: kf-light; animation-timing-function: step-end !important; }
+
+/* ---------- Splash ---------- */
+@keyframes splash-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+@keyframes splash-out { to { opacity: 0; transform: scale(1.5); filter: blur(8px); } }
+@keyframes app-in { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+.splash-in { animation: splash-in 0.35s ease-out both; }
+.splash-out { animation: splash-out 0.55s ease-in forwards; }
+.app-in { animation: app-in 0.5s ease-out both; }
+
+/* ---------- Sito ---------- */
+@keyframes float-y { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.float-y { animation: float-y 4s ease-in-out infinite; }
+.marquee { animation: marquee 28s linear infinite; }
+.reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.6s ease, transform 0.6s ease; }
+.reveal.is-visible { opacity: 1; transform: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .reveal { opacity: 1; transform: none; }
 }

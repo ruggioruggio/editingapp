@@ -1,8 +1,23 @@
-# Mozzy Edit (nome provvisorio)
+# SqueakEdit
 
-Un "Duolingo per il montaggio video": micro-lezioni da 3 minuti + esercizi pratici in un mini-editor stile Premiere Pro, direttamente nel browser.
+Un "Duolingo per il montaggio video": micro-lezioni da 3 minuti + esercizi pratici in un mini-editor stile Premiere Pro, direttamente nel browser. La mascotte è **Squeak**, un topo; l'assistente a pagamento è **Squeak AI**.
 
-> Il nome della mascotte e del brand si cambia in un solo punto: [`src/config/brand.ts`](src/config/brand.ts).
+> Naming e link (Discord, store) in un solo punto: [`src/config/brand.ts`](src/config/brand.ts).
+
+## Pagine
+
+| Percorso | Cosa contiene |
+| --- | --- |
+| `/` | sito stile Duolingo con le scene animate di Squeak |
+| `/login`, `/download` | accesso (UI, account in arrivo) e download desktop/store |
+| `/learn` | percorso: 5 sezioni, 20 unità, 100 lezioni pianificate |
+| `/quests` | 3 quest giornaliere che danno XP |
+| `/goals` | obiettivi a più livelli da collezionare |
+| `/friends` | nome utente, inviti e richieste di amicizia |
+| `/pricing` | Free / Pro |
+| `/lesson/[id]` | player della lezione |
+
+All'apertura dell'app (una volta per sessione) parte una delle 5 animazioni di Squeak in `components/brand/scenes.tsx`, scelta a caso.
 
 ## Avvio
 
@@ -59,9 +74,10 @@ src/
 
 ## Come aggiungere una lezione
 
-1. Crea `src/content/lessons/<id>.ts` esportando un `Lesson` (vedi `primo-taglio.ts`).
-2. Registrala in `src/content/lessons/index.ts`.
-3. In `src/content/course.ts` imposta `status: "available"`.
+Tutte le 100 lezioni sono già in `src/content/course.ts` con il loro obiettivo. Per renderne una giocabile:
+
+1. Crea `src/content/lessons/<id>.ts` esportando un `Lesson` con lo stesso id (vedi `primo-taglio.ts`).
+2. Registrala in `src/content/lessons/index.ts`: nel percorso diventa disponibile da sola.
 
 Gli step `editor` hanno una funzione `check(seq)` che riceve la timeline dell'utente e risponde `{ done, hint }`.
 

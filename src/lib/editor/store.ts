@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useProgress } from "@/lib/progress/store";
 import { deleteClips, linkedGroup, razor, sequenceDuration } from "./ops";
 import { toFrame } from "./timecode";
 import type { Sequence, Tool } from "./types";
@@ -31,9 +32,10 @@ interface EditorState {
 const emptySequence: Sequence = { name: "Sequenza 01", fps: 25, media: [], clips: [], markers: [] };
 
 export const useEditor = create<EditorState>()((set, get) => {
-  const commit = (next: Sequence) => {
+  /** Applica una modifica con cronologia; false se non è cambiato nulla. */
+  const commit = (next: Sequence): boolean => {
     const { seq, past, selection } = get();
-    if (next === seq) return;
+    if (next === seq) return false;
     const alive = new Set(next.clips.map((c) => c.id));
     set({
       seq: next,
@@ -41,6 +43,7 @@ export const useEditor = create<EditorState>()((set, get) => {
       future: [],
       selection: selection.filter((id) => alive.has(id)),
     });
+    return true;
   };
 
   return {
@@ -75,8 +78,12 @@ export const useEditor = create<EditorState>()((set, get) => {
       if (!playing && playhead >= sequenceDuration(seq) - 1e-3) set({ playhead: 0 });
       set({ playing: !playing });
     },
-    razorAt: (clipId, t) => commit(razor(get().seq, clipId, toFrame(t, get().seq.fps))),
-    deleteSelection: (ripple) => commit(deleteClips(get().seq, get().selection, ripple)),
+    razorAt: (clipId, t) => {
+      if (commit(razor(get().seq, clipId, toFrame(t, get().seq.fps)))) useProgress.getState().recordStat("cuts");
+    },
+    deleteSelection: (ripple) => {
+      if (commit(deleteClips(get().seq, get().selection, ripple)) && ripple) useProgress.getState().recordStat("ripples");
+    },
     undo: () => {
       const { past, seq, future } = get();
       const prev = past.at(-1);

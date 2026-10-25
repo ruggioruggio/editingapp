@@ -43,9 +43,15 @@ export interface Lesson {
   steps: LessonStep[];
 }
 
+/** Che tipo di pratica prevede la lezione: decide icona e (in futuro) il tipo di esercizio. */
+export type LessonKind = "editor" | "theory" | "audio" | "color" | "motion" | "project";
+
 export interface LessonMeta {
   id: string;
   title: string;
+  /** obiettivo didattico in una riga: la scaletta da cui scrivere la lezione */
+  goal: string;
+  kind: LessonKind;
   status: "available" | "soon";
 }
 
@@ -53,6 +59,14 @@ export interface Unit {
   id: string;
   title: string;
   description: string;
-  color: string;
   lessons: LessonMeta[];
+}
+
+export interface Section {
+  id: string;
+  title: string;
+  level: string;
+  description: string;
+  color: string;
+  units: Unit[];
 }
