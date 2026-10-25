@@ -88,6 +88,10 @@ Tab al centro del dock (`/ai`), riservata al piano Pro. L'utente scrive il probl
 
 Configurazione in `.env.local`: `ANTHROPIC_API_KEY` (segreta, solo server). In locale `SQUEAK_AI_DEV_UNLOCK=true` apre la chat senza account Pro.
 
+## Anteprima a file unico (artefatto Claude)
+
+`npm run preview:build -- <file.html>` impacchetta l'app (stesse pagine e componenti) in un unico HTML autosufficiente, con un router in memoria al posto delle rotte di Next ([`preview/`](preview)). Funziona solo da ospite: niente account, database o Squeak AI. È il file pubblicato come artefatto per vedere l'app dal telefono.
+
 ## Stack
 
 | Livello            | Scelta                                   | Perché                                                                 |
