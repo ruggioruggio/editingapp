@@ -243,7 +243,8 @@ export function AiChat() {
           ))}
         </ol>
       )}
-      <div ref={bottom} />
+      {/* margine di scorrimento: l'ultimo messaggio resta sopra barra di scrittura e dock */}
+      <div ref={bottom} className="scroll-mb-[200px]" />
 
       {/* barra di scrittura sopra il dock */}
       <form onSubmit={onSubmit} className="fixed inset-x-0 bottom-[104px] z-40 px-3">
