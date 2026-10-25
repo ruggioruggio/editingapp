@@ -2,10 +2,13 @@
 
 import { useEffect } from "react";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
+import { getLesson } from "@/content/lessons";
+import { ACHIEVEMENTS, achievementInput, achievementLevel } from "@/lib/gamification/achievements";
 import { mergeGameData, normalizeGameData } from "@/lib/progress/merge";
-import { currentStreak, initialGameData, pickGameData, useProgress } from "@/lib/progress/store";
+import { currentStreak, initialGameData, pickGameData, todayState, useProgress } from "@/lib/progress/store";
 import { useAuth, type Profile } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
+import { publishEvents, saveDailyActivity } from "@/lib/supabase/social";
 
 const SAVE_DELAY_MS = 1500;
 
@@ -20,6 +23,38 @@ async function saveProgress(sb: SupabaseClient, userId: string) {
       .update({ xp: s.xp, streak_count: currentStreak(s.streak), streak_last_day: s.streak.lastDay, updated_at: now })
       .eq("id", userId),
   ]);
+}
+
+const STREAK_MILESTONES = [3, 7, 14, 30, 50, 100, 365];
+
+type ProgressSnapshot = ReturnType<typeof useProgress.getState>;
+
+/**
+ * Condivide con gli amici ciò che è appena successo: lezioni completate,
+ * obiettivi sbloccati e traguardi di serie. Alimenta anche le serie condivise.
+ */
+async function shareActivity(sb: SupabaseClient, userId: string, state: ProgressSnapshot, prev: ProgressSnapshot) {
+  const events: Parameters<typeof publishEvents>[1] = [];
+
+  if (state.stats.lessons > prev.stats.lessons) {
+    const lessonId = Object.keys(state.completed).find((id) => (state.completed[id]?.times ?? 0) > (prev.completed[id]?.times ?? 0));
+    events.push({ kind: "lesson_completed", data: { lessonId, lessonTitle: lessonId ? getLesson(lessonId)?.title : undefined } });
+    const today = todayState(state.today);
+    void saveDailyActivity(sb, userId, today.day, today.stats.lessons);
+  }
+
+  const now = achievementInput(state);
+  const before = achievementInput(prev);
+  for (const a of ACHIEVEMENTS) {
+    const level = achievementLevel(a, now[a.metric]).level;
+    if (level > achievementLevel(a, before[a.metric]).level) events.push({ kind: "achievement_unlocked", data: { achievementId: a.id, level } });
+  }
+
+  const streak = currentStreak(state.streak);
+  const hit = STREAK_MILESTONES.find((m) => streak >= m && currentStreak(prev.streak) < m);
+  if (hit) events.push({ kind: "streak_milestone", data: { days: hit } });
+
+  await publishEvents(sb, events);
 }
 
 /**
@@ -63,11 +98,15 @@ export function SupabaseSync() {
       useProgress.setState({ ...merged, ownerId: user.id, plan: profile?.plan ?? "free", username: profile?.username ?? null });
       useAuth.setState({ profile: profile ?? null });
       await saveProgress(sb, user.id);
+      // recupera l'attività di oggi fatta da ospite, per le serie condivise
+      const today = todayState(merged.today);
+      if (today.stats.lessons > 0) void saveDailyActivity(sb, user.id, today.day, today.stats.lessons);
 
       stopWatching?.();
-      stopWatching = useProgress.subscribe(() => {
+      stopWatching = useProgress.subscribe((state, prev) => {
         clearTimeout(timer);
         timer = setTimeout(flush, SAVE_DELAY_MS);
+        void shareActivity(sb, user.id, state, prev);
       });
     };
 

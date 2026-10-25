@@ -121,6 +121,21 @@ export function SignupForm() {
       <p className="text-center text-xs text-ink-mute">
         I progressi fatti come ospite su questo dispositivo vengono salvati nel tuo nuovo account.
       </p>
+      <p className="text-center text-xs text-ink-mute">
+        Creando un account accetti i{" "}
+        <Link href="/legal/termini" className="font-bold text-ink-dim underline">
+          Termini di servizio
+        </Link>{" "}
+        e le{" "}
+        <Link href="/legal/community" className="font-bold text-ink-dim underline">
+          Regole della community
+        </Link>
+        , e dichiari di avere almeno 14 anni. Leggi come trattiamo i tuoi dati nell&apos;
+        <Link href="/legal/privacy" className="font-bold text-ink-dim underline">
+          Informativa privacy
+        </Link>
+        .
+      </p>
     </div>
   );
 }

@@ -46,13 +46,17 @@ const FOOTER: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "iPhone e iPad", href: "/download" },
       { label: "Android", href: "/download" },
       { label: "Windows e Mac", href: "/download" },
+      { label: "Accedi", href: "/login" },
     ],
   },
   {
-    title: "Aiuto",
+    title: "Legale",
     links: [
-      { label: "Accedi", href: "/login" },
-      { label: "Feedback su Discord", href: brand.discordUrl },
+      { label: "Termini di servizio", href: "/legal/termini" },
+      { label: "Privacy", href: "/legal/privacy" },
+      { label: "Acquisti e abbonamenti", href: "/legal/acquisti" },
+      { label: "Cookie", href: "/legal/cookie" },
+      { label: "Regole della community", href: "/legal/community" },
     ],
   },
 ];

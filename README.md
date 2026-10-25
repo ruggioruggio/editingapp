@@ -41,7 +41,7 @@ Poi apri http://localhost:3000
 Senza configurazione l'app funziona come ospite (progressi solo nel browser). Per attivare login, salvataggio e amici:
 
 1. Crea un progetto su [supabase.com](https://supabase.com).
-2. **SQL Editor** → incolla ed esegui [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql).
+2. **SQL Editor** → incolla ed esegui, in ordine, [`0001_init.sql`](supabase/migrations/0001_init.sql) (profili, progressi, amicizie) e [`0002_social.sql`](supabase/migrations/0002_social.sql) (chat, serie condivise, bacheca degli amici).
 3. **Project Settings → API**: copia URL e chiave `anon`/publishable in `.env.local` (modello in [`.env.example`](.env.example)) e riavvia `npm run dev`.
 4. **Authentication → URL Configuration**: Site URL `http://localhost:3000`, Redirect URL `http://localhost:3000/auth/callback` (in produzione aggiungi il dominio vero).
 5. Facoltativo: **Authentication → Providers** per attivare Google e Apple.
@@ -61,6 +61,14 @@ Come funziona:
 - `progress`: lo stato di gioco in JSON, leggibile e scrivibile solo dal proprietario (RLS).
 - `friendships`: richieste e amicizie; solo chi riceve la richiesta può accettarla.
 - Al login i progressi da ospite vengono fusi con quelli dell'account ([`lib/progress/merge.ts`](src/lib/progress/merge.ts)); poi ogni modifica viene salvata dopo 1,5 s ([`SupabaseSync`](src/components/app/SupabaseSync.tsx)). Al logout i dati locali vengono cancellati.
+
+## Amici
+
+Con un account: chat in tempo reale (solo tra amici), **serie condivise** (giorni consecutivi in cui entrambi fate lezione) e la bacheca con lezioni completate, obiettivi sbloccati e traguardi di serie degli amici. Le attività vengono pubblicate da [`SupabaseSync`](src/components/app/SupabaseSync.tsx) quando cambiano i progressi.
+
+## Documenti legali
+
+In [`content/legal.ts`](src/content/legal.ts), pubblicati su `/legal/termini`, `/legal/privacy`, `/legal/acquisti`, `/legal/cookie`, `/legal/community`. Sono **bozze**: vanno completati i dati tra parentesi quadre (ragione sociale, P.IVA, email) e fatti verificare da un legale prima del lancio.
 
 ## Squeak AI
 

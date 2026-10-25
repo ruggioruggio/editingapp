@@ -91,8 +91,9 @@ export function Mascot({
 }
 
 /**
- * Icona dell'app: la testa di Squeak che "entra" dall'angolo in basso a destra
- * e guarda in alto a sinistra, su un gradiente viola. Stesso disegno di app/icon.svg.
+ * Icona dell'app: la testa di Squeak di profilo che "entra" dall'angolo in basso
+ * a destra e guarda in alto a sinistra, su gradiente nero/grigio scuro.
+ * Stesso disegno di app/icon.svg.
  */
 export function AppIcon({ size = 32, className }: { size?: number; className?: string }) {
   return (
@@ -106,14 +107,14 @@ export function AppIcon({ size = 32, className }: { size?: number; className?: s
     >
       <defs>
         <linearGradient id="sq-icon-bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#7b6cff" />
-          <stop offset="0.55" stopColor="#3a2a9e" />
-          <stop offset="1" stopColor="#0d0a24" />
+          <stop offset="0" stopColor="#3b3b42" />
+          <stop offset="0.5" stopColor="#1a1a1e" />
+          <stop offset="1" stopColor="#050506" />
         </linearGradient>
-        <radialGradient id="sq-icon-head" cx="0.3" cy="0.25" r="0.9">
+        <radialGradient id="sq-icon-head" cx="0.35" cy="0.3" r="0.85">
           <stop offset="0" stopColor="#ffffff" />
-          <stop offset="0.6" stopColor="#e4e6ef" />
-          <stop offset="1" stopColor="#a9aec2" />
+          <stop offset="0.65" stopColor="#e3e5ec" />
+          <stop offset="1" stopColor="#b3b7c6" />
         </radialGradient>
         <clipPath id="sq-icon-clip">
           <rect width="100" height="100" rx="24" />
@@ -121,20 +122,25 @@ export function AppIcon({ size = 32, className }: { size?: number; className?: s
       </defs>
       <g clipPath="url(#sq-icon-clip)">
         <rect width="100" height="100" fill="url(#sq-icon-bg)" />
-        {/* orecchie sul bordo della testa */}
-        <circle cx="31" cy="37" r="17" fill="#d8dbe6" />
-        <circle cx="31" cy="37" r="10" fill="#ffaec6" />
-        <circle cx="70" cy="19" r="16" fill="#d8dbe6" />
-        <circle cx="70" cy="19" r="9" fill="#ffaec6" />
-        {/* testa */}
-        <circle cx="75" cy="80" r="60" fill="url(#sq-icon-head)" />
-        {/* occhi ovali inclinati, sguardo in alto a sinistra */}
-        <ellipse cx="47" cy="61" rx="5.2" ry="9.5" transform="rotate(-24 47 61)" fill="#0d0d12" />
-        <ellipse cx="66" cy="53" rx="5.2" ry="9.5" transform="rotate(-24 66 53)" fill="#0d0d12" />
-        <circle cx="45.5" cy="56.5" r="1.8" fill="#fff" />
-        <circle cx="64.5" cy="48.5" r="1.8" fill="#fff" />
-        {/* naso */}
-        <ellipse cx="33" cy="76" rx="4.6" ry="3.6" transform="rotate(-24 33 76)" fill="#ff6f9a" />
+        {/* orecchie */}
+        <circle cx="62" cy="23" r="17" fill="#cfd2dc" />
+        <circle cx="62" cy="23" r="10.5" fill="#ffaec6" />
+        <circle cx="87" cy="31" r="15" fill="#b9bdca" />
+        <circle cx="87" cy="31" r="9" fill="#f39ab5" />
+        {/* testa con muso a punta verso l'alto a sinistra */}
+        <path
+          d="M104 104 L104 52 C104 34 88 26 70 31 C55 35 38 40 24 44 C14 47 13 58 22 61 C36 65 46 76 50 104 Z"
+          fill="url(#sq-icon-head)"
+        />
+        <g stroke="#8d909c" strokeWidth="1.6" strokeLinecap="round">
+          <path d="M27 55 L7 50" />
+          <path d="M27 58 L8 60" />
+          <path d="M29 61 L12 69" />
+        </g>
+        <ellipse cx="46" cy="47" rx="4.6" ry="7.6" transform="rotate(-28 46 47)" fill="#0d0d12" />
+        <circle cx="44.6" cy="43.6" r="1.6" fill="#fff" />
+        <circle cx="20" cy="51" r="5.2" fill="#ff6f9a" />
+        <path d="M30 63 Q34 66 38 64" stroke="#55586a" strokeWidth="1.6" fill="none" strokeLinecap="round" />
       </g>
     </svg>
   );

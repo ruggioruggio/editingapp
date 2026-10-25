@@ -19,7 +19,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Mascot } from "@/components/brand/Mascot";
-import { CheeseScene, ClapScene, CutScene, KeyframeScene, RunScene } from "@/components/brand/scenes";
+import { SiteScene } from "@/components/three/lazy";
 import { HeroArt } from "@/components/site/HeroArt";
 import { Reveal } from "@/components/site/Reveal";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
@@ -73,7 +73,7 @@ function BadgeCloud() {
   ];
   return (
     <div className="relative">
-      <CheeseScene />
+      <SiteScene name="cheese" className="aspect-[5/4] w-full" />
       <div className="mt-2 flex flex-wrap justify-center gap-2">
         {badges.map(({ icon: Icon, label, color }, i) => (
           <span
@@ -107,7 +107,7 @@ export default function LandingPage() {
               href="/login"
               className="btn-3d block rounded-2xl border-2 border-line bg-panel px-8 py-4 font-black uppercase tracking-wide text-pr"
             >
-              Ho già un account
+              Ho giÃ  un account
             </Link>
           </div>
         </div>
@@ -132,7 +132,7 @@ export default function LandingPage() {
             passi dal primo taglio a un montaggio completo.
           </>
         }
-        art={<CutScene />}
+        art={<SiteScene name="cut" className="aspect-[5/4] w-full" />}
       />
 
       <FeatureRow
@@ -144,7 +144,7 @@ export default function LandingPage() {
             strumenti, stesse scorciatoie. Quello che impari qui lo rifai uguale nel software vero.
           </>
         }
-        art={<ClapScene />}
+        art={<SiteScene name="clap" className="aspect-[5/4] w-full" />}
       />
 
       <FeatureRow
@@ -167,7 +167,7 @@ export default function LandingPage() {
             scopes, motion graphics con keyframe ed easing, fino all&apos;export per i social e al progetto finale.
           </>
         }
-        art={<KeyframeScene />}
+        art={<SiteScene name="keyframe" className="aspect-[5/4] w-full" />}
       />
 
       {/* Download */}
@@ -183,7 +183,7 @@ export default function LandingPage() {
             <StoreButtons />
           </Reveal>
           <Reveal delay={150}>
-            <RunScene />
+            <SiteScene name="run" className="aspect-[5/4] w-full" />
           </Reveal>
         </div>
       </section>
@@ -191,7 +191,7 @@ export default function LandingPage() {
       {/* Pro */}
       <section className="mx-auto max-w-5xl px-6 py-16 md:py-24">
         <Reveal className="relative overflow-hidden rounded-[32px] border border-pr/40 bg-linear-to-br from-pr/25 via-panel to-panel p-8 md:p-12">
-          <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
+          <div className="grid items-center gap-8 md:grid-cols-[2fr_3fr]">
             <div>
               <p className="mb-2 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-cheese">
                 <Crown size={18} /> {brand.appName} Pro
@@ -204,7 +204,8 @@ export default function LandingPage() {
                 Scopri Pro
               </Link>
             </div>
-            <Mascot size={200} idle mood="wow" className="mx-auto" />
+            {/* Squeak attraversa la timeline: da pochi tagli a un progetto con 10 tracce */}
+            <SiteScene name="pro" className="aspect-[4/3] w-full" />
           </div>
         </Reveal>
       </section>
@@ -212,7 +213,7 @@ export default function LandingPage() {
       {/* Community */}
       <section className="mx-auto max-w-5xl px-6 pb-16">
         <Reveal className="flex flex-col items-center gap-6 rounded-[32px] border border-line bg-panel p-8 text-center md:flex-row md:text-left">
-          <Mascot size={110} idle flip />
+          <SiteScene name="discord" className="aspect-square w-48 shrink-0" />
           <div className="flex-1">
             <h2 className="mb-2 text-2xl font-black">Entra nella community</h2>
             <p className="text-ink-dim">Aggiornamenti, sfide di montaggio e feedback diretto: ci vediamo su Discord.</p>

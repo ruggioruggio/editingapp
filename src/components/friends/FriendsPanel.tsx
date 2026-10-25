@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { Check, Clock, Crown, Flame, Share2, UserPlus, X, Zap } from "lucide-react";
+import { Check, Clock, Crown, Flame, MessageCircle, Share2, Star, Trophy, UserPlus, X, Zap } from "lucide-react";
 import { USERNAME_RE } from "@/components/auth/SignupForm";
 import { Mascot } from "@/components/brand/Mascot";
 import { brand } from "@/config/brand";
@@ -20,13 +20,16 @@ import {
   type FriendsData,
   type SendResult,
 } from "@/lib/supabase/friends";
+import { getAchievement } from "@/lib/gamification/achievements";
+import { loadFeed, loadSharedStreaks, loadUnread, subscribeIncoming, type ActivityEvent } from "@/lib/supabase/social";
+import { FriendSheet } from "./FriendSheet";
 
 const SEND_MESSAGES: Record<SendResult, { tone: "ok" | "error"; text: string }> = {
   sent: { tone: "ok", text: "Richiesta inviata!" },
-  accepted: { tone: "ok", text: "Ti aveva già scritto: ora siete amici!" },
+  accepted: { tone: "ok", text: "Ti aveva giÃ  scritto: ora siete amici!" },
   not_found: { tone: "error", text: "Nessun utente con questo nome." },
   self: { tone: "error", text: "Non puoi aggiungere te stesso." },
-  exists: { tone: "error", text: "Siete già amici o c'è già una richiesta in corso." },
+  exists: { tone: "error", text: "Siete giÃ  amici o c'Ã¨ giÃ  una richiesta in corso." },
 };
 
 const liveStreak = (p: FriendProfile) =>
@@ -44,7 +47,7 @@ function GuestFriends({ disabled }: { disabled: boolean }) {
   return (
     <div className="flex flex-col items-center gap-4 rounded-3xl border border-line bg-panel p-8 text-center">
       <Mascot size={110} idle />
-      <h2 className="text-xl font-black">Montare insieme è più divertente</h2>
+      <h2 className="text-xl font-black">Montare insieme Ã¨ piÃ¹ divertente</h2>
       <p className="text-ink-dim">
         {disabled
           ? "Gli account non sono ancora attivi su questa installazione."
@@ -78,10 +81,23 @@ function SignedInFriends() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState<Record<string, number>>({});
+  const [unread, setUnread] = useState<Record<string, number>>({});
+  const [feed, setFeed] = useState<ActivityEvent[]>([]);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      setData(await loadFriends(sb, me));
+      const [friends, streaks, unreadCounts, events] = await Promise.all([
+        loadFriends(sb, me),
+        loadSharedStreaks(sb, todayKey()),
+        loadUnread(sb, me),
+        loadFeed(sb, me),
+      ]);
+      setData(friends);
+      setShared(streaks);
+      setUnread(unreadCounts);
+      setFeed(events);
       setLoadError(false);
     } catch {
       setLoadError(true);
@@ -94,6 +110,19 @@ function SignedInFriends() {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
+
+  // nuovi messaggi in arrivo mentre sei sulla pagina: aggiorna i contatori
+  useEffect(
+    () =>
+      subscribeIncoming(sb, me, (m) => {
+        if (m.sender_id !== openId) setUnread((u) => ({ ...u, [m.sender_id]: (u[m.sender_id] ?? 0) + 1 }));
+      }),
+    [sb, me, openId],
+  );
+
+  const clearUnread = useCallback(() => {
+    if (openId) setUnread((u) => ({ ...u, [openId]: 0 }));
+  }, [openId]);
 
   const act = async (fn: () => Promise<unknown>) => {
     try {
@@ -141,6 +170,7 @@ function SignedInFriends() {
     { id: me, username: profile?.username ?? "tu", xp: myXp, streak: myStreak, isMe: true },
     ...(data?.friends ?? []).map((f) => ({ id: f.other.id, username: f.other.username, xp: f.other.xp, streak: liveStreak(f.other), isMe: false })),
   ].sort((a, b) => b.xp - a.xp);
+  const openFriend = data?.friends.find((f) => f.other.id === openId)?.other ?? null;
 
   return (
     <div className="space-y-6">
@@ -148,7 +178,7 @@ function SignedInFriends() {
         <Mascot size={84} idle />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-ink-dim">Il tuo nome utente</p>
-          <p className="truncate text-2xl font-black">@{profile?.username ?? "…"}</p>
+          <p className="truncate text-2xl font-black">@{profile?.username ?? "â€¦"}</p>
           <button
             type="button"
             onClick={share}
@@ -233,10 +263,33 @@ function SignedInFriends() {
                 )}
               >
                 <span className="w-6 text-center font-black text-ink-mute">{i === 0 ? <Crown size={18} className="mx-auto text-cheese" /> : i + 1}</span>
-                <Avatar name={row.username} />
-                <p className="min-w-0 flex-1 truncate font-bold">
-                  @{row.username} {row.isMe && <span className="text-xs text-ink-mute">(tu)</span>}
-                </p>
+                {/* tocca un amico per aprire chat, serie condivisa e obiettivi */}
+                <button
+                  type="button"
+                  disabled={row.isMe}
+                  onClick={() => setOpenId(row.id)}
+                  className="flex min-w-0 flex-1 items-center gap-3 text-left enabled:hover:opacity-90"
+                >
+                  <span className="relative">
+                    <Avatar name={row.username} />
+                    {!!unread[row.id] && (
+                      <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] font-black text-white">
+                        {unread[row.id]}
+                      </span>
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-bold">
+                      @{row.username} {row.isMe && <span className="text-xs text-ink-mute">(tu)</span>}
+                    </span>
+                    {!row.isMe && (
+                      <span className="flex items-center gap-1 text-xs font-bold text-ink-mute">
+                        <MessageCircle size={12} />
+                        {shared[row.id] ? <span className="text-[#ffb27a]">Serie insieme: {shared[row.id]} gg</span> : "Chat e obiettivi"}
+                      </span>
+                    )}
+                  </span>
+                </button>
                 <span className="flex items-center gap-1 text-sm font-black text-[#ff8a3d]">
                   <Flame size={15} /> {row.streak}
                 </span>
@@ -258,6 +311,28 @@ function SignedInFriends() {
         )}
       </section>
 
+      {feed.length > 0 && (
+        <section>
+          <h2 className="mb-3 font-black">Cosa fanno i tuoi amici</h2>
+          <ul className="space-y-2">
+            {feed.map((e) => (
+              <FeedItem key={e.id} event={e} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {openFriend && (
+        <FriendSheet
+          me={me}
+          friend={openFriend}
+          sharedStreak={shared[openFriend.id] ?? 0}
+          streak={liveStreak(openFriend)}
+          onClose={() => setOpenId(null)}
+          onRead={clearUnread}
+        />
+      )}
+
       {data && data.outgoing.length > 0 && (
         <section>
           <h2 className="mb-3 font-black">Richieste inviate</h2>
@@ -278,6 +353,41 @@ function SignedInFriends() {
         </section>
       )}
     </div>
+  );
+}
+
+const ago = (iso: string) => {
+  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (mins < 60) return `${Math.max(1, mins)} min fa`;
+  if (mins < 60 * 24) return `${Math.round(mins / 60)} h fa`;
+  return `${Math.round(mins / 1440)} g fa`;
+};
+
+function FeedItem({ event }: { event: ActivityEvent }) {
+  const name = event.user?.username ?? "un amico";
+  const achievement = event.data.achievementId ? getAchievement(event.data.achievementId) : undefined;
+  let icon = <Zap size={18} className="text-cheese" />;
+  let text = `ha completato una lezione`;
+  if (event.kind === "lesson_completed" && event.data.lessonTitle) text = `ha completato "${event.data.lessonTitle}"`;
+  if (event.kind === "achievement_unlocked" && achievement) {
+    icon = <Trophy size={18} style={{ color: achievement.color }} />;
+    text = `ha sbloccato "${achievement.title}" livello ${event.data.level}`;
+  }
+  if (event.kind === "streak_milestone") {
+    icon = <Flame size={18} className="text-[#ff8a3d]" />;
+    text = `ha raggiunto una serie di ${event.data.days} giorni`;
+  }
+  return (
+    <li className="flex items-center gap-3 rounded-2xl border border-line bg-panel p-3">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-panel-2">{icon}</span>
+      <p className="min-w-0 flex-1 text-sm">
+        <span className="font-black">@{name}</span> <span className="text-ink-dim">{text}</span>
+      </p>
+      <span className="flex shrink-0 items-center gap-1 text-xs text-ink-mute">
+        {event.kind === "achievement_unlocked" && <Star size={12} className="text-cheese" fill="currentColor" />}
+        {ago(event.created_at)}
+      </span>
+    </li>
   );
 }
 

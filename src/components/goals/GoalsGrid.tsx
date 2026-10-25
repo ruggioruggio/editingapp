@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import { Star } from "lucide-react";
 import { Mascot } from "@/components/brand/Mascot";
-import { ACHIEVEMENTS, achievementLevel, totalTiers, type AchievementInput } from "@/lib/gamification/achievements";
+import { ACHIEVEMENTS, achievementInput, achievementLevel, totalTiers } from "@/lib/gamification/achievements";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useProgress } from "@/lib/progress/store";
 
@@ -13,16 +13,7 @@ export function GoalsGrid() {
 
   if (!hydrated) return <div className="h-96" />;
 
-  const input: AchievementInput = {
-    lessons: s.stats.lessons,
-    bestStreak: s.bestStreak,
-    xp: s.xp,
-    cuts: s.stats.cuts,
-    ripples: s.stats.ripples,
-    perfect: s.stats.perfect,
-    quests: s.questsClaimed,
-    friendRequests: s.stats.friendRequests ?? 0,
-  };
+  const input = achievementInput(s);
   const unlocked = ACHIEVEMENTS.reduce((sum, a) => sum + achievementLevel(a, input[a.metric]).level, 0);
 
   return (

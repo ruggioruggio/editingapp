@@ -42,3 +42,24 @@ export function achievementLevel(a: Achievement, value: number) {
 }
 
 export const totalTiers = ACHIEVEMENTS.reduce((sum, a) => sum + a.tiers.length, 0);
+
+/** Valori da cui si calcolano gli obiettivi, a partire dallo store dei progressi. */
+export function achievementInput(s: {
+  xp: number;
+  bestStreak: number;
+  questsClaimed: number;
+  stats: { lessons: number; cuts: number; ripples: number; perfect: number; friendRequests?: number };
+}): AchievementInput {
+  return {
+    lessons: s.stats.lessons,
+    bestStreak: s.bestStreak,
+    xp: s.xp,
+    cuts: s.stats.cuts,
+    ripples: s.stats.ripples,
+    perfect: s.stats.perfect,
+    quests: s.questsClaimed,
+    friendRequests: s.stats.friendRequests ?? 0,
+  };
+}
+
+export const getAchievement = (id: string) => ACHIEVEMENTS.find((a) => a.id === id);
