@@ -102,7 +102,9 @@ export async function POST(request: NextRequest) {
 
   let client: Anthropic;
   try {
-    client = new Anthropic();
+    // le chiavi di organizzazione (non legate a un workspace) richiedono di indicarlo
+    const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID;
+    client = new Anthropic(workspaceId ? { defaultHeaders: { "anthropic-workspace-id": workspaceId } } : undefined);
   } catch {
     return fail(503, "Squeak AI non è configurato: manca la chiave API sul server.");
   }
