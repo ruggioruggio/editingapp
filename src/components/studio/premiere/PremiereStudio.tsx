@@ -1,345 +1,695 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import Link from "next/link";
 import clsx from "clsx";
+import { Bell, Expand, Hand, Home, LayoutPanelLeft, MousePointer2, PenTool, Scissors, Search, Share, Type, Volume2, ZoomIn, Square, Circle, Moon } from "lucide-react";
 import { useHydrated } from "@/lib/hooks/useHydrated";
-import {
-  addEditAll,
-  clipEnd,
-  closeGap,
-  deleteClips,
-  emptySequence,
-  getMedia,
-  isVideo,
-  linked,
-  placeMedia,
-  razor,
-  seqDuration,
-  usePremiere,
-} from "@/lib/studio/premiere";
-import { SequenceDialog } from "@/components/premiere/SequenceDialog";
-import { ExportDialog } from "@/components/premiere/ExportDialog";
-import { KeysHelp, MenuBar, Modal, Panel, Toast, typing, usePlayback, useWide, type Menu } from "../chrome";
-import { AudioMeters, ProgramMonitor, SourceMonitor } from "./Monitors";
-import { EffectControls, EffectsPanel, ProjectPanel, ToolsPanel } from "./Panels";
+import { restoreFiles } from "@/lib/studio/media";
+import { playheadOf, seqOf, usePremiere, type PanelId, type PrTool } from "@/lib/studio/premiere";
+import { ContextMenu, Gutter, MenuBar, Panel, Toast, useWide, type Menu } from "../chrome";
+import { ProgramMonitor, SourceMonitor } from "./Monitors";
+import { AudioMixer, EffectControls, EssentialGraphics, Metadata, PropertiesPanel, TextPanel } from "./Inspectors";
+import { EffectsPanel, HistoryPanel, InfoPanel, Libraries, MediaBrowser, ProjectPanel, applyPreset, openImport } from "./ProjectPanels";
 import { Timeline } from "./Timeline";
+import { PremiereDialogs } from "./Dialogs";
+import { handlePremiereKey } from "./keys";
+import { meterLevels } from "./compose";
+import * as A from "./actions";
 
-const KEYS: [string, string][] = [
-  ["Spazio", "Riproduci / interrompi"],
-  ["J · K · L", "Indietro · stop · avanti"],
-  ["← / →", "Fotogramma precedente / successivo"],
-  ["↑ / ↓", "Punto di modifica precedente / successivo"],
-  ["Home / Fine", "Inizio / fine sequenza"],
-  ["V", "Strumento Selezione"],
-  ["B", "Strumento Modifica con increspatura"],
-  ["C", "Strumento Lama"],
-  ["H", "Strumento Mano"],
-  ["Ctrl+K", "Aggiungi modifica (taglia sotto l'indicatore)"],
-  ["Ctrl+Maiusc+K", "Aggiungi modifica a tutte le tracce"],
-  ["Ctrl+D", "Applica transizione video predefinita"],
-  ["Canc", "Elimina (lascia uno spazio)"],
-  ["Maiusc+Canc", "Elimina con increspatura"],
-  ["I / O", "Attacco / uscita nel monitor sorgente"],
-  [", / .", "Inserisci / sovrascrivi dal monitor sorgente"],
-  ["M", "Aggiungi marcatore"],
-  ["S", "Aggancia (calamita)"],
-  ["+ / −", "Ingrandisci / riduci la timeline"],
-  ["\\", "Adatta la sequenza alla finestra"],
-  ["Ctrl+Z / Ctrl+Maiusc+Z", "Annulla / ripeti"],
-  ["Ctrl+A", "Seleziona tutto"],
-  ["Ctrl+N", "Nuova sequenza"],
-  ["Ctrl+M", "Esporta media"],
+// Simulatore di Premiere Pro: stessa disposizione dell'area di lavoro
+// Modifica (Sorgente | Programma | Proprietà sopra, Progetto | Strumenti |
+// Timeline | Indicatori audio sotto), menu, scorciatoie e modalità
+// Importa / Modifica / Esporta.
+
+const TL = ["Sorgente", "Controlli effetti", "Mixer clip audio", "Metadati"] as const;
+const TR = ["Proprietà", "Grafica essenziale", "Testo"] as const;
+const BL = ["Progetto", "Browser multimediale", "Librerie", "Info", "Effetti", "Cronologia"] as const;
+const PANEL_ID: Record<string, PanelId> = {
+  Sorgente: "source",
+  "Controlli effetti": "effectControls",
+  "Mixer clip audio": "mixer",
+  Metadati: "metadata",
+  Proprietà: "properties",
+  "Grafica essenziale": "graphics",
+  Testo: "text",
+  Progetto: "project",
+  "Browser multimediale": "media",
+  Librerie: "libraries",
+  Info: "info",
+  Effetti: "effects",
+  Cronologia: "history",
+};
+
+const TOOL_HINT: Record<PrTool, string> = {
+  select: "Fai clic per selezionare, oppure fai clic in uno spazio vuoto e trascina per una selezione a riquadro. Usa Maiusc, Alt e Ctrl per altre opzioni.",
+  trackFwd: "Fai clic per selezionare tutte le clip a destra del puntatore. Maiusc: solo questa traccia.",
+  trackBack: "Fai clic per selezionare tutte le clip a sinistra del puntatore. Maiusc: solo questa traccia.",
+  ripple: "Trascina il bordo di una clip per rifilarla spostando le clip successive.",
+  roll: "Trascina un punto di modifica per spostarlo tra due clip senza cambiare la durata totale.",
+  rate: "Trascina il bordo di una clip per cambiarne la velocità.",
+  razor: "Fai clic per tagliare la clip. Maiusc+clic: taglia tutte le tracce.",
+  slip: "Trascina una clip per cambiarne attacco e uscita senza spostarla.",
+  slide: "Trascina una clip per spostarla tra le clip vicine.",
+  pen: "Fai clic sulla linea gialla della clip per aggiungere un fotogramma chiave.",
+  rect: "Trascina o fai clic nel monitor Programma per creare un rettangolo.",
+  ellipse: "Trascina o fai clic nel monitor Programma per creare un'ellisse.",
+  hand: "Trascina per scorrere la timeline.",
+  zoom: "Fai clic per ingrandire. Alt+clic per ridurre.",
+  type: "Fai clic nel monitor Programma per scrivere un testo.",
+};
+
+const TOOL_GROUPS: { tools: [PrTool, string, string, ReactNode][] }[] = [
+  { tools: [["select", "Strumento Selezione", "V", <MousePointer2 key="i" size={16} fill="currentColor" />]] },
+  {
+    tools: [
+      ["trackFwd", "Strumento Selezione traccia avanti", "A", <TrackFwdIcon key="i" />],
+      ["trackBack", "Strumento Selezione traccia indietro", "Maiusc+A", <TrackFwdIcon key="i" back />],
+    ],
+  },
+  {
+    tools: [
+      ["ripple", "Strumento Modifica con increspatura", "B", <RippleIcon key="i" />],
+      ["roll", "Strumento Modifica rotazione", "N", <RollIcon key="i" />],
+      ["rate", "Strumento Allunga velocità", "R", <RateIcon key="i" />],
+    ],
+  },
+  { tools: [["razor", "Strumento Lama", "C", <Scissors key="i" size={15} />]] },
+  {
+    tools: [
+      ["slip", "Strumento Scorrimento", "Y", <SlipIcon key="i" />],
+      ["slide", "Strumento Scivolamento", "U", <SlipIcon key="i" slide />],
+    ],
+  },
+  {
+    tools: [
+      ["pen", "Strumento Penna", "P", <PenTool key="i" size={15} />],
+      ["rect", "Strumento Rettangolo", "", <Square key="i" size={15} />],
+      ["ellipse", "Strumento Ellisse", "", <Circle key="i" size={15} />],
+    ],
+  },
+  {
+    tools: [
+      ["hand", "Strumento Mano", "H", <Hand key="i" size={15} />],
+      ["zoom", "Strumento Zoom", "Z", <ZoomIn key="i" size={15} />],
+    ],
+  },
+  { tools: [["type", "Strumento Testo", "T", <Type key="i" size={16} />]] },
 ];
 
-const WORKSPACES = ["Montaggio", "Assemblaggio", "Colore", "Effetti", "Audio", "Grafica"] as const;
-
-/** Solo lato client: il simulatore usa tastiera, misure dello schermo e numeri calcolati al volo. */
-export function PremiereStudio() {
-  const hydrated = useHydrated();
-  return hydrated ? <PremiereStudioInner /> : <div className="fixed inset-0 bg-[#161616]" />;
+function TrackFwdIcon({ back }: { back?: boolean }) {
+  return (
+    <svg width="18" height="14" viewBox="0 0 18 14" fill="currentColor" style={{ transform: back ? "scaleX(-1)" : undefined }}>
+      <path d="M2 2l5 4-5 4zM8 2l5 4-5 4z" />
+      <path d="M14 3v8" stroke="currentColor" strokeWidth="1.2" />
+    </svg>
+  );
+}
+function RippleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <path d="M8 2v12M8 4H4M8 12H4M11 6l2 2-2 2" />
+    </svg>
+  );
+}
+function RollIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <path d="M8 2v12M4 6L2 8l2 2M12 6l2 2-2 2" />
+    </svg>
+  );
+}
+function RateIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <path d="M2 8h12M2 5v6M14 5v6M5 6l-2 2 2 2M11 6l2 2-2 2" />
+    </svg>
+  );
+}
+function SlipIcon({ slide }: { slide?: boolean }) {
+  return (
+    <svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="currentColor" strokeWidth="1.3">
+      <rect x={slide ? 6 : 1} y="3" width={slide ? 6 : 16} height="8" />
+      <path d="M4 7h10M6 5L4 7l2 2M12 5l2 2-2 2" />
+    </svg>
+  );
 }
 
-function PremiereStudioInner() {
+function ToolsPanel({ horizontal }: { horizontal?: boolean }) {
+  const st = usePremiere();
+  const [fly, setFly] = useState<number | null>(null);
+  const [chosen, setChosen] = useState<number[]>(TOOL_GROUPS.map(() => 0));
+  return (
+    <div className={clsx("relative flex items-center gap-1.5 py-2", horizontal ? "flex-row px-2" : "flex-col")}>
+      {TOOL_GROUPS.map((g, gi) => {
+        const activeIdx = g.tools.findIndex(([id]) => id === st.tool);
+        const shown = g.tools[activeIdx >= 0 ? activeIdx : chosen[gi]];
+        const [id, name, key, icon] = shown;
+        return (
+          <div key={gi} className="relative">
+            <button
+              type="button"
+              title={`${name}${key ? ` (${key})` : ""}`}
+              aria-label={name}
+              onClick={() => A.setTool(id)}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                if (g.tools.length > 1) setFly(gi);
+              }}
+              onPointerDown={() => {
+                if (g.tools.length < 2) return;
+                const timer = setTimeout(() => setFly(gi), 450);
+                const clear = () => clearTimeout(timer);
+                window.addEventListener("pointerup", clear, { once: true });
+              }}
+              className={clsx("relative grid h-8 w-8 place-items-center rounded-[5px]", activeIdx >= 0 ? "bg-[#2d63d6] text-white" : "text-[#d0d0d0] hover:bg-white/10")}
+            >
+              {icon}
+              {g.tools.length > 1 && <span className="absolute bottom-[3px] right-[3px] h-0 w-0 border-l-[4px] border-t-[4px] border-l-transparent border-t-current opacity-70" style={{ transform: "rotate(90deg)" }} />}
+            </button>
+            {fly === gi && (
+              <div className={clsx("absolute z-50 min-w-60 rounded-md border border-black bg-[#2b2b2b] py-1 shadow-xl", horizontal ? "bottom-full left-0 mb-1" : "left-full top-0 ml-1")} onPointerLeave={() => setFly(null)}>
+                {g.tools.map(([tid, tname, tkey, ticon], ti) => (
+                  <button
+                    key={tid}
+                    type="button"
+                    onClick={() => {
+                      A.setTool(tid);
+                      setChosen(chosen.map((c, k) => (k === gi ? ti : c)));
+                      setFly(null);
+                    }}
+                    className="flex w-full items-center gap-3 px-3 py-1.5 text-[12.5px] text-[#d6d6d6] hover:bg-[#2680eb] hover:text-white"
+                  >
+                    {ticon}
+                    <span className="flex-1 text-left">{tname}</span>
+                    <span className="text-[11px] text-[#9a9a9a]">{tkey}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Meters() {
+  const st = usePremiere();
+  const seq = seqOf(st);
+  const T = playheadOf(st);
+  const [l, r] = seq ? meterLevels(seq, st.project, T, st.playing) : [-Infinity, -Infinity];
+  const pct = (db: number) => (Number.isFinite(db) ? Math.max(0, Math.min(1, (db + 60) / 60)) : 0);
+  const scale = [0, -3, -6, -9, -12, -15, -18, -21, -24, -27, -30, -33, -36, -39, -42, -45, -48, -51, -54, -57];
+  const show = st.playing;
+  return (
+    <div className="flex h-full flex-col px-2 pb-2 pt-1 text-[10px] text-[#bdbdbd]">
+      <div className="flex min-h-0 flex-1 gap-1.5">
+        {[l, r].map((v, i) => (
+          <div key={i} className="relative w-full overflow-hidden bg-[#0d0d0d]">
+            <div className="absolute inset-0 bg-[linear-gradient(to_top,#2fbf5a_0%,#2fbf5a_75%,#e6d33a_88%,#e64a3a_100%)]" />
+            <div className="absolute inset-x-0 top-0 bg-[#0d0d0d] transition-[height] duration-75" style={{ height: `${(1 - (show ? pct(v) : 0)) * 100}%` }} />
+          </div>
+        ))}
+        <div className="relative w-6 shrink-0">
+          {scale.map((d) => (
+            <span key={d} className="absolute right-0 -translate-y-1/2" style={{ top: `${(-d / 60) * 100}%` }}>
+              {d}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="mt-1 flex justify-around">
+        <span>S</span>
+        <span>S</span>
+        <span className="w-6 text-right">dB</span>
+      </div>
+      <div className="mt-2 space-y-0.5 text-[10.5px]">
+        {[
+          ["M", Number.isFinite(l) && show ? (l - 14).toFixed(1) : "–"],
+          ["S", Number.isFinite(l) && show ? (l - 15).toFixed(1) : "–"],
+          ["I", Number.isFinite(l) && show ? (l - 16).toFixed(1) : "–"],
+          ["TP", Number.isFinite(l) && show ? Math.max(l, r).toFixed(1) : "–"],
+        ].map(([k, v]) => (
+          <div key={k} className="flex justify-between">
+            <span>{k}</span>
+            <span className="text-[#3d9cf0]">
+              {v} {k === "TP" ? "dB" : "LUFS"}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function PremiereStudio() {
+  const hydrated = useHydrated();
+  return hydrated ? <PremiereInner /> : <div className="fixed inset-0 bg-[#121212]" />;
+}
+
+function PremiereInner() {
   const st = usePremiere();
   const wide = useWide();
-  const [workspace, setWorkspace] = useState<(typeof WORKSPACES)[number]>("Montaggio");
-  const [topLeft, setTopLeft] = useState<"Sorgente" | "Controlli effetti">("Controlli effetti");
-  const [bottomLeft, setBottomLeft] = useState<"Progetto" | "Effetti">("Progetto");
-  const [mobileTab, setMobileTab] = useState<"Programma" | "Sorgente" | "Controlli effetti" | "Progetto" | "Effetti">("Programma");
-
-  usePlayback(st.playing, (dt) => {
-    const s = usePremiere.getState();
-    const end = seqDuration(s.seq);
-    const t = s.playhead + dt * (s.playing ? 1 : 0);
-    if (t >= end) s.set({ playhead: end, playing: false });
-    else s.set({ playhead: t });
-  });
-
-  // ---- azioni (usate da menu e scorciatoie) ----
-  const actions = {
-    deleteSel: (ripple: boolean) => {
-      const s = usePremiere.getState();
-      if (s.gap) {
-        const next = closeGap(s.seq, s.gap.from, s.gap.to);
-        if (!next) return s.notify("Impossibile chiudere lo spazio: ci sono clip in altre tracce in quel punto");
-        return s.commit(next, []);
-      }
-      if (s.selection.length) s.commit(deleteClips(s.seq, s.selection, ripple), []);
-    },
-    addEdit: (all: boolean) => {
-      const s = usePremiere.getState();
-      if (all) return s.commit(addEditAll(s.seq, s.playhead));
-      // senza Maiusc taglia solo le tracce di destinazione
-      const ids = s.seq.clips
-        .filter((c) => (c.track === s.targetV || c.track === s.targetA) && s.playhead > c.start && s.playhead < clipEnd(c))
-        .flatMap((c) => linked(s.seq, c.id).map((k) => k.id));
-      if (!ids.length) return s.notify("Nessuna clip sotto l'indicatore nelle tracce di destinazione");
-      s.commit(razor(s.seq, ids, s.playhead));
-    },
-    transition: () => {
-      const s = usePremiere.getState();
-      let target = s.seq.clips.filter((c) => s.selection.includes(c.id) && isVideo(c.track));
-      if (!target.length) {
-        // altrimenti il punto di modifica più vicino sulla traccia di destinazione
-        const near = s.seq.clips.filter((c) => c.track === s.targetV).sort((a, b) => Math.abs(a.start - s.playhead) - Math.abs(b.start - s.playhead))[0];
-        target = near ? [near] : [];
-      }
-      if (!target.length) return s.notify("Seleziona una clip video");
-      const ids = new Set(target.map((c) => c.id));
-      s.commit({ ...s.seq, clips: s.seq.clips.map((c) => (ids.has(c.id) ? { ...c, transition: "dissolve" } : c)) });
-      s.notify("Dissolvenza incrociata applicata");
-    },
-    place: (mode: "insert" | "overwrite") => {
-      const s = usePremiere.getState();
-      if (!s.selectedMedia) return;
-      const m = getMedia(s.selectedMedia);
-      const a = s.source.in ?? 0;
-      const b = s.source.out ?? m.duration;
-      if (b <= a) return s.notify("Il punto di uscita deve venire dopo l'attacco");
-      const r = placeMedia(s.seq, m, s.playhead, a, b, mode, s.targetV, s.targetA);
-      s.commit(r.seq, r.ids);
-      s.setPlayhead(s.playhead + (b - a));
-    },
-    marker: () => {
-      const s = usePremiere.getState();
-      s.commit({ ...s.seq, markers: [...s.seq.markers, s.playhead] });
-    },
-    zoom: (f: number) => {
-      const s = usePremiere.getState();
-      s.set({ pxPerSec: Math.max(6, Math.min(200, s.pxPerSec * f)) });
-    },
-    fit: () => {
-      const s = usePremiere.getState();
-      const w = (document.querySelector("[data-timeline]")?.clientWidth ?? 900) - 120;
-      s.set({ pxPerSec: Math.max(6, Math.min(200, w / Math.max(5, seqDuration(s.seq)))) });
-    },
-  };
+  const [tl, setTl] = useState<(typeof TL)[number]>("Sorgente");
+  const [tr, setTr] = useState<(typeof TR)[number]>("Proprietà");
+  const [bl, setBl] = useState<(typeof BL)[number]>("Progetto");
+  const [mob, setMob] = useState<"Programma" | "Sorgente" | "Controlli effetti" | "Proprietà" | "Progetto" | "Effetti">("Programma");
+  const [sizes, setSizes] = useState({ top: 0.57, src: 0.36, prog: 0.36, proj: 0.27, meters: 110 });
+  const [vw, setVw] = useState(1400);
+  const [vh, setVh] = useState(800);
+  const seq = seqOf(st);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const s = usePremiere.getState();
-      if (typing(e) || (s.dialog && s.dialog !== "keys")) return;
-      const k = e.key.toLowerCase();
-      const ctrl = e.ctrlKey || e.metaKey;
-      const frame = 1 / s.seq.fps;
-      const edits = [...new Set(s.seq.clips.flatMap((c) => [c.start, clipEnd(c)]))].sort((a, b) => a - b);
-      let handled = true;
-      if (ctrl && k === "z") e.shiftKey ? s.redo() : s.undo();
-      else if (ctrl && k === "y") s.redo();
-      else if (ctrl && k === "k") actions.addEdit(e.shiftKey);
-      else if (ctrl && k === "d") actions.transition();
-      else if (ctrl && k === "a") s.set({ selection: s.seq.clips.map((c) => c.id) });
-      else if (ctrl && k === "n") s.set({ dialog: "sequence" });
-      else if (ctrl && k === "m") s.set({ dialog: "export" });
-      else if (ctrl) handled = false;
-      else if (k === " ") s.togglePlay();
-      else if (k === "k") s.set({ playing: false });
-      else if (k === "l") s.playing || s.togglePlay();
-      else if (k === "j") s.set({ playing: false, playhead: Math.max(0, s.playhead - 1) });
-      else if (k === "arrowleft") s.set({ playing: false, playhead: Math.max(0, s.playhead - frame * (e.shiftKey ? 5 : 1)) });
-      else if (k === "arrowright") s.set({ playing: false, playhead: s.playhead + frame * (e.shiftKey ? 5 : 1) });
-      else if (k === "arrowup") s.setPlayhead([...edits].reverse().find((x) => x < s.playhead - 0.001) ?? 0);
-      else if (k === "arrowdown") s.setPlayhead(edits.find((x) => x > s.playhead + 0.001) ?? s.playhead);
-      else if (k === "home") s.setPlayhead(0);
-      else if (k === "end") s.setPlayhead(seqDuration(s.seq));
-      else if (k === "v") s.set({ tool: "select" });
-      else if (k === "b") s.set({ tool: "ripple" });
-      else if (k === "c") s.set({ tool: "razor" });
-      else if (k === "h") s.set({ tool: "hand" });
-      else if (k === "s") s.set({ snapping: !s.snapping });
-      else if (k === "m") actions.marker();
-      else if (k === "i") s.set({ source: { ...s.source, in: s.source.t } });
-      else if (k === "o") s.set({ source: { ...s.source, out: s.source.t } });
-      else if (k === ",") actions.place("insert");
-      else if (k === ".") actions.place("overwrite");
-      else if (k === "delete" || k === "backspace") actions.deleteSel(e.shiftKey);
-      else if (k === "+" || k === "=") actions.zoom(1.4);
-      else if (k === "-") actions.zoom(1 / 1.4);
-      else if (k === "\\") actions.fit();
-      else if (k === "escape") s.set({ selection: [], gap: null, dialog: null });
-      else handled = false;
-      if (handled) e.preventDefault();
+    const on = () => {
+      setVw(window.innerWidth);
+      setVh(window.innerHeight);
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    on();
+    window.addEventListener("resize", on);
+    window.addEventListener("keydown", handlePremiereKey);
+    const ids = Object.values(usePremiere.getState().project.media)
+      .filter((m) => m.file)
+      .map((m) => m.id);
+    void restoreFiles(ids).then(() => usePremiere.setState({}));
+    return () => {
+      window.removeEventListener("resize", on);
+      window.removeEventListener("keydown", handlePremiereKey);
+    };
   }, []);
 
+  // tl/tr/bl segue il pannello scelto dai menu Finestra
+  const focusPanel = (p: PanelId) => {
+    st.set({ focus: p, maximized: null });
+    const name = Object.entries(PANEL_ID).find(([, v]) => v === p)?.[0];
+    if (!name) return;
+    if ((TL as readonly string[]).includes(name)) setTl(name as (typeof TL)[number]);
+    if ((TR as readonly string[]).includes(name)) setTr(name as (typeof TR)[number]);
+    if ((BL as readonly string[]).includes(name)) setBl(name as (typeof BL)[number]);
+  };
+
+  const has = !!seq;
+  const sel = st.selection.length > 0;
   const menus: Menu[] = [
     {
       label: "File",
       items: [
-        { label: "Nuovo › Sequenza…", keys: "Ctrl+N", action: () => st.set({ dialog: "sequence" }) },
+        {
+          label: "Nuovo",
+          sub: [
+            { label: "Sequenza…", keys: "Ctrl+N", action: () => st.set({ dialog: { type: "sequence" } }) },
+            { label: "Raccoglitore", keys: "Ctrl+/", action: A.newBin },
+            "-",
+            { label: "Video nero", action: () => A.newSyntheticItem("black") },
+            { label: "Livello di regolazione", action: () => A.newSyntheticItem("adjustment") },
+            { label: "Barre e tono HD", action: () => A.newSyntheticItem("bars") },
+            { label: "Mascherino colore…", action: () => st.set({ dialog: { type: "matte" } }) },
+            { label: "Contatore universale", action: () => A.newSyntheticItem("countdown") },
+          ],
+        },
         "-",
-        { label: "Esporta › Media…", keys: "Ctrl+M", action: () => st.set({ dialog: "export" }) },
+        { label: "Salva", keys: "Ctrl+S", action: () => (st.set({ saved: true }), st.notify("Progetto salvato")) },
+        { label: "Ripristina progetto di esempio", action: () => st.set({ dialog: { type: "confirm", title: "Ripristina", text: "Tornare al progetto di esempio? Le modifiche andranno perse.", onOk: st.reset } }) },
         "-",
-        { label: "Ripristina progetto di esempio", action: () => st.reset() },
+        { label: "Importa…", keys: "Ctrl+I", action: openImport },
+        { label: "Importa dal browser multimediale", action: () => focusPanel("media") },
+        "-",
+        { label: "Esporta", sub: [{ label: "Media…", keys: "Ctrl+M", disabled: !has, action: () => st.set({ dialog: { type: "export" } }) }] },
+        "-",
+        { label: "Chiudi", action: () => (window.location.href = "/practice") },
       ],
     },
     {
       label: "Modifica",
       items: [
-        { label: "Annulla", keys: "Ctrl+Z", action: st.undo, disabled: !st.past.length },
-        { label: "Ripeti", keys: "Ctrl+Maiusc+Z", action: st.redo, disabled: !st.future.length },
+        { label: st.past.length ? `Annulla ${st.past.at(-1)!.label}` : "Annulla", keys: "Ctrl+Z", disabled: !st.past.length, action: st.undo },
+        { label: st.future.length ? `Ripeti ${st.future[0].label}` : "Ripeti", keys: "Ctrl+Maiusc+Z", disabled: !st.future.length, action: st.redo },
         "-",
-        { label: "Elimina", keys: "Canc", action: () => actions.deleteSel(false) },
-        { label: "Elimina con increspatura", keys: "Maiusc+Canc", action: () => actions.deleteSel(true) },
+        { label: "Taglia", keys: "Ctrl+X", disabled: !sel, action: () => A.copy(true) },
+        { label: "Copia", keys: "Ctrl+C", disabled: !sel, action: () => A.copy(false) },
+        { label: "Incolla", keys: "Ctrl+V", disabled: !st.clipboard?.length, action: () => A.paste(false) },
+        { label: "Incolla e inserisci", keys: "Ctrl+Maiusc+V", disabled: !st.clipboard?.length, action: () => A.paste(true) },
+        { label: "Incolla attributi…", keys: "Ctrl+Alt+V", disabled: !st.clipboard?.length || !sel, action: () => st.set({ dialog: { type: "pasteAttr" } }) },
+        { label: "Rimuovi attributi…", disabled: !sel, action: A.removeAttributes },
         "-",
-        { label: "Seleziona tutto", keys: "Ctrl+A", action: () => st.set({ selection: st.seq.clips.map((c) => c.id) }) },
-        { label: "Deseleziona tutto", keys: "Esc", action: () => st.select(null) },
+        { label: "Cancella", keys: "Canc", action: () => A.deleteSelection(false) },
+        { label: "Elimina con increspatura", keys: "Maiusc+Canc", action: () => A.deleteSelection(true) },
+        "-",
+        { label: "Seleziona tutto", keys: "Ctrl+A", action: A.selectAll },
+        { label: "Deseleziona tutto", keys: "Ctrl+Maiusc+A", action: () => st.set({ selection: [] }) },
+        "-",
+        { label: "Scorciatoie da tastiera…", action: () => st.set({ dialog: { type: "keys" } }) },
       ],
     },
     {
       label: "Clip",
       items: [
-        { label: "Inserisci", keys: ",", action: () => actions.place("insert") },
-        { label: "Sovrascrivi", keys: ".", action: () => actions.place("overwrite") },
+        { label: "Velocità/Durata…", keys: "Ctrl+R", disabled: !sel, action: () => st.set({ dialog: { type: "speed", ids: st.selection } }) },
+        "-",
+        { label: "Inserisci", keys: ",", action: () => A.place("insert") },
+        { label: "Sovrascrivi", keys: ".", action: () => A.place("overwrite") },
+        "-",
+        { label: "Abilita", keys: "Maiusc+E", disabled: !sel, action: A.toggleEnable },
+        { label: "Collega / Scollega", keys: "Ctrl+L", disabled: !sel, action: A.linkUnlink },
+        "-",
+        { label: "Opzioni video", sub: [{ label: "Ridimensiona alla dimensione fotogramma", disabled: !sel, action: () => A.scaleToFrame(true) }, { label: "Imposta alla dimensione fotogramma", disabled: !sel, action: () => A.scaleToFrame(false) }] },
       ],
     },
     {
       label: "Sequenza",
       items: [
-        { label: "Aggiungi modifica", keys: "Ctrl+K", action: () => actions.addEdit(false) },
-        { label: "Aggiungi modifica a tutte le tracce", keys: "Ctrl+Maiusc+K", action: () => actions.addEdit(true) },
-        { label: "Applica transizione video", keys: "Ctrl+D", action: actions.transition },
+        { label: "Impostazioni sequenza…", disabled: !has, action: () => st.set({ dialog: { type: "seqSettings" } }) },
         "-",
-        { label: "Ingrandisci", keys: "+", action: () => actions.zoom(1.4) },
-        { label: "Riduci", keys: "−", action: () => actions.zoom(1 / 1.4) },
-        { label: st.snapping ? "✓ Aggancia nella timeline" : "Aggancia nella timeline", keys: "S", action: () => st.set({ snapping: !st.snapping }) },
+        { label: "Solleva", keys: ";", action: () => A.liftOrExtract(false) },
+        { label: "Estrai", keys: "'", action: () => A.liftOrExtract(true) },
+        { label: "Aggiungi modifica", keys: "Ctrl+K", action: () => A.addEdit(false) },
+        { label: "Aggiungi modifica a tutte le tracce", keys: "Ctrl+Maiusc+K", action: () => A.addEdit(true) },
+        { label: "Rifila modifica precedente all'indicatore", keys: "Q", action: () => A.rippleTrimToPlayhead("prev") },
+        { label: "Rifila modifica successiva all'indicatore", keys: "W", action: () => A.rippleTrimToPlayhead("next") },
+        "-",
+        { label: "Applica transizione video", keys: "Ctrl+D", action: () => A.applyDefaultTransition("video") },
+        { label: "Applica transizione audio", keys: "Ctrl+Maiusc+D", action: () => A.applyDefaultTransition("audio") },
+        { label: "Applica transizioni predefinite alla selezione", keys: "Maiusc+D", action: () => A.applyDefaultTransition("both") },
+        "-",
+        { label: "Ingrandisci", keys: "=", action: () => A.zoom(1.4) },
+        { label: "Riduci", keys: "-", action: () => A.zoom(1 / 1.4) },
+        { label: "Aggancia nella timeline", keys: "S", checked: st.snapping, action: () => st.set({ snapping: !st.snapping }) },
+        { label: "Selezione collegata", checked: st.linkedSel, action: () => st.set({ linkedSel: !st.linkedSel }) },
+        "-",
+        { label: "Aggiungi tracce…", disabled: !has, action: () => st.set({ dialog: { type: "tracks" } }) },
       ],
     },
-    { label: "Marcatori", items: [{ label: "Aggiungi marcatore", keys: "M", action: actions.marker }, { label: "Cancella tutti i marcatori", action: () => st.commit({ ...st.seq, markers: [] }) }] },
-    { label: "Finestra", items: WORKSPACES.map((w) => ({ label: `Aree di lavoro › ${w}`, action: () => setWorkspace(w) })) },
-    { label: "Aiuto", items: [{ label: "Scorciatoie da tastiera…", action: () => st.set({ dialog: "keys" }) }] },
+    {
+      label: "Marcatori",
+      items: [
+        { label: "Contrassegna attacco", keys: "I", action: A.markIn },
+        { label: "Contrassegna uscita", keys: "O", action: A.markOut },
+        { label: "Contrassegna clip", keys: "X", action: A.markClip },
+        { label: "Contrassegna selezione", keys: "/", action: A.markSelection },
+        { label: "Vai ad attacco", keys: "Maiusc+I", action: A.goToIn },
+        { label: "Vai a uscita", keys: "Maiusc+O", action: A.goToOut },
+        { label: "Cancella attacco e uscita", keys: "Ctrl+Maiusc+X", action: A.clearInOut },
+        "-",
+        { label: "Aggiungi marcatore", keys: "M", action: A.addMarker },
+        { label: "Vai al marcatore successivo", keys: "Maiusc+M", action: () => A.goMarker(1) },
+        { label: "Vai al marcatore precedente", keys: "Ctrl+Maiusc+M", action: () => A.goMarker(-1) },
+        { label: "Cancella tutti i marcatori", action: A.clearMarkers },
+      ],
+    },
+    {
+      label: "Grafica e titoli",
+      items: [
+        { label: "Nuovo livello", sub: [{ label: "Testo", action: () => seq && A.createGraphic("text", seq.width / 2, seq.height / 2) }, { label: "Rettangolo", action: () => seq && A.createGraphic("rect", seq.width / 2, seq.height / 2) }, { label: "Ellisse", action: () => seq && A.createGraphic("ellipse", seq.width / 2, seq.height / 2) }] },
+        "-",
+        { label: "Sfoglia modelli di grafica", action: () => focusPanel("graphics") },
+      ],
+    },
+    {
+      label: "Visualizza",
+      items: [
+        { label: "Ingrandimento monitor Programma", sub: (["fit", 25, 50, 100, 200] as const).map((z) => ({ label: z === "fit" ? "Adatta" : `${z}%`, checked: st.programZoom === z, action: () => st.set({ programZoom: z }) })) },
+        { label: "Ingrandisci il pannello attivo", keys: "`", action: () => st.set({ maximized: st.maximized ? null : st.focus }) },
+      ],
+    },
+    {
+      label: "Finestra",
+      items: [
+        ...(Object.entries(PANEL_ID).map(([name, id]) => ({ label: name, action: () => focusPanel(id) })) as Menu["items"]),
+        "-",
+        { label: "Strumenti", action: () => st.set({ focus: "tools" }) },
+        { label: "Timeline", action: () => st.set({ focus: "timeline" }) },
+        { label: "Programma", action: () => st.set({ focus: "program" }) },
+      ],
+    },
+    {
+      label: "Aiuto",
+      items: [
+        { label: "Scorciatoie da tastiera", action: () => st.set({ dialog: { type: "keys" } }) },
+        { label: "Torna alle lezioni di SqueakEdit", action: () => (window.location.href = "/learn") },
+      ],
+    },
   ];
 
+  const focused = (name: string) => st.focus === PANEL_ID[name];
+  const panelFor = (name: string): ReactNode => {
+    switch (name) {
+      case "Sorgente":
+        return <SourceMonitor />;
+      case "Controlli effetti":
+        return <EffectControls />;
+      case "Mixer clip audio":
+        return <AudioMixer />;
+      case "Metadati":
+        return <Metadata />;
+      case "Proprietà":
+        return <PropertiesPanel />;
+      case "Grafica essenziale":
+        return <EssentialGraphics />;
+      case "Testo":
+        return <TextPanel />;
+      case "Progetto":
+        return <ProjectPanel />;
+      case "Browser multimediale":
+        return <MediaBrowser />;
+      case "Librerie":
+        return <Libraries />;
+      case "Info":
+        return <InfoPanel />;
+      case "Effetti":
+        return <EffectsPanel />;
+      case "Cronologia":
+        return <HistoryPanel />;
+    }
+    return null;
+  };
+
   const timelinePanel = (
-    <Panel tabs={[st.seq.name]} tab={st.seq.name} className="h-full" focused>
-      <div data-timeline className="absolute inset-0">
+    <Panel
+      tabs={st.openSeqs.map((id) => st.project.sequences[id]?.name ?? "?")}
+      tab={seq?.name ?? ""}
+      onTab={(name) => {
+        const id = st.openSeqs.find((x) => st.project.sequences[x]?.name === name);
+        if (id) st.openSequence(id);
+      }}
+      onClose={() => seq && st.closeSequence(seq.id)}
+      focused={st.focus === "timeline"}
+      onFocus={() => st.set({ focus: "timeline" })}
+      className="h-full"
+      menu={[
+        { label: "Impostazioni sequenza…", disabled: !has, action: () => st.set({ dialog: { type: "seqSettings" } }) },
+        { label: "Aggiungi tracce…", disabled: !has, action: () => st.set({ dialog: { type: "tracks" } }) },
+        { label: "Chiudi", action: () => seq && st.closeSequence(seq.id) },
+      ]}
+    >
+      <div
+        className="absolute inset-0"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          const preset = e.dataTransfer.getData("text/x-preset");
+          if (preset) applyPreset(preset);
+          const sample = e.dataTransfer.getData("text/x-sample");
+          if (sample) st.notify("Importa prima il file nel progetto (doppio clic nel Browser multimediale)");
+        }}
+      >
         <Timeline />
       </div>
     </Panel>
   );
 
-  return (
-    <div className="fixed inset-0 flex flex-col bg-[#161616] text-[#c8c8c8]">
-      <MenuBar app="Pr" color="#9999ff" menus={menus} right={<span className="hidden text-[11px] text-[#7a7a7a] md:inline">Progetto.prproj — SqueakEdit</span>} />
-      <div className="flex h-8 shrink-0 items-center justify-center gap-4 overflow-x-auto border-b border-black bg-[#1b1b1b] px-3 text-[12px]">
-        {WORKSPACES.map((w) => (
-          <button key={w} type="button" onClick={() => setWorkspace(w)} className={clsx("whitespace-nowrap pb-0.5", w === workspace ? "border-b-2 border-[#2680eb] text-white" : "text-[#8f8f8f] hover:text-white")}>
-            {w}
-          </button>
-        ))}
+  const header = (
+    <div className="flex h-11 shrink-0 items-center gap-1 border-b border-[#0f0f0f] bg-[#1b1b1b] px-3 text-[14px]">
+      <Link href="/practice" title="Home (torna a Pratica)" className="grid h-8 w-8 place-items-center rounded text-[#d0d0d0] hover:bg-white/10">
+        <Home size={17} />
+      </Link>
+      {(
+        [
+          ["import", "Importa"],
+          ["edit", "Modifica"],
+          ["export", "Esporta"],
+        ] as const
+      ).map(([m, label]) => (
+        <button
+          key={m}
+          type="button"
+          onClick={() => (m === "export" ? (seq ? st.set({ dialog: { type: "export" } }) : st.notify("Apri prima una sequenza")) : st.set({ mode: m }))}
+          className={clsx("px-3 py-1", st.mode === m ? "text-white underline decoration-2 underline-offset-[9px]" : "text-[#d0d0d0] hover:text-white")}
+        >
+          {label}
+        </button>
+      ))}
+      <div className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 text-[14px] font-semibold text-[#e6e6e6] md:block">
+        {st.project.name}
+        {st.saved ? "" : " - Modificato"}
       </div>
+      <div className="ml-auto flex items-center gap-1 text-[#d0d0d0]">
+        <button type="button" title="Area di lavoro" className="flex items-center gap-1.5 rounded px-2 py-1 text-[12px] font-semibold hover:bg-white/10" onClick={(e) => st.set({ menu: { x: e.clientX - 160, y: e.clientY + 14, items: [{ label: "Modifica", checked: true }, { label: "Ripristina layout salvato", action: () => setSizes({ top: 0.57, src: 0.36, prog: 0.36, proj: 0.27, meters: 110 }) }] } })}>
+          MODIFICA <LayoutPanelLeft size={15} />
+        </button>
+        {[
+          [Moon, "Tema", () => st.notify("Il tema scuro è l'unico disponibile")],
+          [Share, "Esportazione rapida", () => (seq ? st.set({ dialog: { type: "export" } }) : null)],
+          [Bell, "Notifiche", () => st.notify("Nessuna notifica")],
+          [Search, "Cerca nella guida", () => st.set({ dialog: { type: "keys" } })],
+          [Volume2, "Volume", () => st.notify("Volume master del simulatore")],
+          [Expand, "Schermo intero", () => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen?.())],
+        ].map(([Icon, title, fn]) => {
+          const I = Icon as typeof Moon;
+          return (
+            <button key={title as string} type="button" title={title as string} onClick={fn as () => void} className="grid h-8 w-8 place-items-center rounded hover:bg-white/10">
+              <I size={16} />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 
-      {/* schermo largo: la classica area di lavoro Montaggio */}
-      {wide ? (
-      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-1 p-1">
-        <Panel tabs={["Sorgente", "Controlli effetti"] as const} tab={topLeft} onTab={setTopLeft}>
-          {topLeft === "Sorgente" ? <SourceMonitor /> : <EffectControls />}
+  let body: ReactNode;
+  if (st.mode === "import") {
+    body = (
+      <div className="flex min-h-0 flex-1 gap-1 p-1">
+        <Panel tabs={["Importa"]} tab="Importa" className="flex-1">
+          <div className="grid h-full grid-rows-[auto_1fr] gap-3 p-4">
+            <div
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                void A.importFiles(e.dataTransfer.files);
+              }}
+              className="grid h-40 place-items-center rounded-lg border-2 border-dashed border-[#3a3a3a] text-center text-[13px] text-[#9a9a9a]"
+            >
+              <div>
+                Trascina qui video, audio e immagini dal tuo computer
+                <br />
+                <button type="button" onClick={openImport} className="mt-3 rounded-full bg-[#2680eb] px-4 py-1.5 font-semibold text-white hover:bg-[#1473e6]">
+                  Sfoglia…
+                </button>
+              </div>
+            </div>
+            <div className="min-h-0">
+              <MediaBrowser />
+            </div>
+          </div>
         </Panel>
-        <Panel tabs={["Programma: " + st.seq.name]} tab={"Programma: " + st.seq.name}>
-          <ProgramMonitor />
+        <Panel tabs={["Progetto"]} tab="Progetto" className="w-[40%]">
+          <ProjectPanel />
         </Panel>
-        <div className="col-span-2 grid min-h-0 grid-cols-[minmax(220px,0.8fr)_auto_minmax(0,3fr)_auto] gap-1">
-          <Panel tabs={["Progetto", "Effetti"] as const} tab={bottomLeft} onTab={setBottomLeft}>
-            {bottomLeft === "Progetto" ? <ProjectPanel /> : <EffectsPanel />}
+      </div>
+    );
+  } else if (st.maximized) {
+    const name = Object.entries(PANEL_ID).find(([, v]) => v === st.maximized)?.[0];
+    body = (
+      <div className="flex min-h-0 flex-1 p-1">
+        {st.maximized === "timeline" ? (
+          timelinePanel
+        ) : st.maximized === "program" ? (
+          <Panel tabs={[`Programma: ${seq?.name ?? ""}`]} tab={`Programma: ${seq?.name ?? ""}`} className="flex-1" focused>
+            <ProgramMonitor />
           </Panel>
-          <div className="rounded-[6px] border border-[#151515] bg-[#232323]">
+        ) : name ? (
+          <Panel tabs={[name]} tab={name} className="flex-1" focused>
+            {panelFor(name)}
+          </Panel>
+        ) : (
+          timelinePanel
+        )}
+      </div>
+    );
+  } else if (wide) {
+    const topH = Math.round((vh - 26 - 44 - 24) * sizes.top);
+    body = (
+      <div className="flex min-h-0 flex-1 flex-col p-1">
+        <div className="flex shrink-0" style={{ height: topH }}>
+          <Panel tabs={TL} tab={tl} onTab={(t) => (setTl(t), st.set({ focus: PANEL_ID[t] }))} focused={focused(tl)} onFocus={() => st.set({ focus: PANEL_ID[tl] })} className="shrink-0" style={{ width: sizes.src * vw }} menu={[{ label: "Chiudi clip", action: () => st.set({ source: { mediaId: null, t: 0, in: null, out: null, playing: false } }) }]}>
+            {panelFor(tl)}
+          </Panel>
+          <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, src: Math.max(0.15, Math.min(0.5, s.src + d / vw)) }))} />
+          <Panel
+            tabs={[`Programma: ${seq?.name ?? "(nessuna sequenza)"}`]}
+            tab={`Programma: ${seq?.name ?? "(nessuna sequenza)"}`}
+            focused={st.focus === "program"}
+            onFocus={() => st.set({ focus: "program" })}
+            className="shrink-0"
+            style={{ width: sizes.prog * vw }}
+            menu={[{ label: "Ingrandisci", action: () => st.set({ maximized: "program" }) }]}
+          >
+            <ProgramMonitor />
+          </Panel>
+          <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, prog: Math.max(0.2, Math.min(0.6, s.prog + d / vw)) }))} />
+          <Panel tabs={TR} tab={tr} onTab={(t) => (setTr(t), st.set({ focus: PANEL_ID[t] }))} focused={focused(tr)} onFocus={() => st.set({ focus: PANEL_ID[tr] })} className="min-w-0 flex-1">
+            {panelFor(tr)}
+          </Panel>
+        </div>
+        <Gutter dir="y" onDrag={(d) => setSizes((s) => ({ ...s, top: Math.max(0.25, Math.min(0.75, s.top + d / vh)) }))} />
+        <div className="flex min-h-0 flex-1">
+          <Panel tabs={BL} tab={bl} onTab={(t) => (setBl(t), st.set({ focus: PANEL_ID[t] }))} focused={focused(bl)} onFocus={() => st.set({ focus: PANEL_ID[bl] })} className="shrink-0" style={{ width: sizes.proj * vw }} menu={[{ label: "Nuovo raccoglitore", action: A.newBin }, { label: "Importa…", action: openImport }]}>
+            {panelFor(bl)}
+          </Panel>
+          <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, proj: Math.max(0.15, Math.min(0.5, s.proj + d / vw)) }))} />
+          <div className="w-[52px] shrink-0 rounded-[4px] bg-[#1e1e1e]" onPointerDownCapture={() => st.set({ focus: "tools" })}>
             <ToolsPanel />
           </div>
-          {timelinePanel}
-          <div className="w-10 rounded-[6px] border border-[#151515] bg-[#232323]">
-            <AudioMeters />
+          <Gutter dir="x" onDrag={() => {}} />
+          <div className="min-w-0 flex-1">{timelinePanel}</div>
+          <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, meters: Math.max(60, Math.min(200, s.meters - d)) }))} />
+          <div className="shrink-0 rounded-[4px] bg-[#1e1e1e]" style={{ width: sizes.meters }}>
+            <Meters />
           </div>
         </div>
       </div>
-
-      ) : (
-      /* telefono e tablet: pannelli impilati */
+    );
+  } else {
+    body = (
       <div className="flex min-h-0 flex-1 flex-col gap-1 p-1">
-        <Panel
-          tabs={["Programma", "Sorgente", "Controlli effetti", "Progetto", "Effetti"] as const}
-          tab={mobileTab}
-          onTab={setMobileTab}
-          className="h-[45%] shrink-0"
-        >
-          {mobileTab === "Programma" && <ProgramMonitor />}
-          {mobileTab === "Sorgente" && <SourceMonitor />}
-          {mobileTab === "Controlli effetti" && <EffectControls />}
-          {mobileTab === "Progetto" && <ProjectPanel />}
-          {mobileTab === "Effetti" && <EffectsPanel />}
+        <Panel tabs={["Programma", "Sorgente", "Controlli effetti", "Proprietà", "Progetto", "Effetti"] as const} tab={mob} onTab={(t) => (setMob(t), st.set({ focus: t === "Programma" ? "program" : PANEL_ID[t] }))} className="h-[44%] shrink-0">
+          {mob === "Programma" ? <ProgramMonitor /> : panelFor(mob)}
         </Panel>
-        <div className="flex shrink-0 items-center rounded-[6px] border border-[#151515] bg-[#232323]">
+        <div className="flex shrink-0 items-center overflow-x-auto rounded-[4px] bg-[#1e1e1e]">
           <ToolsPanel horizontal />
-          <button type="button" onClick={() => actions.addEdit(true)} className="ml-auto rounded px-2 py-1 text-[11px] font-semibold text-[#cfcfcf] hover:bg-white/10">
-            Taglia qui
-          </button>
-          <button type="button" onClick={() => actions.deleteSel(true)} className="rounded px-2 py-1 text-[11px] font-semibold text-[#cfcfcf] hover:bg-white/10">
-            Elimina
-          </button>
-          <button type="button" onClick={st.undo} className="rounded px-2 py-1 text-[11px] font-semibold text-[#cfcfcf] hover:bg-white/10">
-            Annulla
-          </button>
+          <div className="ml-auto flex shrink-0 gap-1 pr-2 text-[11px] font-semibold text-[#d0d0d0]">
+            <button type="button" onClick={() => A.addEdit(true)} className="rounded px-2 py-1 hover:bg-white/10">
+              Taglia qui
+            </button>
+            <button type="button" onClick={() => A.deleteSelection(true)} className="rounded px-2 py-1 hover:bg-white/10">
+              Elimina
+            </button>
+            <button type="button" onClick={st.undo} className="rounded px-2 py-1 hover:bg-white/10">
+              Annulla
+            </button>
+          </div>
         </div>
         <div className="min-h-0 flex-1">{timelinePanel}</div>
       </div>
-      )}
+    );
+  }
 
-      {st.dialog === "sequence" && (
-        <Modal onClose={() => st.set({ dialog: null })}>
-          <SequenceDialog
-            initialName={`Sequenza 0${Math.min(9, st.past.length % 9 + 2)}`}
-            onCancel={() => st.set({ dialog: null })}
-            onConfirm={(s) => {
-              st.commit(emptySequence(s.name, s.width, s.height, s.fps), []);
-              st.set({ dialog: null, playhead: 0 });
-              st.notify(`Creata "${s.name}" (${s.width}×${s.height}, ${String(s.fps).replace(".", ",")} fps). Ctrl+Z per tornare indietro`);
-            }}
-          />
-        </Modal>
-      )}
-      {st.dialog === "export" && (
-        <Modal wide onClose={() => st.set({ dialog: null })}>
-          <ExportDialog
-            fileName={st.seq.name}
-            source={{ width: st.seq.width, height: st.seq.height, fps: st.seq.fps, seconds: Math.max(1, seqDuration(st.seq)) }}
-            onCancel={() => st.set({ dialog: null })}
-            onExport={(s) => {
-              if (!st.seq.clips.length) {
-                st.notify("La sequenza è vuota: aggiungi qualche clip prima di esportare");
-                return false;
-              }
-              setTimeout(() => {
-                usePremiere.getState().set({ dialog: null });
-                usePremiere.getState().notify(`Esportazione completata: ${s.width}×${s.height} ${s.format}, ${s.bitrateMbps} Mbps`);
-              }, 1800);
-              return true;
-            }}
-          />
-        </Modal>
-      )}
-      {st.dialog === "keys" && <KeysHelp title="Scorciatoie da tastiera — Premiere Pro" rows={KEYS} onClose={() => st.set({ dialog: null })} />}
+  return (
+    <div
+      className="fixed inset-0 flex select-none flex-col bg-[#121212] text-[#d0d0d0]"
+      onDragOver={(e) => e.dataTransfer.types.includes("Files") && e.preventDefault()}
+      onDrop={(e) => {
+        if (!e.dataTransfer.files.length) return;
+        e.preventDefault();
+        void A.importFiles(e.dataTransfer.files);
+      }}
+    >
+      <MenuBar app="Premiere Pro" menus={menus} right={<span className="hidden md:inline">Simulatore SqueakEdit</span>} />
+      {header}
+      {body}
+      <div className="flex h-6 shrink-0 items-center truncate px-3 text-[11.5px] text-[#bdbdbd]">{TOOL_HINT[st.tool]}</div>
+      <input
+        id="pr-import-input"
+        type="file"
+        multiple
+        accept="video/*,audio/*,image/*"
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files) void A.importFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      <PremiereDialogs />
+      {st.menu && <ContextMenu x={st.menu.x} y={st.menu.y} items={st.menu.items} onClose={() => st.set({ menu: null })} />}
       <Toast text={st.toast} />
     </div>
   );

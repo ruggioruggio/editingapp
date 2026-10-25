@@ -1,4 +1,4 @@
-import type { Subject } from "@/lib/studio/premiere";
+import type { Subject } from "@/lib/studio/media";
 
 // Filmati finti ma "vivi": ogni soggetto si anima in base al tempo della clip,
 // così scorrendo la timeline si vede davvero il video cambiare.
@@ -148,6 +148,60 @@ function Scene({ subject, hue, t, text }: { subject: Subject; hue: number; t: nu
           </text>
         </g>
       );
+    case "sunset": {
+      const sh = (k: number) => Math.sin(t * 2 + k * 1.7);
+      return (
+        <g>
+          <defs>
+            <linearGradient id="ssky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#3a2a5c" />
+              <stop offset=".55" stopColor="#c46a6a" />
+              <stop offset="1" stopColor="#f6b26b" />
+            </linearGradient>
+            <linearGradient id="ssea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#4a3560" />
+              <stop offset="1" stopColor="#1f1838" />
+            </linearGradient>
+            <radialGradient id="ssun">
+              <stop offset=".6" stopColor="#fff6e0" />
+              <stop offset="1" stopColor="#fff6e0" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <rect width="160" height="50" fill="url(#ssky)" />
+          <circle cx="80" cy={36 + t * 0.15} r="9" fill="url(#ssun)" />
+          <circle cx="80" cy={36 + t * 0.15} r="22" fill="#ffd9a0" opacity=".18" />
+          <rect y="50" width="160" height="40" fill="url(#ssea)" />
+          {Array.from({ length: 9 }, (_, k) => (
+            <rect key={k} x={80 - (12 - k) * (0.8 + 0.2 * sh(k))} y={52 + k * 4} width={(12 - k) * 2 * (0.8 + 0.2 * sh(k))} height="1.2" fill="#ffd9a0" opacity={0.75 - k * 0.07} />
+          ))}
+        </g>
+      );
+    }
+    case "greenscreen": {
+      const x = 80 + Math.sin(t * 0.8) * 30;
+      const wave = Math.sin(t * 6) * 18;
+      return (
+        <g>
+          <rect width="160" height="90" fill="#00b140" />
+          <g transform={`translate(${x} 52)`}>
+            <ellipse cx="0" cy="26" rx="18" ry="16" fill="#8f97a6" />
+            <g transform={`rotate(${-30 + wave} 14 18)`}>
+              <rect x="13" y="2" width="5" height="18" rx="2.5" fill="#8f97a6" />
+            </g>
+            <circle cx="-15" cy="-16" r="9" fill="#a3abb8" />
+            <circle cx="15" cy="-16" r="9" fill="#a3abb8" />
+            <circle cx="-15" cy="-16" r="5" fill="#f2b8c6" />
+            <circle cx="15" cy="-16" r="5" fill="#f2b8c6" />
+            <ellipse cx="0" cy="0" rx="17" ry="15" fill="#a3abb8" />
+            <circle cx="-6" cy="-2" r="2.2" fill="#1b1b1b" />
+            <circle cx="6" cy="-2" r="2.2" fill="#1b1b1b" />
+            <ellipse cx="0" cy="6" rx="3" ry="2.2" fill="#f28aa5" />
+          </g>
+        </g>
+      );
+    }
+    case "whoosh":
+    case "applause":
     case "music":
       return (
         <g>
