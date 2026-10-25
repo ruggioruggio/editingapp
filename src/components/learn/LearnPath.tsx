@@ -88,7 +88,8 @@ function SectionBlock({
   const done = lessons.filter((l) => isDone(l.id)).length;
 
   return (
-    <section className="overflow-hidden rounded-3xl border border-line bg-panel/60">
+    // la cornice serve solo sul telefono; su web e desktop la sezione resta "aperta"
+    <section className="overflow-hidden rounded-3xl border border-line bg-panel/60 md:border-0 md:bg-transparent">
       <button type="button" onClick={onToggle} className="flex w-full items-center gap-4 p-5 text-left">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-black uppercase tracking-widest" style={{ color: section.color }}>

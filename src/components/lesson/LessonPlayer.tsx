@@ -98,7 +98,7 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
               style={{ width: `${(stepIndex / lesson.steps.length) * 100}%` }}
             />
           </div>
-          <AiAssistantButton />
+          <AiAssistantButton lessonId={lesson.id} />
         </div>
       </header>
 

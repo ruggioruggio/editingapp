@@ -90,33 +90,52 @@ export function Mascot({
   );
 }
 
-/** Marchio monocromatico di profilo (stile icona app minimal). Usa currentColor. */
-export function MouseMark({ size = 24, className }: { size?: number; className?: string }) {
-  return (
-    <svg viewBox="0 0 120 100" width={size} height={(size * 100) / 120} className={className} aria-hidden>
-      <g fill="currentColor">
-        <path d="M24 70 C8 68 3 84 13 88 C21 91 26 84 20 80" stroke="currentColor" strokeWidth="5" fill="none" strokeLinecap="round" />
-        <ellipse cx="48" cy="67" rx="28" ry="21" />
-        <path d="M56 44 C70 34 90 42 104 58 C108 62 106 66 101 67 C88 71 72 74 60 70 C46 66 44 52 56 44Z" />
-        <circle cx="62" cy="36" r="15" />
-        <ellipse cx="38" cy="88" rx="8" ry="4" />
-        <ellipse cx="62" cy="88" rx="8" ry="4" />
-      </g>
-      {/* occhio e orecchio "scavati" nel colore di sfondo */}
-      <circle cx="62" cy="36" r="8" fill="var(--mark-bg, #000)" />
-      <circle cx="86" cy="52" r="4" fill="var(--mark-bg, #000)" />
-    </svg>
-  );
-}
-
-/** Icona dell'app: fondo nero, topo bianco di profilo. */
+/**
+ * Icona dell'app: la testa di Squeak che "entra" dall'angolo in basso a destra
+ * e guarda in alto a sinistra, su un gradiente viola. Stesso disegno di app/icon.svg.
+ */
 export function AppIcon({ size = 32, className }: { size?: number; className?: string }) {
   return (
-    <span
-      className={clsx("inline-grid shrink-0 place-items-center bg-black text-white ring-1 ring-white/15", className)}
-      style={{ width: size, height: size, borderRadius: size * 0.26, ["--mark-bg" as string]: "#000" }}
+    <svg
+      viewBox="0 0 100 100"
+      width={size}
+      height={size}
+      className={clsx("shrink-0", className)}
+      style={{ borderRadius: size * 0.24 }}
+      aria-hidden
     >
-      <MouseMark size={size * 0.74} />
-    </span>
+      <defs>
+        <linearGradient id="sq-icon-bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#7b6cff" />
+          <stop offset="0.55" stopColor="#3a2a9e" />
+          <stop offset="1" stopColor="#0d0a24" />
+        </linearGradient>
+        <radialGradient id="sq-icon-head" cx="0.3" cy="0.25" r="0.9">
+          <stop offset="0" stopColor="#ffffff" />
+          <stop offset="0.6" stopColor="#e4e6ef" />
+          <stop offset="1" stopColor="#a9aec2" />
+        </radialGradient>
+        <clipPath id="sq-icon-clip">
+          <rect width="100" height="100" rx="24" />
+        </clipPath>
+      </defs>
+      <g clipPath="url(#sq-icon-clip)">
+        <rect width="100" height="100" fill="url(#sq-icon-bg)" />
+        {/* orecchie sul bordo della testa */}
+        <circle cx="31" cy="37" r="17" fill="#d8dbe6" />
+        <circle cx="31" cy="37" r="10" fill="#ffaec6" />
+        <circle cx="70" cy="19" r="16" fill="#d8dbe6" />
+        <circle cx="70" cy="19" r="9" fill="#ffaec6" />
+        {/* testa */}
+        <circle cx="75" cy="80" r="60" fill="url(#sq-icon-head)" />
+        {/* occhi ovali inclinati, sguardo in alto a sinistra */}
+        <ellipse cx="47" cy="61" rx="5.2" ry="9.5" transform="rotate(-24 47 61)" fill="#0d0d12" />
+        <ellipse cx="66" cy="53" rx="5.2" ry="9.5" transform="rotate(-24 66 53)" fill="#0d0d12" />
+        <circle cx="45.5" cy="56.5" r="1.8" fill="#fff" />
+        <circle cx="64.5" cy="48.5" r="1.8" fill="#fff" />
+        {/* naso */}
+        <ellipse cx="33" cy="76" rx="4.6" ry="3.6" transform="rotate(-24 33 76)" fill="#ff6f9a" />
+      </g>
+    </svg>
   );
 }

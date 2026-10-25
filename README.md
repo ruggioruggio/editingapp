@@ -62,6 +62,16 @@ Come funziona:
 - `friendships`: richieste e amicizie; solo chi riceve la richiesta può accettarla.
 - Al login i progressi da ospite vengono fusi con quelli dell'account ([`lib/progress/merge.ts`](src/lib/progress/merge.ts)); poi ogni modifica viene salvata dopo 1,5 s ([`SupabaseSync`](src/components/app/SupabaseSync.tsx)). Al logout i dati locali vengono cancellati.
 
+## Squeak AI
+
+Tab al centro del dock (`/ai`), riservata al piano Pro. L'utente scrive il problema e può allegare screenshot, PDF, progetti Premiere (`.prproj`) o After Effects (`.aep`, `.aepx`).
+
+- [`app/api/ai/route.ts`](src/app/api/ai/route.ts): controlla account e piano su Supabase, applica un limite di richieste e risponde in streaming (NDJSON) con Claude Opus 5.5. Il fallback lato server (`fallbacks: "default"`) fa riprovare su un modello di riserva se una richiesta viene rifiutata.
+- [`lib/ai/files.ts`](src/lib/ai/files.ts): le immagini vanno a Claude così come sono; i progetti vengono riassunti (sequenze, clip, tracce, frame rate, effetti), perché il file grezzo è enorme.
+- Quando serve, Claude chiama lo strumento `open_practice_editor` e la chat mostra **Prova nell'editor**: si apre il mini-editor con un esercizio dal catalogo [`content/practice.ts`](src/content/practice.ts).
+
+Configurazione in `.env.local`: `ANTHROPIC_API_KEY` (segreta, solo server). In locale `SQUEAK_AI_DEV_UNLOCK=true` apre la chat senza account Pro.
+
 ## Stack
 
 | Livello            | Scelta                                   | Perché                                                                 |

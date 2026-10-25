@@ -3,6 +3,7 @@
 import { useId, type CSSProperties, type ReactNode } from "react";
 import clsx from "clsx";
 import { MouseFigure } from "./Mascot";
+import { Squeak3D } from "./Squeak3DLazy";
 
 // Cinque scenette di Squeak (viewBox 400x240). Le animazioni sono in globals.css:
 // con loop=false durano una volta (splash), con loop=true girano all'infinito (sito).
@@ -173,10 +174,22 @@ export function KeyframeScene({ loop = true }: { loop?: boolean }) {
   );
 }
 
+// Scene 3D: Squeak vero e proprio, che ruota nello spazio
+function Scene3D({ mode }: { mode: "flip" | "spin" }) {
+  return (
+    <div className="aspect-[5/3] w-full">
+      <Squeak3D mode={mode} className="h-full w-full" />
+    </div>
+  );
+}
+export const FlipScene3D = () => <Scene3D mode="flip" />;
+export const SpinScene3D = () => <Scene3D mode="spin" />;
+
+/** Le 5 aperture dell'app, una scelta a caso a ogni sessione (3 in 2D, 2 in 3D). */
 export const SCENES = [
   { id: "cut", caption: "Squeak sta tagliando il girato…", Component: CutScene },
   { id: "cheese", caption: "Squeak fa merenda prima del montaggio…", Component: CheeseScene },
   { id: "clap", caption: "Ciak, si gira!", Component: ClapScene },
-  { id: "run", caption: "Squeak insegue il playhead…", Component: RunScene },
-  { id: "keyframe", caption: "Squeak salta da un keyframe all'altro…", Component: KeyframeScene },
+  { id: "flip3d", caption: "Squeak si scalda con una capriola…", Component: FlipScene3D },
+  { id: "spin3d", caption: "Squeak fa una piroetta e ti saluta!", Component: SpinScene3D },
 ] as const;
