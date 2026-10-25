@@ -10,6 +10,45 @@ import { OAuthButtons } from "./OAuthButtons";
 
 export const USERNAME_RE = /^[a-z0-9_.]{3,20}$/;
 
+/** Dopo la registrazione: link nell'email oppure codice a 6 cifre da digitare qui. */
+function ConfirmCode({ email }: { email: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const token = String(new FormData(e.currentTarget).get("code")).replace(/\s/g, "");
+    setBusy(true);
+    setError(null);
+    const { error: err } = await getSupabase()!.auth.verifyOtp({ email, token, type: "email" });
+    setBusy(false);
+    if (err) return setError("Codice non valido o scaduto.");
+    router.replace("/learn");
+  };
+
+  return (
+    <div className="space-y-3">
+      <FormMessage tone="info">
+        Ti abbiamo mandato un&apos;email a {email}. Apri il link oppure scrivi qui il codice.
+      </FormMessage>
+      <form onSubmit={onSubmit} className="space-y-3">
+        <input
+          name="code"
+          required
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          placeholder="Codice di conferma"
+          maxLength={10}
+          className={`${fieldClass} text-center font-mono text-xl tracking-[0.4em]`}
+        />
+        <SubmitButton busy={busy}>Conferma</SubmitButton>
+      </form>
+      {error && <FormMessage tone="error">{error}</FormMessage>}
+    </div>
+  );
+}
+
 export function SignupForm() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -19,13 +58,7 @@ export function SignupForm() {
   const sb = getSupabase();
   if (!sb) return <NotConfigured />;
 
-  if (sentTo) {
-    return (
-      <FormMessage tone="info">
-        Ti abbiamo mandato un&apos;email a {sentTo}. Apri il link per confermare l&apos;account e iniziare.
-      </FormMessage>
-    );
-  }
+  if (sentTo) return <ConfirmCode email={sentTo} />;
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,6 +83,7 @@ export function SignupForm() {
       password,
       options: {
         data: { username },
+        // usato solo dal template predefinito di Supabase; quello di SqueakEdit punta a /auth/confirm
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/learn`,
       },
     });

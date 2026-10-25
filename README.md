@@ -45,6 +45,16 @@ Senza configurazione l'app funziona come ospite (progressi solo nel browser). Pe
 3. **Project Settings → API**: copia URL e chiave `anon`/publishable in `.env.local` (modello in [`.env.example`](.env.example)) e riavvia `npm run dev`.
 4. **Authentication → URL Configuration**: Site URL `http://localhost:3000`, Redirect URL `http://localhost:3000/auth/callback` (in produzione aggiungi il dominio vero).
 5. Facoltativo: **Authentication → Providers** per attivare Google e Apple.
+6. **Email con il brand SqueakEdit**: in **Authentication → Emails → Templates** incolla i file di [`supabase/templates`](supabase/templates):
+
+   | Template Supabase | File | Oggetto |
+   | --- | --- | --- |
+   | Confirm signup | `confirm-signup.html` | Conferma il tuo account SqueakEdit 🐭 |
+   | Reset password | `reset-password.html` | Scegli una nuova password per SqueakEdit |
+   | Change email address | `change-email.html` | Conferma la tua nuova email SqueakEdit |
+
+   I link portano a `/auth/confirm`, che funziona anche aprendo l'email su un altro dispositivo. L'email di conferma contiene anche un codice da digitare nell'app.
+7. **Mittente personalizzato** (es. `ciao@squeakedit.app`): il servizio email incluso in Supabase invia poche email all'ora e solo agli indirizzi del team del progetto. Per gli utenti veri serve un SMTP proprio (es. Resend) in **Authentication → Emails → SMTP Settings**, con un dominio verificato.
 
 Come funziona:
 - `profiles`: nome utente, XP e serie visibili agli amici. Il campo `plan` non è modificabile dal client (lo scriverà il webhook di Stripe).

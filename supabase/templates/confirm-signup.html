@@ -1,0 +1,59 @@
+<!-- Supabase → Authentication → Emails → "Confirm signup"
+     Oggetto: Conferma il tuo account SqueakEdit 🐭 -->
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Conferma il tuo account SqueakEdit</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#121212;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#121212" style="background-color:#121212;">
+      <tr>
+        <td align="center" style="padding:32px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;">
+            <tr>
+              <td align="center" style="padding-bottom:24px;font-family:'Nunito','Segoe UI',Helvetica,Arial,sans-serif;">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td width="44" height="44" align="center" valign="middle" bgcolor="#000000" style="width:44px;height:44px;border-radius:12px;background-color:#000000;font-size:24px;line-height:44px;">🐭</td>
+                    <td style="padding-left:10px;font-size:24px;font-weight:900;color:#ffffff;">Squeak<span style="color:#9999ff;">Edit</span></td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td bgcolor="#1d1d1d" style="background-color:#1d1d1d;border:1px solid #383838;border-radius:24px;padding:36px 28px;font-family:'Nunito','Segoe UI',Helvetica,Arial,sans-serif;color:#e8e8e8;">
+                <h1 style="margin:0 0 12px;font-size:26px;line-height:1.25;font-weight:900;color:#ffffff;">Squit! Benvenuto a bordo 🎬</h1>
+                <p style="margin:0 0 24px;font-size:16px;line-height:1.6;color:#a6a6a6;">
+                  Manca un solo passo: conferma il tuo indirizzo email e inizia la tua prima lezione di montaggio. Ti servono solo 3 minuti.
+                </p>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#3ecf8e" style="border-radius:16px;background-color:#3ecf8e;border-bottom:4px solid #2a9466;">
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/learn" target="_blank"
+                         style="display:block;padding:16px 24px;font-size:16px;font-weight:900;letter-spacing:1px;text-transform:uppercase;color:#08311f;text-decoration:none;">
+                        Conferma l'email
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:24px 0 8px;font-size:14px;line-height:1.6;color:#a6a6a6;">Oppure inserisci questo codice nell'app:</p>
+                <p style="margin:0 0 24px;font-family:'JetBrains Mono',Consolas,monospace;font-size:28px;font-weight:700;letter-spacing:6px;color:#ffc93c;">{{ .Token }}</p>
+                <p style="margin:0;font-size:13px;line-height:1.6;color:#6f6f6f;">
+                  Non ti sei registrato tu? Ignora questa email: senza conferma l'account non viene attivato.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:20px 8px 0;font-family:'Nunito','Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6f6f6f;">
+                SqueakEdit · Impara il montaggio video, 3 minuti al giorno.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
