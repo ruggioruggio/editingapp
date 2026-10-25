@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { BookOpen, ScrollText, Sparkles, Trophy, Users, type LucideIcon } from "lucide-react";
+import { BookOpen, Clapperboard, ScrollText, Sparkles, Users, type LucideIcon } from "lucide-react";
 import { AppIcon } from "@/components/brand/Mascot";
 import { features } from "@/config/features";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
@@ -14,10 +14,11 @@ type Item = { href: string; label: string; icon: LucideIcon; color: string };
 
 const LEFT: Item[] = [
   { href: "/learn", label: "Impara", icon: BookOpen, color: "#9999ff" },
-  { href: "/quests", label: "Quest", icon: ScrollText, color: "#d291ff" },
+  { href: "/practice", label: "Pratica", icon: Clapperboard, color: "#2d8ceb" },
 ];
 const RIGHT: Item[] = [
-  { href: "/goals", label: "Obiettivi", icon: Trophy, color: "#ffc93c" },
+  // quest e obiettivi stanno nella stessa pagina
+  { href: "/quests", label: "Quest", icon: ScrollText, color: "#d291ff" },
   { href: "/friends", label: "Amici", icon: Users, color: "#5ce1e6" },
 ];
 
@@ -96,7 +97,7 @@ export function Dock() {
       </Link>
 
       {RIGHT.map((item) => (
-        <DockItem key={item.href} item={item} active={pathname.startsWith(item.href)} />
+        <DockItem key={item.href} item={item} active={pathname.startsWith(item.href)} badge={item.href === "/quests" ? claimable : 0} />
       ))}
     </nav>
   );

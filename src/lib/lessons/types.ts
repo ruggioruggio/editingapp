@@ -39,7 +39,34 @@ export interface MatchStep {
   pairs: [left: string, right: string][];
 }
 
-export type LessonStep = TheoryStep | QuizStep | MatchStep | EditorStep;
+/** Impostazioni di una sequenza (finestra "Nuova sequenza" di Premiere). */
+export interface SequenceSettings {
+  name: string;
+  width: number;
+  height: number;
+  fps: number;
+}
+
+/** Impostazioni di esportazione (finestra "Esporta" di Premiere). */
+export interface ExportSettings {
+  format: string;
+  width: number;
+  height: number;
+  fps: number;
+  bitrateMbps: number;
+  audioKbps: number;
+}
+
+/**
+ * Tutorial dentro una finestra identica a quella di Premiere: l'utente può
+ * cambiare tutto, ma si controllano solo i valori dell'obiettivo.
+ */
+export type PremiereStep = { kind: "premiere"; title: string; instructions: string } & (
+  | { dialog: "sequence"; goal: Omit<SequenceSettings, "name"> & { name?: string } }
+  | { dialog: "export"; goal: { format: string; width: number; height: number; fps: number; minMbps: number; maxMbps: number; audioKbps?: number } }
+);
+
+export type LessonStep = TheoryStep | QuizStep | MatchStep | EditorStep | PremiereStep;
 
 export interface Lesson {
   id: string;

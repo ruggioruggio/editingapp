@@ -8,6 +8,7 @@ import {
   Check,
   ChevronDown,
   Clapperboard,
+  KeyRound,
   Lock,
   Palette,
   Scissors,
@@ -20,6 +21,7 @@ import { sections } from "@/content/course";
 import { getLesson } from "@/content/lessons";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import type { LessonKind, LessonMeta, Section } from "@/lib/lessons/types";
+import { canSkipTo, isLessonUnlocked } from "@/lib/lessons/progression";
 import { useProgress } from "@/lib/progress/store";
 
 // Percorso a zig-zag stile Duolingo
@@ -40,7 +42,8 @@ export function LearnPath() {
   const isDone = (id: string) => hydrated && Boolean(completed[id]);
 
   const all = sections.flatMap((s) => s.units.flatMap((u) => u.lessons));
-  const nextUp = all.find((l) => l.status === "available" && !isDone(l.id))?.id;
+  const unlocked = (id: string) => hydrated && isLessonUnlocked(id, completed);
+  const nextUp = all.find((l) => l.status === "available" && !isDone(l.id) && unlocked(l.id))?.id;
   const currentSection = sections.find((s) => s.units.some((u) => u.lessons.some((l) => l.id === nextUp))) ?? sections[0];
 
   const [open, setOpen] = useState<string>(currentSection.id);
@@ -56,6 +59,8 @@ export function LearnPath() {
           open={open === section.id}
           onToggle={() => setOpen(open === section.id ? "" : section.id)}
           isDone={isDone}
+          unlocked={unlocked}
+          canSkip={(unitId) => hydrated && canSkipTo(unitId, completed)}
           nextUp={nextUp}
           selected={selected}
           onSelect={(id) => setSelected(selected === id ? null : id)}
@@ -71,6 +76,8 @@ function SectionBlock({
   open,
   onToggle,
   isDone,
+  unlocked,
+  canSkip,
   nextUp,
   selected,
   onSelect,
@@ -80,6 +87,8 @@ function SectionBlock({
   open: boolean;
   onToggle: () => void;
   isDone: (id: string) => boolean;
+  unlocked: (id: string) => boolean;
+  canSkip: (unitId: string) => boolean;
   nextUp?: string;
   selected: string | null;
   onSelect: (id: string) => void;
@@ -117,6 +126,12 @@ function SectionBlock({
                 <p className="text-xs font-black uppercase tracking-widest opacity-70">Unità {unit.id.slice(1)}</p>
                 <h3 className="text-lg font-black">{unit.title}</h3>
                 <p className="text-sm font-semibold opacity-80">{unit.description}</p>
+                {canSkip(unit.id) && (
+                  // come il "salta qui" di Duolingo: un test sugli argomenti saltati, con 3 vite
+                  <Link href={`/unit-test/${unit.id}`} className="mt-3 inline-flex items-center gap-1.5 rounded-xl border-2 border-[#121212]/30 bg-[#121212]/15 px-3 py-1.5 text-xs font-black uppercase hover:bg-[#121212]/25">
+                    <KeyRound size={14} /> Salta qui
+                  </Link>
+                )}
               </div>
               <ol className="flex flex-col items-center gap-7">
                 {unit.lessons.map((lesson, i) => (
@@ -129,6 +144,7 @@ function SectionBlock({
                       lesson={lesson}
                       color={section.color}
                       done={isDone(lesson.id)}
+                      unlocked={unlocked(lesson.id)}
                       current={lesson.id === nextUp}
                       selected={selected === lesson.id}
                       onSelect={() => onSelect(lesson.id)}
@@ -148,6 +164,7 @@ function LessonNode({
   lesson,
   color,
   done,
+  unlocked,
   current,
   selected,
   onSelect,
@@ -155,11 +172,14 @@ function LessonNode({
   lesson: LessonMeta;
   color: string;
   done: boolean;
+  unlocked: boolean;
   current: boolean;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const locked = lesson.status === "soon";
+  const soon = lesson.status === "soon";
+  // bloccata se non ancora pronta o se manca la lezione precedente
+  const locked = soon || (!unlocked && !done);
   const Icon = locked ? Lock : done ? Check : KIND_ICON[lesson.kind];
 
   return (
@@ -194,7 +214,9 @@ function LessonNode({
           <p className="font-black">{lesson.title}</p>
           <p className="mb-3 text-sm text-ink-dim">{lesson.goal}</p>
           {locked ? (
-            <p className="rounded-xl bg-panel-3 py-2.5 text-center text-sm font-bold text-ink-mute">In arrivo</p>
+            <p className="rounded-xl bg-panel-3 px-2 py-2.5 text-center text-sm font-bold text-ink-mute">
+              {soon ? "In arrivo" : "Completa prima la lezione precedente"}
+            </p>
           ) : (
             <Link
               href={`/lesson/${lesson.id}`}

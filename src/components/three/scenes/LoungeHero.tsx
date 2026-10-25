@@ -12,6 +12,9 @@ import { useDragYaw } from "../useDragYaw";
 const SEAT_Y = 0.56;
 const SEAT_Z = 0.5;
 const LEAN = -0.14;
+// giornale all'altezza del petto e davanti al muso: il naso resta sempre fuori
+const PAPER_Y = 1.12;
+const PAPER_Z = 1.5;
 
 function Lounge({ yaw }: { yaw: () => number }) {
   const scene = useRef<THREE.Group>(null);
@@ -58,24 +61,24 @@ function Lounge({ yaw }: { yaw: () => number }) {
       const p = easeOut(phase(t, 2.6, 3.2));
       m.position.set(0, SEAT_Y, SEAT_Z);
       paper.current.scale.setScalar(Math.max(0.001, p));
-      paper.current.position.y = 1.4;
+      paper.current.position.y = PAPER_Y;
       if (r.armL && r.armR) {
-        r.armL.rotation.set(-1.3 * p, 0, -0.35 * p);
-        r.armR.rotation.set(-1.3 * p, 0, 0.35 * p);
+        r.armL.rotation.set(-1.45 * p, 0, -0.3 * p);
+        r.armR.rotation.set(-1.45 * p, 0, 0.3 * p);
       }
     } else {
       // 5. legge; ogni tanto abbassa il giornale e ci guarda
       const u = (t - 3.2) % 7;
       const down = u < 4.5 ? 0 : u < 5 ? easeInOut((u - 4.5) / 0.5) : u < 6.3 ? 1 : 1 - easeInOut((u - 6.3) / 0.7);
-      paper.current.position.y = lerp(1.4, 0.95, down);
+      paper.current.position.y = lerp(PAPER_Y, 0.85, down);
       paper.current.rotation.x = lerp(-0.1, 0.25, down);
       if (r.armL && r.armR) {
-        r.armL.rotation.set(lerp(-1.3, -0.85, down), 0, -0.35);
-        r.armR.rotation.set(lerp(-1.3, -0.85, down), 0, 0.35);
+        r.armL.rotation.set(lerp(-1.45, -0.95, down), 0, -0.3);
+        r.armR.rotation.set(lerp(-1.45, -0.95, down), 0, 0.3);
       }
       if (r.head) {
         r.head.rotation.y = lerp(Math.sin(t * 1.4) * 0.18, state.pointer.x * 0.5, down);
-        r.head.rotation.x = lerp(0.18, -state.pointer.y * 0.3, down);
+        r.head.rotation.x = lerp(0.06, -state.pointer.y * 0.3, down);
       }
       lean.current.position.y = Math.sin(t * 1.6) * 0.02; // respiro
     }
@@ -91,7 +94,7 @@ function Lounge({ yaw }: { yaw: () => number }) {
         <group ref={lean}>
           <SqueakModel rig={rig} sitting={sitting} />
         </group>
-        <group ref={paper} position={[0, 1.4, 1.2]}>
+        <group ref={paper} position={[0, PAPER_Y, PAPER_Z]}>
           <Newspaper />
         </group>
       </group>

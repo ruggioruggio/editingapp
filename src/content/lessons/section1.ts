@@ -35,6 +35,27 @@ const L = (id: string, title: string, summary: string, steps: LessonStep[], xp =
 
 export const section1Lessons: Lesson[] = [
   // ---------------- Unità 1 · Fondamenti ----------------
+  L("crea-sequenza", "Crea la tua prima sequenza", "La finestra Nuova sequenza, come in Premiere.", [
+    T("Prima di tutto: la sequenza", [
+      "Ogni montaggio in Premiere vive dentro una **sequenza**. Si crea da **File → Nuovo → Sequenza** oppure con **Ctrl+N**.",
+      "Le impostazioni più importanti sono due: la **dimensione del fotogramma** (es. 1920×1080, il Full HD) e la **base temporale**, cioè i fotogrammi al secondo (fps).",
+      "In Europa lo standard è **25 fps**. Per i social verticali si usa **1080×1920**.",
+    ], { terms: [{ term: "1920×1080", def: "Full HD orizzontale (16:9)" }, { term: "25 fps", def: "Standard europeo (PAL)" }] }),
+    T("Preset o personalizzato", [
+      "Nella scheda **Predefiniti sequenza** trovi impostazioni già pronte, divise per videocamera: ad esempio *Digital SLR → 1080p → DSLR 1080p25*.",
+      "Se ti serve una misura particolare, vai nella scheda **Impostazioni** e scegli **Modalità di modifica: Personalizzato**: solo così puoi scrivere a mano larghezza e altezza.",
+    ], { tip: "Trucco da pro: trascina una clip sul pulsante Nuovo elemento del pannello Progetto e Premiere crea una sequenza con le stesse impostazioni del video." }),
+    {
+      kind: "premiere",
+      dialog: "sequence",
+      title: "Crea la sequenza",
+      instructions:
+        "Crea una sequenza **1920×1080 a 25 fps** e chiamala **Il mio primo montaggio**. Puoi esplorare tutte le schede e cambiare quello che vuoi: conta solo il risultato. Poi premi **OK**.",
+      goal: { width: 1920, height: 1080, fps: 25, name: "Il mio primo montaggio" },
+    },
+    Q("Quale scorciatoia apre la finestra Nuova sequenza?", ["Ctrl+N", "Ctrl+M", "Ctrl+K", "Ctrl+D"], 0, "N come Nuova. Ctrl+M invece apre l'esportazione."),
+    Q("Vuoi scrivere a mano una dimensione insolita (es. 1080×1350). Cosa devi fare prima?", ["Scegliere Modalità di modifica: Personalizzato", "Cambiare la frequenza audio", "Aggiungere tracce video", "Niente, si può sempre"], 0, "Con un preset la dimensione è bloccata: serve Personalizzato."),
+  ], 15),
   L("importare", "Importare e organizzare", "Bin, etichette e un progetto ordinato.", [
     T("Prima di montare, si mette in ordine", [
       "Tutto quello che usi (video, audio, immagini) entra nel pannello **Progetto**. Importi con **Ctrl+I** oppure trascinando i file dentro.",
@@ -499,6 +520,14 @@ export const section1Lessons: Lesson[] = [
     ]),
     Q("La sequenza è a 25 fps. A quanti fps esporti per YouTube?", ["60", "25", "12", "30, sempre"], 1, "Mantieni lo stesso frame rate della sequenza."),
     Q("Che bitrate indicativo usi per un video 1080p?", ["1 Mbps", "10–16 Mbps", "500 Mbps", "0,1 Mbps"], 1, "Abbastanza per una buona qualità, senza file enormi."),
+    {
+      kind: "premiere",
+      dialog: "export",
+      title: "Esporta per YouTube",
+      instructions:
+        "La sequenza è 1920×1080 a 25 fps. Esporta in **H.264**, stessa dimensione e fps, bitrate tra **10 e 16 Mbps** e audio a **320 kbps**. Suggerimento: prova il predefinito *YouTube 1080p Full HD*. Poi premi **Esporta**.",
+      goal: { format: "H.264", width: 1920, height: 1080, fps: 25, minMbps: 10, maxMbps: 16, audioKbps: 320 },
+    },
     T("L'audio", [
       "Audio **AAC**, 48 kHz, **320 kbps** stereo. Controlla prima che i picchi non superino lo 0 dB.",
     ]),
@@ -515,6 +544,14 @@ export const section1Lessons: Lesson[] = [
       "La sequenza va creata **già in verticale**: esportare un video orizzontale in verticale lo deforma o aggiunge bande nere.",
     ]),
     Q("Che risoluzione usi per un TikTok?", ["1920×1080", "1080×1920", "640×480", "4096×2160"], 1, "Verticale 9:16: 1080 di larghezza, 1920 di altezza."),
+    {
+      kind: "premiere",
+      dialog: "sequence",
+      title: "Una sequenza verticale",
+      instructions:
+        "Crea una sequenza per i Reel: **1080×1920** a **30 fps**. Ricorda: per scrivere la dimensione serve **Modalità di modifica: Personalizzato** nella scheda Impostazioni.",
+      goal: { width: 1080, height: 1920, fps: 30 },
+    },
     T("Le zone di sicurezza", [
       "Su TikTok e Reels pulsanti e didascalie coprono il **basso** e la **destra** dello schermo: tieni titoli e sottotitoli nella parte centrale.",
     ]),

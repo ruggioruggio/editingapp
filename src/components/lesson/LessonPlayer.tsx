@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Check, Flame, Target, X, Zap } from "lucide-react";
+import { Check, Flame, Heart, Target, X, Zap } from "lucide-react";
 import { AiAssistantButton } from "@/components/ai/AiAssistantButton";
 import { Mascot } from "@/components/brand/Mascot";
 import { SqueakReaction } from "@/components/brand/Reactions";
@@ -13,7 +13,9 @@ import { getLesson } from "@/content/lessons";
 import { canStartLesson, PLANS } from "@/lib/billing/plans";
 import { todayKey } from "@/lib/date";
 import { useHydrated } from "@/lib/hooks/useHydrated";
-import type { EditorTaskResult } from "@/lib/lessons/types";
+import { buildUnitTest, isLessonUnlocked, skippedLessons, UNIT_TEST_HEARTS } from "@/lib/lessons/progression";
+import type { EditorTaskResult, Lesson } from "@/lib/lessons/types";
+import { PremiereTaskView } from "./PremiereTaskView";
 import { currentStreak, useProgress } from "@/lib/progress/store";
 import { EditorTaskView, MatchView, QuizView, TheoryView } from "./StepViews";
 
@@ -22,12 +24,21 @@ const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
 
 type Feedback = { outcome: "win" | "lose"; title: string; text?: string; id: number } | null;
 
-export function LessonPlayer({ lessonId }: { lessonId: string }) {
-  const lesson = getLesson(lessonId);
+type Access = "ok" | "limit" | "locked" | "missing" | null;
+
+/**
+ * Player di una lezione. Con `unitTestId` diventa il test per saltare
+ * all'unità indicata: domande sulle lezioni saltate e solo 3 vite.
+ */
+export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unitTestId?: string }) {
   const hydrated = useHydrated();
   const completeLesson = useProgress((s) => s.completeLesson);
+  const completeLessons = useProgress((s) => s.completeLessons);
 
-  const [allowed, setAllowed] = useState<boolean | null>(null);
+  const [test, setTest] = useState<{ lesson: Lesson; skipped: string[] } | null>(null);
+  const lesson = unitTestId ? test?.lesson : lessonId ? getLesson(lessonId) : undefined;
+  const [access, setAccess] = useState<Access>(null);
+  const [hearts, setHearts] = useState<number | null>(unitTestId ? UNIT_TEST_HEARTS : null);
   const [stepIndex, setStepIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
@@ -38,24 +49,41 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
   const [startedAt] = useState(() => Date.now());
   const [finished, setFinished] = useState<{ xp: number; accuracy: number; seconds: number; streakBefore: number } | null>(null);
 
-  // Gate freemium: si controlla una sola volta all'apertura della lezione.
+  // Controlli all'apertura: ordine delle lezioni, limite giornaliero, test di salto.
   useEffect(() => {
     if (!hydrated) return;
     const s = useProgress.getState();
+    if (unitTestId) {
+      const built = buildUnitTest(unitTestId, s.completed);
+      if (!built) return setAccess("missing");
+      setTest({ lesson: built, skipped: skippedLessons(unitTestId, s.completed) });
+      return setAccess("ok");
+    }
+    if (!lessonId || !getLesson(lessonId)) return setAccess("missing");
+    if (!isLessonUnlocked(lessonId, s.completed)) return setAccess("locked");
     const ok = canStartLesson(s.plan, s.daily, lessonId);
-    setAllowed(ok);
+    setAccess(ok ? "ok" : "limit");
     if (ok) s.startLesson(lessonId);
-  }, [hydrated, lessonId]);
+  }, [hydrated, lessonId, unitTestId]);
 
   const step = lesson?.steps[stepIndex];
   const isLast = lesson ? stepIndex === lesson.steps.length - 1 : false;
+  const [outOfHearts, setOutOfHearts] = useState(false);
+
+  /** Un errore: conta per la precisione e, nei test, costa una vita. */
+  const miss = useCallback(() => {
+    setMistakes((m) => m + 1);
+    setHearts((h) => (h === null ? null : Math.max(0, h - 1)));
+  }, []);
 
   const next = useCallback(() => {
     if (!lesson) return;
+    if (hearts === 0) return setOutOfHearts(true);
     if (isLast) {
       const accuracy = answered ? Math.max(0, Math.round((100 * (answered - mistakes)) / answered)) : 100;
       const streakBefore = currentStreak(useProgress.getState().streak);
-      completeLesson(lesson.id, lesson.xp, mistakes === 0);
+      if (test) completeLessons(test.skipped, lesson.xp);
+      else completeLesson(lesson.id, lesson.xp, mistakes === 0);
       setFinished({ xp: lesson.xp, accuracy, seconds: Math.round((Date.now() - startedAt) / 1000), streakBefore });
       return;
     }
@@ -64,37 +92,38 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
     setFeedback(null);
     setEditorResult({ done: false });
     setMatchDone(false);
-  }, [lesson, isLast, answered, mistakes, completeLesson, startedAt]);
+  }, [lesson, isLast, answered, mistakes, completeLesson, completeLessons, test, hearts, startedAt]);
 
   const check = useCallback(() => {
     if (!step || step.kind !== "quiz" || selected === null) return;
     const right = selected === step.correctIndex;
     setAnswered((n) => n + 1);
-    if (!right) setMistakes((m) => m + 1);
+    if (!right) miss();
     setFeedback(
       right
         ? { outcome: "win", title: pick(PRAISE), text: step.explanation, id: Date.now() }
         : { outcome: "lose", title: "Soluzione corretta:", text: `${step.options[step.correctIndex]} — ${step.explanation}`, id: Date.now() },
     );
-  }, [step, selected]);
+  }, [step, selected, miss]);
 
   const skip = () => {
     if (!step || step.kind !== "quiz") return;
     setAnswered((n) => n + 1);
-    setMistakes((m) => m + 1);
+    miss();
     setFeedback({ outcome: "lose", title: "Soluzione corretta:", text: step.options[step.correctIndex], id: Date.now() });
   };
 
-  // esercizio nell'editor o coppie completate: festeggia
+  // esercizio nell'editor, finestra di Premiere o coppie completate: festeggia
+  const practical = step?.kind === "editor" || step?.kind === "premiere";
   useEffect(() => {
-    if ((step?.kind === "editor" && editorResult.done) || (step?.kind === "match" && matchDone)) {
-      setFeedback((f) => f ?? { outcome: "win", title: pick(PRAISE), text: step.kind === "editor" ? "Esattamente come lo faresti in Premiere." : undefined, id: Date.now() });
+    if ((practical && editorResult.done) || (step?.kind === "match" && matchDone)) {
+      setFeedback((f) => f ?? { outcome: "win", title: pick(PRAISE), text: practical ? "Esattamente come lo faresti in Premiere." : undefined, id: Date.now() });
     }
-  }, [step, editorResult.done, matchDone]);
+  }, [step, practical, editorResult.done, matchDone]);
 
   // Invio = verifica / continua, come in Duolingo
   const primary = feedback ? next : step?.kind === "quiz" ? check : step?.kind === "theory" ? next : undefined;
-  const primaryDisabled = !feedback && ((step?.kind === "quiz" && selected === null) || step?.kind === "editor" || step?.kind === "match");
+  const primaryDisabled = !feedback && ((step?.kind === "quiz" && selected === null) || practical || step?.kind === "match");
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Enter" && primary && !primaryDisabled) {
@@ -106,12 +135,22 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [primary, primaryDisabled]);
 
-  if (!lesson || !step) return null;
-  if (allowed === null) return <div className="min-h-dvh bg-app" />;
-  if (!allowed) return <Paywall />;
+  if (access === null) return <div className="min-h-dvh bg-app" />;
+  if (access === "limit") return <Paywall />;
+  if (access === "locked") return <Blocked text="Completa prima la lezione precedente per sbloccare questa." />;
+  if (access === "missing" || !lesson || !step) return <Blocked text="Qui non c'è niente da saltare: hai già sbloccato questa unità." />;
+  if (outOfHearts) return <OutOfHearts />;
   if (finished) return <LessonComplete {...finished} />;
 
-  const primaryLabel = feedback ? "Continua" : step.kind === "quiz" ? "Controlla" : step.kind === "theory" ? "Continua" : step.kind === "match" ? "Abbina tutte le coppie" : "Completa l'esercizio";
+  const primaryLabel = feedback
+    ? "Continua"
+    : step.kind === "quiz"
+      ? "Controlla"
+      : step.kind === "theory"
+        ? "Continua"
+        : step.kind === "match"
+          ? "Abbina tutte le coppie"
+          : "Completa l'esercizio";
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -122,7 +161,13 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
         <div className="duo-progress flex-1">
           <div style={{ width: `${Math.max(4, (stepIndex / lesson.steps.length) * 100)}%` }} />
         </div>
-        <AiAssistantButton lessonId={lesson.id} />
+        {hearts !== null ? (
+          <span className="flex items-center gap-1.5 text-lg font-black text-danger" aria-label={`${hearts} vite`}>
+            <Heart size={26} fill="currentColor" /> {hearts}
+          </span>
+        ) : (
+          <AiAssistantButton lessonId={lesson.id} />
+        )}
       </header>
 
       <main className={clsx("mx-auto w-full flex-1 px-4 pb-48 pt-4 sm:pt-10", step.kind === "editor" ? "max-w-5xl" : "max-w-2xl")}>
@@ -134,7 +179,7 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
           <MatchView
             key={stepIndex}
             step={step}
-            onMistake={() => setMistakes((m) => m + 1)}
+            onMistake={miss}
             onDone={() => {
               setAnswered((n) => n + 1);
               setMatchDone(true);
@@ -142,6 +187,9 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
           />
         )}
         {step.kind === "editor" && <EditorTaskView key={stepIndex} step={step} onResult={setEditorResult} />}
+        {step.kind === "premiere" && (
+          <PremiereTaskView key={stepIndex} step={step} onDone={() => setEditorResult({ done: true })} onMistake={miss} />
+        )}
       </main>
 
       <footer
@@ -274,6 +322,35 @@ function StreakScreen({ streak, onContinue }: { streak: number; onContinue: () =
           </button>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function Blocked({ text }: { text: string }) {
+  return (
+    <div className="animate-pop mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-5 px-4 text-center">
+      <Mascot size={140} mood="sleepy" idle />
+      <h1 className="text-2xl font-black">Non ancora!</h1>
+      <p className="text-ink-dim">{text}</p>
+      <Link href="/learn" className="duo-btn w-full">
+        Torna al percorso
+      </Link>
+    </div>
+  );
+}
+
+/** Test di salto: finite le 3 vite si torna al percorso (e si può riprovare). */
+function OutOfHearts() {
+  return (
+    <div className="animate-pop mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-5 px-4 text-center">
+      <SqueakReaction outcome="lose" size={220} />
+      <h1 className="text-2xl font-black text-danger">Hai finito le vite</h1>
+      <p className="text-ink-dim">
+        Nessun problema: ripassa le lezioni oppure riprova il test quando vuoi. Le lezioni restano lì ad aspettarti.
+      </p>
+      <Link href="/learn" className="duo-btn w-full">
+        Torna al percorso
+      </Link>
     </div>
   );
 }

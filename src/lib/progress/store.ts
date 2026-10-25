@@ -48,6 +48,8 @@ interface ProgressState extends ProgressData {
   completeLesson: (lessonId: string, xp: number, perfect: boolean) => void;
   recordStat: (key: StatKey, amount?: number) => void;
   claimQuest: (questId: string, xp: number) => void;
+  /** Test di salto superato: le lezioni saltate contano come completate. */
+  completeLessons: (lessonIds: string[], xp: number) => void;
   /** Solo per sviluppo finché non c'è Stripe: simula il cambio piano. */
   setPlan: (plan: PlanId) => void;
   reset: () => void;
@@ -122,6 +124,18 @@ export const useProgress = create<ProgressState>()(
             },
           }));
           addStats({ lessons: 1, lessonXp: xp, perfect: perfect ? 1 : 0 });
+        },
+
+        completeLessons: (lessonIds, xp) => {
+          const today = todayKey();
+          const { streak, completed, bestStreak } = get();
+          const count =
+            streak.lastDay === today ? streak.count : streak.lastDay === yesterdayKey() ? streak.count + 1 : 1;
+          const now = new Date().toISOString();
+          const next = { ...completed };
+          for (const id of lessonIds) next[id] = { completedAt: now, times: (completed[id]?.times ?? 0) + 1 };
+          set((s) => ({ xp: s.xp + xp, streak: { count, lastDay: today }, bestStreak: Math.max(bestStreak, count), completed: next }));
+          addStats({ lessons: 1, lessonXp: xp });
         },
 
         recordStat: (key, amount = 1) => addStats({ [key]: amount }),

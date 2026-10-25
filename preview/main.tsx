@@ -2,8 +2,8 @@ import { createRoot } from "react-dom/client";
 import AppLayout from "@/app/(app)/layout";
 import AiPage from "@/app/(app)/ai/page";
 import FriendsPage from "@/app/(app)/friends/page";
-import GoalsPage from "@/app/(app)/goals/page";
 import LearnPage from "@/app/(app)/learn/page";
+import PracticePage from "@/app/(app)/practice/page";
 import PricingPage from "@/app/(app)/pricing/page";
 import QuestsPage from "@/app/(app)/quests/page";
 import DownloadPage from "@/app/download/page";
@@ -13,6 +13,8 @@ import ResetPasswordPage from "@/app/reset-password/page";
 import SignupPage from "@/app/signup/page";
 import { Markdown } from "@/components/ai/Markdown";
 import { LessonPlayer } from "@/components/lesson/LessonPlayer";
+import { AfterEffectsStudio } from "@/components/studio/ae/AfterEffectsStudio";
+import { PremiereStudio } from "@/components/studio/premiere/PremiereStudio";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { SupabaseSync } from "@/components/app/SupabaseSync";
 import { getLesson } from "@/content/lessons";
@@ -25,7 +27,9 @@ import { PreviewRouter } from "./router";
 const APP_PAGES: Record<string, () => React.ReactNode> = {
   "/learn": () => <LearnPage />,
   "/quests": () => <QuestsPage />,
-  "/goals": () => <GoalsPage />,
+  // in Next /goals reindirizza alle quest con la scheda Obiettivi
+  "/goals": () => <QuestsPage />,
+  "/practice": () => <PracticePage />,
   "/friends": () => <FriendsPage />,
   "/pricing": () => <PricingPage />,
   "/ai": () => <AiPage />,
@@ -37,6 +41,8 @@ const SITE_PAGES: Record<string, () => React.ReactNode> = {
   "/signup": () => <SignupPage />,
   "/reset-password": () => <ResetPasswordPage />,
   "/download": () => <DownloadPage />,
+  "/studio/premiere": () => <PremiereStudio />,
+  "/studio/after-effects": () => <AfterEffectsStudio />,
 };
 
 function LegalPreview({ slug }: { slug: string }) {
@@ -62,6 +68,10 @@ function render(fullPath: string) {
   if (path.startsWith("/lesson/")) {
     const id = path.slice("/lesson/".length);
     return getLesson(id) ? <LessonPlayer key={id} lessonId={id} /> : <LandingPage />;
+  }
+  if (path.startsWith("/unit-test/")) {
+    const id = path.slice("/unit-test/".length);
+    return <LessonPlayer key={id} unitTestId={id} />;
   }
   if (path.startsWith("/legal/")) return <LegalPreview slug={path.slice("/legal/".length)} />;
   if (APP_PAGES[path]) return <AppLayout>{APP_PAGES[path]()}</AppLayout>;

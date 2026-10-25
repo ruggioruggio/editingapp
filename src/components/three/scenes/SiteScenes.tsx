@@ -15,6 +15,7 @@ import {
   HardHat,
   KeyframeDiamond,
   SafetyVest,
+  SwimTrunks,
   TrafficCone,
   WorkSign,
 } from "../props";
@@ -154,7 +155,7 @@ function SlideScene() {
       ))}
       <group ref={slider}>
         <group ref={turn} scale={0.52}>
-          <SqueakModel rig={rig} sitting />
+          <SqueakModel rig={rig} sitting outfit={<SwimTrunks />} />
         </group>
       </group>
       </group>

@@ -31,6 +31,7 @@ export const sections: Section[] = [
     color: "#9999ff",
     units: [
       unit("u1", "Fondamenti del montaggio", "Sequenze, timeline e i primi tagli", [
+        ["crea-sequenza", "Crea la tua prima sequenza", "Impostare dimensione e fps come in Premiere", "editor"],
         ["primo-taglio", "Il primo taglio", "Usare Lama ed Elimina con increspatura", "editor"],
         ["importare", "Importare e organizzare", "Bin, etichette e una struttura di progetto pulita"],
         ["monitor", "Monitor sorgente e programma", "Capire cosa mostrano i due monitor"],

@@ -401,6 +401,34 @@ export function SafetyVest() {
   );
 }
 
+/** Costume da bagno a righe (pantaloncino) intorno alla parte bassa del corpo. */
+export function SwimTrunks() {
+  const stripes = useCanvasTexture(
+    64,
+    64,
+    (ctx) => {
+      for (let i = 0; i < 8; i++) {
+        ctx.fillStyle = i % 2 ? "#ffffff" : "#ff4f6d";
+        ctx.fillRect(0, i * 8, 64, 8);
+      }
+    },
+    [],
+  );
+  return (
+    <group position={[0, 0.9, 0]}>
+      <mesh scale={[1.04, 0.92, 1.16]}>
+        <sphereGeometry args={[1, 40, 20, 0, Math.PI * 2, Math.PI * 0.6, Math.PI * 0.3]} />
+        <meshStandardMaterial map={stripes} roughness={0.55} side={THREE.DoubleSide} />
+      </mesh>
+      {/* cordino */}
+      <mesh position={[0, -0.28, 1.04]} rotation={[0.3, 0, 0]}>
+        <torusGeometry args={[0.07, 0.02, 6, 16]} />
+        <meshStandardMaterial color="#ffffff" />
+      </mesh>
+    </group>
+  );
+}
+
 /** Martello: manico di legno e testa di metallo. */
 export function Hammer() {
   return (
