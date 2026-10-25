@@ -14,26 +14,33 @@ export interface Streak {
 }
 
 /** Contatori che alimentano obiettivi (totali) e quest (giornalieri). */
-export type StatKey = "lessons" | "perfect" | "cuts" | "ripples" | "lessonXp";
+export type StatKey = "lessons" | "perfect" | "cuts" | "ripples" | "lessonXp" | "friendRequests";
 export type Stats = Record<StatKey, number>;
 
-export interface FriendRequest {
-  username: string;
-  sentAt: string;
+export interface TodayState {
+  day: string;
+  stats: Stats;
+  claimedQuests: string[];
 }
 
-interface ProgressData {
-  plan: PlanId;
+/** Lo stato di gioco che viene sincronizzato con il database. */
+export interface GameData {
   xp: number;
   completed: Record<string, { completedAt: string; times: number }>;
   streak: Streak;
   bestStreak: number;
   daily: DailyUsage;
   stats: Stats;
-  today: { day: string; stats: Stats; claimedQuests: string[] };
+  today: TodayState;
   questsClaimed: number;
+}
+
+interface ProgressData extends GameData {
+  /** arriva dal profilo sul server; in locale solo come simulazione */
+  plan: PlanId;
   username: string | null;
-  friendRequests: FriendRequest[];
+  /** a quale account appartengono i dati locali (null = ospite) */
+  ownerId: string | null;
 }
 
 interface ProgressState extends ProgressData {
@@ -41,18 +48,14 @@ interface ProgressState extends ProgressData {
   completeLesson: (lessonId: string, xp: number, perfect: boolean) => void;
   recordStat: (key: StatKey, amount?: number) => void;
   claimQuest: (questId: string, xp: number) => void;
-  ensureUsername: () => void;
-  sendFriendRequest: (username: string) => void;
-  cancelFriendRequest: (username: string) => void;
   /** Solo per sviluppo finché non c'è Stripe: simula il cambio piano. */
   setPlan: (plan: PlanId) => void;
   reset: () => void;
 }
 
-const emptyStats = (): Stats => ({ lessons: 0, perfect: 0, cuts: 0, ripples: 0, lessonXp: 0 });
+export const emptyStats = (): Stats => ({ lessons: 0, perfect: 0, cuts: 0, ripples: 0, lessonXp: 0, friendRequests: 0 });
 
-const initial: ProgressData = {
-  plan: "free",
+export const initialGameData = (): GameData => ({
   xp: 0,
   completed: {},
   streak: { count: 0, lastDay: null },
@@ -61,24 +64,29 @@ const initial: ProgressData = {
   stats: emptyStats(),
   today: { day: "", stats: emptyStats(), claimedQuests: [] },
   questsClaimed: 0,
-  username: null,
-  friendRequests: [],
-};
+});
+
+const initial = (): ProgressData => ({ ...initialGameData(), plan: "free", username: null, ownerId: null });
 
 /** Statistiche di oggi, azzerate se il giorno salvato non è oggi. */
-export function todayState(today: ProgressData["today"]) {
+export function todayState(today: TodayState): TodayState {
   return today.day === todayKey() ? today : { day: todayKey(), stats: emptyStats(), claimedQuests: [] };
 }
 
 function bump(stats: Stats, delta: Partial<Stats>): Stats {
-  const next = { ...stats };
+  const next = { ...emptyStats(), ...stats };
   for (const [k, v] of Object.entries(delta) as [StatKey, number][]) next[k] += v;
   return next;
 }
 
+export function pickGameData(s: GameData): GameData {
+  const { xp, completed, streak, bestStreak, daily, stats, today, questsClaimed } = s;
+  return { xp, completed, streak, bestStreak, daily, stats, today, questsClaimed };
+}
+
 /**
- * Progressi dell'utente. Per ora in localStorage; quando arriva l'auth
- * (Supabase) questo store diventa una cache sincronizzata col database.
+ * Progressi dell'utente. In locale con zustand/persist; quando l'utente
+ * è loggato SupabaseSync li fonde con il database e li tiene allineati.
  */
 export const useProgress = create<ProgressState>()(
   persist(
@@ -90,7 +98,7 @@ export const useProgress = create<ProgressState>()(
       };
 
       return {
-        ...initial,
+        ...initial(),
 
         startLesson: (lessonId) => {
           const today = todayKey();
@@ -128,21 +136,8 @@ export const useProgress = create<ProgressState>()(
           }));
         },
 
-        ensureUsername: () => {
-          if (!get().username) set({ username: `squeaker${Math.floor(1000 + Math.random() * 9000)}` });
-        },
-
-        sendFriendRequest: (username) => {
-          const name = username.trim().toLowerCase();
-          if (get().friendRequests.some((r) => r.username === name)) return;
-          set((s) => ({ friendRequests: [{ username: name, sentAt: new Date().toISOString() }, ...s.friendRequests] }));
-        },
-
-        cancelFriendRequest: (username) =>
-          set((s) => ({ friendRequests: s.friendRequests.filter((r) => r.username !== username) })),
-
         setPlan: (plan) => set({ plan }),
-        reset: () => set({ ...initial }),
+        reset: () => set(initial()),
       };
     },
     { name: "progress-v1", version: 1 },

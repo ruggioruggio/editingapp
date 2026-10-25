@@ -1,3 +1,4 @@
+import { AccountMenu } from "@/components/app/AccountMenu";
 import { Dock } from "@/components/app/Dock";
 import { Splash } from "@/components/app/Splash";
 import { StatsBar } from "@/components/app/StatsBar";
@@ -9,8 +10,11 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
       <Splash />
       <header className="sticky top-0 z-30 border-b border-white/5 bg-app/75 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <Logo href="/learn" size={28} />
-          <StatsBar />
+          <Logo href="/learn" size={28} compact />
+          <div className="flex items-center gap-4">
+            <StatsBar />
+            <AccountMenu />
+          </div>
         </div>
       </header>
       <main className="pb-32">{children}</main>

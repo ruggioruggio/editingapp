@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Nunito } from "next/font/google";
+import { SupabaseSync } from "@/components/app/SupabaseSync";
 import { brand } from "@/config/brand";
 import "./globals.css";
 
@@ -21,7 +22,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="it" className={`${nunito.variable} ${mono.variable}`}>
-      <body className="min-h-dvh bg-app text-ink">{children}</body>
+      <body className="min-h-dvh bg-app text-ink">
+        <SupabaseSync />
+        {children}
+      </body>
     </html>
   );
 }

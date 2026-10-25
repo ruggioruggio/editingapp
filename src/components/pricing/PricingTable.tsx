@@ -5,6 +5,7 @@ import { Check, Crown } from "lucide-react";
 import { PLANS, type PlanId } from "@/lib/billing/plans";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useProgress } from "@/lib/progress/store";
+import { useAuth } from "@/lib/supabase/auth";
 
 const eur = (n: number) => n.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
 
@@ -12,6 +13,8 @@ export function PricingTable() {
   const hydrated = useHydrated();
   const plan = useProgress((s) => s.plan);
   const setPlan = useProgress((s) => s.setPlan);
+  // con un account il piano arriva dal server: la simulazione vale solo da ospite
+  const signedIn = useAuth((s) => s.status === "user");
 
   return (
     <div className="grid gap-5 md:grid-cols-2">
@@ -53,14 +56,14 @@ export function PricingTable() {
             </ul>
             <button
               type="button"
-              disabled={!hydrated || isCurrent}
+              disabled={!hydrated || isCurrent || signedIn}
               onClick={() => setPlan(id)}
               className={clsx(
                 "btn-3d mt-auto rounded-xl py-3 font-bold uppercase tracking-wide disabled:opacity-50",
                 isPro ? "bg-pr text-pr-deep" : "bg-panel-3 text-ink",
               )}
             >
-              {isCurrent ? "Attivo" : isPro ? "Attiva Pro (demo)" : "Torna a Free"}
+              {isCurrent ? "Attivo" : signedIn ? "Pagamenti in arrivo" : isPro ? "Attiva Pro (demo)" : "Torna a Free"}
             </button>
           </div>
         );

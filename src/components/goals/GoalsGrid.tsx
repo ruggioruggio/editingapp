@@ -21,7 +21,7 @@ export function GoalsGrid() {
     ripples: s.stats.ripples,
     perfect: s.stats.perfect,
     quests: s.questsClaimed,
-    friendRequests: s.friendRequests.length,
+    friendRequests: s.stats.friendRequests ?? 0,
   };
   const unlocked = ACHIEVEMENTS.reduce((sum, a) => sum + achievementLevel(a, input[a.metric]).level, 0);
 
