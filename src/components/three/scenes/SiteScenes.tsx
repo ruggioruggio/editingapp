@@ -71,7 +71,6 @@ function SlideScene() {
   const POOL = new THREE.Vector3(2.95, 0.12, 0);
   const slider = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
-  const word = useRef<THREE.Sprite>(null);
   const drops = useRef<(THREE.Mesh | null)[]>([]);
   const rig = useRef(createRig());
 
@@ -117,7 +116,6 @@ function SlideScene() {
       d.position.set(POOL.x + Math.cos(a) * k * 1.6, 0.3 + 2.4 * k - 4.8 * k * k, Math.sin(a) * k * 1.1);
       d.scale.setScalar(1);
     });
-    setWord(word.current, popScale(t, 1.2, 2.9));
   });
 
   return (
@@ -171,7 +169,6 @@ function SlideScene() {
           <SqueakModel rig={rig} sitting />
         </group>
       </group>
-      <TextSprite ref={word} text="Wheee!" position={[0.6, 3.0, 0.6]} color="#5ccfff" />
       </group>
     </Diorama>
   );

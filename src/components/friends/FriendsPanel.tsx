@@ -26,10 +26,10 @@ import { FriendSheet } from "./FriendSheet";
 
 const SEND_MESSAGES: Record<SendResult, { tone: "ok" | "error"; text: string }> = {
   sent: { tone: "ok", text: "Richiesta inviata!" },
-  accepted: { tone: "ok", text: "Ti aveva giÃ  scritto: ora siete amici!" },
+  accepted: { tone: "ok", text: "Ti aveva già scritto: ora siete amici!" },
   not_found: { tone: "error", text: "Nessun utente con questo nome." },
   self: { tone: "error", text: "Non puoi aggiungere te stesso." },
-  exists: { tone: "error", text: "Siete giÃ  amici o c'Ã¨ giÃ  una richiesta in corso." },
+  exists: { tone: "error", text: "Siete già amici o c'è già una richiesta in corso." },
 };
 
 const liveStreak = (p: FriendProfile) =>
@@ -47,7 +47,7 @@ function GuestFriends({ disabled }: { disabled: boolean }) {
   return (
     <div className="flex flex-col items-center gap-4 rounded-3xl border border-line bg-panel p-8 text-center">
       <Mascot size={110} idle />
-      <h2 className="text-xl font-black">Montare insieme Ã¨ piÃ¹ divertente</h2>
+      <h2 className="text-xl font-black">Montare insieme è più divertente</h2>
       <p className="text-ink-dim">
         {disabled
           ? "Gli account non sono ancora attivi su questa installazione."
@@ -178,7 +178,7 @@ function SignedInFriends() {
         <Mascot size={84} idle />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-ink-dim">Il tuo nome utente</p>
-          <p className="truncate text-2xl font-black">@{profile?.username ?? "â€¦"}</p>
+          <p className="truncate text-2xl font-black">@{profile?.username ?? "…"}</p>
           <button
             type="button"
             onClick={share}

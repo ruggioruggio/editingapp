@@ -109,7 +109,7 @@ export default function LandingPage() {
               href="/login"
               className="btn-3d block rounded-2xl border-2 border-line bg-panel px-8 py-4 font-black uppercase tracking-wide text-pr"
             >
-              Ho giÃ  un account
+              Ho già un account
             </Link>
           </div>
         </div>

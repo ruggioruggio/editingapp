@@ -26,9 +26,6 @@ export function HeroArt() {
         </div>
       ))}
       <LoungeHero className="absolute inset-0" />
-      <p className="pointer-events-none absolute -bottom-2 left-0 right-0 text-center text-xs font-bold text-ink-mute">
-        Trascina per girare la scena
-      </p>
     </div>
   );
 }
