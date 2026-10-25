@@ -60,6 +60,58 @@ body {
   box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.45);
 }
 
+/* ---------- Stile Duolingo ----------
+   Pulsanti "fisici" con il bordo inferiore di una tinta più scura,
+   schede con bordo spesso sotto, tutto maiuscolo e arrotondato. */
+.duo-btn {
+  --face: var(--color-success);
+  --shade: #2a9466;
+  --ink: #08311f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 16px;
+  padding: 0.85rem 1.5rem;
+  background: var(--face);
+  color: var(--ink);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  box-shadow: 0 4px 0 var(--shade);
+  transition: transform 0.06s, box-shadow 0.06s, filter 0.15s;
+}
+.duo-btn:hover:not(:disabled) { filter: brightness(1.07); }
+.duo-btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 var(--shade); }
+.duo-btn:disabled { --face: #2f2f2f; --shade: #262626; --ink: #6f6f6f; cursor: not-allowed; }
+.duo-blue { --face: var(--color-accent); --shade: #1f64aa; --ink: #fff; }
+.duo-red { --face: var(--color-danger); --shade: #c24242; --ink: #fff; }
+.duo-violet { --face: var(--color-pr); --shade: #6b6bd1; --ink: var(--color-pr-deep); }
+.duo-cheese { --face: var(--color-cheese); --shade: #d49a1c; --ink: #3a2500; }
+.duo-ghost { --face: transparent; --shade: var(--color-line); --ink: var(--color-ink-dim); border: 2px solid var(--color-line); }
+
+.duo-card {
+  border: 2px solid var(--color-line);
+  border-bottom-width: 4px;
+  border-radius: 16px;
+  background: var(--color-panel);
+  transition: background 0.15s, border-color 0.15s, transform 0.06s;
+}
+.duo-card:active:not(:disabled) { transform: translateY(2px); border-bottom-width: 2px; margin-bottom: 2px; }
+.duo-card[data-state="selected"] { border-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 12%, var(--color-panel)); color: #7cc0ff; }
+.duo-card[data-state="correct"] { border-color: var(--color-success); background: color-mix(in srgb, var(--color-success) 12%, var(--color-panel)); color: #79e6b5; }
+.duo-card[data-state="wrong"] { border-color: var(--color-danger); background: color-mix(in srgb, var(--color-danger) 12%, var(--color-panel)); color: #ff9a9a; }
+.duo-card[data-state="done"] { opacity: 0.35; }
+
+/* Barra di avanzamento con il riflesso chiaro in alto, come in Duolingo */
+.duo-progress { height: 16px; border-radius: 999px; background: var(--color-panel-3); overflow: hidden; }
+.duo-progress > div { position: relative; height: 100%; border-radius: 999px; background: var(--color-success); transition: width 0.4s cubic-bezier(.3, 1.4, .5, 1); }
+.duo-progress > div::after { content: ""; position: absolute; left: 8px; right: 8px; top: 4px; height: 4px; border-radius: 999px; background: rgb(255 255 255 / 0.3); }
+
+/* Fumetto della mascotte */
+.duo-bubble { position: relative; border: 2px solid var(--color-line); border-radius: 16px; background: var(--color-app); padding: 0.75rem 1rem; }
+.duo-bubble::before { content: ""; position: absolute; left: -10px; top: 50%; width: 16px; height: 16px; margin-top: -8px; background: var(--color-app); border-left: 2px solid var(--color-line); border-bottom: 2px solid var(--color-line); transform: rotate(45deg); }
+
 /* Liquid glass stile Apple: vetro scuro e fumé (così icone e testi restano
    leggibili sopra qualsiasi contenuto), con riflesso sul bordo superiore. */
 .glass {
@@ -170,6 +222,50 @@ body {
 .hop-x { animation-name: hop-x; animation-timing-function: linear !important; }
 .hop-y { animation: hop-y 0.8s ease-in-out var(--iter3, infinite) both; }
 .kf { animation-name: kf-light; animation-timing-function: step-end !important; }
+
+/* ---------- Reazioni di Squeak (vittoria / sconfitta) ---------- */
+.rx * { transform-box: fill-box; }
+.rx-jump, .rx-spin, .rx-hug, .rx-dance, .rx-droop, .rx-wobble, .rx-sniff, .rx-shake, .rx-deflate { transform-origin: 50% 100%; animation-iteration-count: infinite; animation-timing-function: ease-in-out; }
+@keyframes rx-jump { 0%, 100% { transform: translateY(0) scale(1); } 12% { transform: translateY(0) scale(1.12, 0.84); } 42% { transform: translateY(-26px) scale(0.94, 1.08); } 70% { transform: translateY(0) scale(1.12, 0.86); } 84% { transform: translateY(0) scale(0.98, 1.03); } }
+.rx-jump { animation-name: rx-jump; animation-duration: 1.1s; }
+@keyframes rx-confetti { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(280deg); } }
+.rx-confetti { animation: rx-confetti 1.1s ease-out infinite; transform-origin: center; }
+@keyframes rx-spin { 0%, 15% { transform: scaleX(1) translateY(0); } 35% { transform: scaleX(-1) translateY(-10px); } 55% { transform: scaleX(1) translateY(-14px); } 75%, 100% { transform: scaleX(1) translateY(0); } }
+.rx-spin { animation-name: rx-spin; animation-duration: 1.4s; transform-origin: 50% 100%; }
+@keyframes rx-twinkle { 0%, 100% { opacity: 0; transform: scale(0.3) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(45deg); } }
+.rx-twinkle { animation: rx-twinkle 1s ease-in-out infinite; transform-origin: center; }
+@keyframes rx-drop-cheese { 0% { opacity: 0; transform: translateY(-70px) rotate(-30deg); } 20% { opacity: 1; } 45%, 90% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 0; transform: translateY(0); } }
+.rx-drop-cheese { animation: rx-drop-cheese 1.8s cubic-bezier(.5, 0, .6, 1.4) infinite; transform-origin: center; }
+@keyframes rx-hug { 0%, 42% { transform: scale(1); } 52% { transform: scale(1.1, 0.9); } 64%, 100% { transform: scale(1); } }
+.rx-hug { animation-name: rx-hug; animation-duration: 1.8s; }
+@keyframes rx-heart { 0%, 40% { opacity: 0; transform: translateY(0) scale(0.4); } 55% { opacity: 1; } 100% { opacity: 0; transform: translateY(-26px) scale(1); } }
+.rx-heart { animation: rx-heart 1.8s ease-out infinite; transform-origin: center; }
+@keyframes rx-dance { 0%, 100% { transform: rotate(-9deg) translateX(-5px); } 50% { transform: rotate(9deg) translateX(5px) translateY(-6px); } }
+.rx-dance { animation-name: rx-dance; animation-duration: 0.6s; }
+@keyframes rx-note { 0% { opacity: 0; transform: translate(0, 0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(14px, -30px); } }
+.rx-note { animation: rx-note 1.2s ease-out infinite; }
+@keyframes rx-raise { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.rx-raise { animation: rx-raise 0.9s ease-in-out infinite; }
+@keyframes rx-shine { 0%, 100% { opacity: 0.3; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.15); } }
+.rx-shine { animation: rx-shine 0.9s ease-in-out infinite; transform-origin: center; }
+@keyframes rx-rain { 0% { opacity: 0; transform: translateY(0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translateY(34px); } }
+.rx-rain { animation: rx-rain 0.9s linear infinite; }
+@keyframes rx-droop { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(3px) scaleY(0.95); } }
+.rx-droop { animation-name: rx-droop; animation-duration: 2s; }
+@keyframes rx-wobble { 0%, 100% { transform: rotate(-7deg); } 50% { transform: rotate(7deg); } }
+.rx-wobble { animation-name: rx-wobble; animation-duration: 1.2s; }
+@keyframes rx-orbit { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+.rx-orbit { animation: rx-orbit 1.4s linear infinite; transform-origin: center; }
+@keyframes rx-sniff { 0%, 100% { transform: translateY(0); } 30% { transform: translateY(2px) scaleY(0.97); } 60% { transform: translateY(0); } }
+.rx-sniff { animation-name: rx-sniff; animation-duration: 1.6s; }
+@keyframes rx-tear { 0%, 15% { opacity: 0; transform: translateY(0); } 30% { opacity: 1; } 85% { opacity: 1; transform: translateY(18px); } 100% { opacity: 0; transform: translateY(20px); } }
+.rx-tear { animation: rx-tear 1.6s ease-in infinite; }
+@keyframes rx-shake { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(-6deg); } 30% { transform: rotate(6deg); } 45% { transform: rotate(-5deg); } 60% { transform: rotate(5deg); } 75% { transform: rotate(0); } }
+.rx-shake { animation-name: rx-shake; animation-duration: 1.4s; }
+@keyframes rx-deflate { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06, 0.82); } }
+.rx-deflate { animation-name: rx-deflate; animation-duration: 1.8s; }
+@keyframes rx-question { 0%, 100% { opacity: 0; transform: translateY(6px); } 35%, 70% { opacity: 1; transform: translateY(-4px); } }
+.rx-question { animation: rx-question 1.6s ease-in-out infinite; }
 
 /* ---------- Splash ---------- */
 @keyframes splash-in { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }

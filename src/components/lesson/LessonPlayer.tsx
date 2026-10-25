@@ -1,18 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Flame, Target, X, Zap } from "lucide-react";
+import { Check, Flame, Target, X, Zap } from "lucide-react";
 import { AiAssistantButton } from "@/components/ai/AiAssistantButton";
 import { Mascot } from "@/components/brand/Mascot";
-import { getLesson } from "@/content/lessons";
+import { SqueakReaction } from "@/components/brand/Reactions";
 import { features } from "@/config/features";
+import { getLesson } from "@/content/lessons";
 import { canStartLesson, PLANS } from "@/lib/billing/plans";
+import { todayKey } from "@/lib/date";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import type { EditorTaskResult } from "@/lib/lessons/types";
 import { currentStreak, useProgress } from "@/lib/progress/store";
-import { EditorTaskView, QuizView, TheoryView } from "./StepViews";
+import { EditorTaskView, MatchView, QuizView, TheoryView } from "./StepViews";
+
+const PRAISE = ["Fantastico!", "Ottimo lavoro!", "Perfetto!", "Grande!", "Da montatore vero!"];
+const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
+
+type Feedback = { outcome: "win" | "lose"; title: string; text?: string; id: number } | null;
 
 export function LessonPlayer({ lessonId }: { lessonId: string }) {
   const lesson = getLesson(lessonId);
@@ -21,10 +29,14 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
 
   const [allowed, setAllowed] = useState<boolean | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
-  const [quiz, setQuiz] = useState<{ selected: number | null; checked: boolean }>({ selected: null, checked: false });
+  const [selected, setSelected] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<Feedback>(null);
   const [editorResult, setEditorResult] = useState<EditorTaskResult>({ done: false });
+  const [matchDone, setMatchDone] = useState(false);
+  const [answered, setAnswered] = useState(0);
   const [mistakes, setMistakes] = useState(0);
-  const [finished, setFinished] = useState<{ xp: number; accuracy: number } | null>(null);
+  const [startedAt] = useState(() => Date.now());
+  const [finished, setFinished] = useState<{ xp: number; accuracy: number; seconds: number; streakBefore: number } | null>(null);
 
   // Gate freemium: si controlla una sola volta all'apertura della lezione.
   useEffect(() => {
@@ -35,88 +47,98 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
     if (ok) s.startLesson(lessonId);
   }, [hydrated, lessonId]);
 
-  if (!lesson) return null;
-  if (allowed === null) return <div className="min-h-dvh bg-app" />;
-  if (!allowed) return <Paywall />;
-  if (finished) return <LessonComplete xp={finished.xp} accuracy={finished.accuracy} />;
+  const step = lesson?.steps[stepIndex];
+  const isLast = lesson ? stepIndex === lesson.steps.length - 1 : false;
 
-  const step = lesson.steps[stepIndex];
-  const isLast = stepIndex === lesson.steps.length - 1;
-
-  const next = () => {
+  const next = useCallback(() => {
+    if (!lesson) return;
     if (isLast) {
-      const quizCount = lesson.steps.filter((s) => s.kind === "quiz").length;
-      const accuracy = quizCount ? Math.round((100 * (quizCount - mistakes)) / quizCount) : 100;
+      const accuracy = answered ? Math.max(0, Math.round((100 * (answered - mistakes)) / answered)) : 100;
+      const streakBefore = currentStreak(useProgress.getState().streak);
       completeLesson(lesson.id, lesson.xp, mistakes === 0);
-      setFinished({ xp: lesson.xp, accuracy });
+      setFinished({ xp: lesson.xp, accuracy, seconds: Math.round((Date.now() - startedAt) / 1000), streakBefore });
       return;
     }
     setStepIndex((i) => i + 1);
-    setQuiz({ selected: null, checked: false });
+    setSelected(null);
+    setFeedback(null);
     setEditorResult({ done: false });
+    setMatchDone(false);
+  }, [lesson, isLast, answered, mistakes, completeLesson, startedAt]);
+
+  const check = useCallback(() => {
+    if (!step || step.kind !== "quiz" || selected === null) return;
+    const right = selected === step.correctIndex;
+    setAnswered((n) => n + 1);
+    if (!right) setMistakes((m) => m + 1);
+    setFeedback(
+      right
+        ? { outcome: "win", title: pick(PRAISE), text: step.explanation, id: Date.now() }
+        : { outcome: "lose", title: "Soluzione corretta:", text: `${step.options[step.correctIndex]} — ${step.explanation}`, id: Date.now() },
+    );
+  }, [step, selected]);
+
+  const skip = () => {
+    if (!step || step.kind !== "quiz") return;
+    setAnswered((n) => n + 1);
+    setMistakes((m) => m + 1);
+    setFeedback({ outcome: "lose", title: "Soluzione corretta:", text: step.options[step.correctIndex], id: Date.now() });
   };
 
-  const checkQuiz = () => {
-    if (step.kind !== "quiz" || quiz.selected === null) return;
-    if (quiz.selected !== step.correctIndex) setMistakes((m) => m + 1);
-    setQuiz((q) => ({ ...q, checked: true }));
-  };
-
-  // Stato del footer in base al tipo di step
-  let footer: { tone: "neutral" | "success" | "error"; title?: string; text?: string; label: string; disabled: boolean; action: () => void };
-  if (step.kind === "theory") {
-    footer = { tone: "neutral", label: "Continua", disabled: false, action: next };
-  } else if (step.kind === "quiz") {
-    if (!quiz.checked) {
-      footer = { tone: "neutral", label: "Verifica", disabled: quiz.selected === null, action: checkQuiz };
-    } else {
-      const correct = quiz.selected === step.correctIndex;
-      footer = {
-        tone: correct ? "success" : "error",
-        title: correct ? "Corretto!" : `Risposta giusta: ${step.options[step.correctIndex]}`,
-        text: step.explanation,
-        label: "Continua",
-        disabled: false,
-        action: next,
-      };
+  // esercizio nell'editor o coppie completate: festeggia
+  useEffect(() => {
+    if ((step?.kind === "editor" && editorResult.done) || (step?.kind === "match" && matchDone)) {
+      setFeedback((f) => f ?? { outcome: "win", title: pick(PRAISE), text: step.kind === "editor" ? "Esattamente come lo faresti in Premiere." : undefined, id: Date.now() });
     }
-  } else {
-    footer = editorResult.done
-      ? { tone: "success", title: "Ottimo lavoro!", text: "Esattamente come lo faresti in Premiere.", label: "Continua", disabled: false, action: next }
-      : { tone: "neutral", label: "Completa l'esercizio", disabled: true, action: next };
-  }
+  }, [step, editorResult.done, matchDone]);
+
+  // Invio = verifica / continua, come in Duolingo
+  const primary = feedback ? next : step?.kind === "quiz" ? check : step?.kind === "theory" ? next : undefined;
+  const primaryDisabled = !feedback && ((step?.kind === "quiz" && selected === null) || step?.kind === "editor" || step?.kind === "match");
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && primary && !primaryDisabled) {
+        e.preventDefault();
+        primary();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [primary, primaryDisabled]);
+
+  if (!lesson || !step) return null;
+  if (allowed === null) return <div className="min-h-dvh bg-app" />;
+  if (!allowed) return <Paywall />;
+  if (finished) return <LessonComplete {...finished} />;
+
+  const primaryLabel = feedback ? "Continua" : step.kind === "quiz" ? "Controlla" : step.kind === "theory" ? "Continua" : step.kind === "match" ? "Abbina tutte le coppie" : "Completa l'esercizio";
 
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b border-line bg-app/95 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
-          <Link href="/learn" aria-label="Esci dalla lezione" className="text-ink-mute hover:text-ink">
-            <X size={22} />
-          </Link>
-          <div className="h-3 flex-1 overflow-hidden rounded-full bg-panel-3">
-            <div
-              className="h-full rounded-full bg-success transition-[width] duration-300"
-              style={{ width: `${(stepIndex / lesson.steps.length) * 100}%` }}
-            />
-          </div>
-          <AiAssistantButton lessonId={lesson.id} />
+      <header className="mx-auto flex h-20 w-full max-w-5xl items-center gap-4 px-4">
+        <Link href="/learn" aria-label="Esci dalla lezione" className="text-ink-mute hover:text-ink">
+          <X size={26} strokeWidth={2.6} />
+        </Link>
+        <div className="duo-progress flex-1">
+          <div style={{ width: `${Math.max(4, (stepIndex / lesson.steps.length) * 100)}%` }} />
         </div>
+        <AiAssistantButton lessonId={lesson.id} />
       </header>
 
-      <main
-        className={clsx(
-          "mx-auto w-full flex-1 px-4 pb-40 pt-6",
-          step.kind === "editor" ? "max-w-6xl" : "max-w-2xl sm:pt-12",
-        )}
-      >
+      <main className={clsx("mx-auto w-full flex-1 px-4 pb-48 pt-4 sm:pt-10", step.kind === "editor" ? "max-w-5xl" : "max-w-2xl")}>
         {step.kind === "theory" && <TheoryView key={stepIndex} step={step} />}
         {step.kind === "quiz" && (
-          <QuizView
+          <QuizView key={stepIndex} step={step} selected={selected} checked={!!feedback} onSelect={(i) => !feedback && setSelected(i)} />
+        )}
+        {step.kind === "match" && (
+          <MatchView
             key={stepIndex}
             step={step}
-            selected={quiz.selected}
-            checked={quiz.checked}
-            onSelect={(i) => setQuiz({ selected: i, checked: false })}
+            onMistake={() => setMistakes((m) => m + 1)}
+            onDone={() => {
+              setAnswered((n) => n + 1);
+              setMatchDone(true);
+            }}
           />
         )}
         {step.kind === "editor" && <EditorTaskView key={stepIndex} step={step} onResult={setEditorResult} />}
@@ -124,31 +146,38 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
 
       <footer
         className={clsx(
-          "fixed inset-x-0 bottom-0 z-40 border-t",
-          footer.tone === "success" && "border-success/40 bg-[#12251c]",
-          footer.tone === "error" && "border-danger/40 bg-[#2a1515]",
-          footer.tone === "neutral" && "border-line bg-app",
+          "fixed inset-x-0 bottom-0 z-40 border-t-2",
+          feedback?.outcome === "win" && "border-transparent bg-[#14271d]",
+          feedback?.outcome === "lose" && "border-transparent bg-[#2a1718]",
+          !feedback && "border-line bg-app",
         )}
       >
-        <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-h-6">
-            {footer.title && (
-              <p className={clsx("font-bold", footer.tone === "success" ? "text-success" : "text-danger")}>{footer.title}</p>
-            )}
-            {footer.text && <p className="text-sm text-ink-dim">{footer.text}</p>}
-          </div>
+        <div className="mx-auto flex min-h-36 max-w-5xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+          {feedback ? (
+            <div key={feedback.id} className="animate-pop flex min-w-0 items-center gap-4">
+              {/* reazione casuale di Squeak: ogni risposta ne sceglie una diversa */}
+              <div className={clsx("grid h-24 w-24 shrink-0 place-items-center rounded-full", feedback.outcome === "win" ? "bg-success/15" : "bg-danger/15")}>
+                <SqueakReaction outcome={feedback.outcome} size={92} />
+              </div>
+              <div className="min-w-0">
+                <p className={clsx("text-2xl font-black", feedback.outcome === "win" ? "text-success" : "text-danger")}>{feedback.title}</p>
+                {feedback.text && <p className={clsx("mt-1", feedback.outcome === "win" ? "text-[#a7e9c9]" : "text-[#ffb3b3]")}>{feedback.text}</p>}
+              </div>
+            </div>
+          ) : step.kind === "quiz" ? (
+            <button type="button" onClick={skip} className="duo-btn duo-ghost hidden sm:inline-flex">
+              Salta
+            </button>
+          ) : (
+            <span className="hidden sm:block" />
+          )}
           <button
             type="button"
-            disabled={footer.disabled}
-            onClick={footer.action}
-            className={clsx(
-              "btn-3d w-full rounded-xl px-8 py-3 font-bold uppercase tracking-wide sm:w-auto",
-              footer.disabled && "cursor-not-allowed bg-panel-3 text-ink-mute",
-              !footer.disabled && footer.tone === "error" && "bg-danger text-white",
-              !footer.disabled && footer.tone !== "error" && "bg-success text-[#08311f]",
-            )}
+            disabled={primaryDisabled}
+            onClick={primary}
+            className={clsx("duo-btn w-full shrink-0 sm:w-auto sm:min-w-40", feedback?.outcome === "lose" && "duo-red")}
           >
-            {footer.label}
+            {primaryLabel}
           </button>
         </div>
       </footer>
@@ -156,29 +185,95 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
   );
 }
 
-function LessonComplete({ xp, accuracy }: { xp: number; accuracy: number }) {
+/** Schermata finale: reazione di vittoria a caso e le statistiche a schede. */
+function LessonComplete({ xp, accuracy, seconds, streakBefore }: { xp: number; accuracy: number; seconds: number; streakBefore: number }) {
+  const router = useRouter();
   const streak = useProgress((s) => currentStreak(s.streak));
+  const [showStreak, setShowStreak] = useState(false);
+  const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+
+  if (showStreak) return <StreakScreen streak={streak} onContinue={() => router.push("/learn")} />;
+
   const stats = [
-    { label: "XP", value: `+${xp}`, icon: Zap, color: "text-cheese" },
-    { label: "Precisione", value: `${accuracy}%`, icon: Target, color: "text-success" },
-    { label: "Serie", value: `${streak} gg`, icon: Flame, color: "text-[#ff8a3d]" },
+    { label: "Totale XP", value: `${xp}`, icon: Zap, color: "#ffc93c" },
+    { label: accuracy >= 90 ? "Perfetto!" : accuracy >= 70 ? "Bene!" : "Precisione", value: `${accuracy}%`, icon: Target, color: "#3ecf8e" },
+    { label: "Veloce!", value: time, icon: Flame, color: "#2d8ceb" },
   ];
+
   return (
-    <div className="animate-pop mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-6 px-4 text-center">
-      <Mascot size={120} mood="wow" />
-      <h1 className="text-3xl font-extrabold">Lezione completata!</h1>
-      <div className="grid w-full grid-cols-3 gap-3">
-        {stats.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="rounded-xl border border-line bg-panel p-3">
-            <Icon size={20} className={clsx("mx-auto mb-1", color)} />
-            <p className="text-lg font-bold">{value}</p>
-            <p className="text-xs text-ink-mute">{label}</p>
+    <div className="flex min-h-dvh flex-col">
+      <main className="animate-pop mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-8 px-4 text-center">
+        <SqueakReaction outcome="win" size={240} />
+        <h1 className="text-3xl font-black text-cheese sm:text-4xl">Lezione completata!</h1>
+        <div className="grid w-full grid-cols-3 gap-3">
+          {stats.map(({ label, value, icon: Icon, color }) => (
+            <div key={label} className="overflow-hidden rounded-2xl border-2" style={{ borderColor: color, background: color }}>
+              <p className="py-1 text-[11px] font-black uppercase tracking-wide text-[#121212]">{label}</p>
+              <p className="flex items-center justify-center gap-1.5 rounded-xl bg-app py-4 text-lg font-black" style={{ color }}>
+                <Icon size={20} /> {value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </main>
+      <footer className="border-t-2 border-line">
+        <div className="mx-auto flex max-w-5xl justify-end px-4 py-6">
+          <button
+            type="button"
+            onClick={() => (streak > streakBefore ? setShowStreak(true) : router.push("/learn"))}
+            className="duo-btn w-full sm:w-auto sm:min-w-40"
+          >
+            Continua
+          </button>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+const DAY_LETTERS = ["D", "L", "M", "M", "G", "V", "S"];
+
+/** Schermata della serie: fiamma, numero di giorni e settimana con i giorni fatti. */
+function StreakScreen({ streak, onContinue }: { streak: number; onContinue: () => void }) {
+  // 5 giorni: quelli già fatti della serie (fino a oggi) e poi i prossimi
+  const today = new Date();
+  const days = Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i - Math.min(streak - 1, 4));
+    return d;
+  });
+  const todayStr = todayKey();
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <main className="animate-pop mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
+        <Flame size={130} className="text-[#ff9600] drop-shadow-[0_10px_0_rgb(120_60_0/0.35)]" fill="#ff9600" strokeWidth={1.5} />
+        <p className="mt-2 text-8xl font-black leading-none text-[#ff9600]">{streak}</p>
+        <p className="mt-1 text-2xl font-black text-[#ff9600]">{streak === 1 ? "giorno di serie!" : "giorni di serie!"}</p>
+        <div className="duo-card mt-8 w-full overflow-hidden">
+          <div className="flex justify-center gap-3 p-5">
+            {days.map((d) => {
+              const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+              const done = key <= todayStr && (Date.parse(todayStr) - Date.parse(key)) / 86400000 < streak;
+              return (
+                <div key={key} className="flex flex-col items-center gap-2">
+                  <span className={clsx("text-sm font-black", key === todayStr ? "text-[#ff9600]" : "text-ink-mute")}>{DAY_LETTERS[d.getDay()]}</span>
+                  <span className={clsx("grid h-10 w-10 place-items-center rounded-full", done ? "bg-[#ff9600] text-[#121212]" : "bg-panel-3")}>
+                    {done && <Check size={20} strokeWidth={3.5} />}
+                  </span>
+                </div>
+              );
+            })}
           </div>
-        ))}
-      </div>
-      <Link href="/learn" className="btn-3d w-full rounded-xl bg-success py-3 font-bold uppercase text-[#08311f]">
-        Continua
-      </Link>
+          <p className="border-t-2 border-line px-4 py-3 text-ink-dim">Fai una lezione ogni giorno per non azzerare la serie!</p>
+        </div>
+      </main>
+      <footer className="border-t-2 border-line">
+        <div className="mx-auto flex max-w-5xl justify-end px-4 py-6">
+          <button type="button" onClick={onContinue} className="duo-btn duo-blue w-full sm:w-auto sm:min-w-40">
+            Continua
+          </button>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -186,18 +281,18 @@ function LessonComplete({ xp, accuracy }: { xp: number; accuracy: number }) {
 function Paywall() {
   return (
     <div className="animate-pop mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-5 px-4 text-center">
-      <Mascot size={120} mood="sleepy" />
-      <h1 className="text-2xl font-extrabold">Per oggi hai finito le lezioni gratuite</h1>
+      <Mascot size={140} mood="sleepy" idle />
+      <h1 className="text-2xl font-black">Per oggi hai finito le lezioni</h1>
       {features.payments ? (
         <>
           <p className="text-ink-dim">
             Il piano Free include {PLANS.free.dailyLessonLimit} lezioni al giorno. Torna domani, oppure passa a Pro per
             lezioni illimitate e l&apos;assistente AI.
           </p>
-          <Link href="/pricing" className="btn-3d w-full rounded-xl bg-pr py-3 font-bold uppercase text-pr-deep">
+          <Link href="/pricing" className="duo-btn duo-violet w-full">
             Passa a Pro
           </Link>
-          <Link href="/learn" className="text-sm text-ink-mute hover:text-ink">
+          <Link href="/learn" className="text-sm font-bold text-ink-mute hover:text-ink">
             Torna al percorso
           </Link>
         </>
@@ -207,7 +302,7 @@ function Paywall() {
             Puoi fare {PLANS.free.dailyLessonLimit} lezioni al giorno: torna domani per continuare la serie! Il piano Pro
             con lezioni illimitate è in arrivo.
           </p>
-          <Link href="/learn" className="btn-3d w-full rounded-xl bg-success py-3 font-bold uppercase text-[#08311f]">
+          <Link href="/learn" className="duo-btn w-full">
             Torna al percorso
           </Link>
         </>

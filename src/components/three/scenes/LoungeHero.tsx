@@ -8,7 +8,10 @@ import { Deckchair, Newspaper } from "../props";
 import { createRig, easeInOut, easeOut, lerp, phase, resetRig, Shadow, SqueakModel, walkCycle } from "../SqueakModel";
 import { useDragYaw } from "../useDragYaw";
 
-const SEAT_Y = 0.42;
+// seduta un po' più alta e più avanti: il corpo non entra nello schienale
+const SEAT_Y = 0.56;
+const SEAT_Z = 0.5;
+const LEAN = -0.14;
 
 function Lounge({ yaw }: { yaw: () => number }) {
   const scene = useRef<THREE.Group>(null);
@@ -43,9 +46,9 @@ function Lounge({ yaw }: { yaw: () => number }) {
       // 3. saltello all'indietro sulla sdraio
       const p = phase(t, 2.0, 2.6);
       m.rotation.y = 0;
-      m.position.z = lerp(1.7, 0.1, easeInOut(p));
+      m.position.z = lerp(1.7, SEAT_Z, easeInOut(p));
       m.position.y = Math.sin(p * Math.PI) * 0.9 + SEAT_Y * p;
-      lean.current.rotation.x = -0.28 * easeOut(p);
+      lean.current.rotation.x = LEAN * easeOut(p);
       if (p > 0.55 && !sat.current) {
         sat.current = true;
         setSitting(true);
@@ -53,7 +56,7 @@ function Lounge({ yaw }: { yaw: () => number }) {
     } else if (t < 3.2) {
       // 4. apre il giornale
       const p = easeOut(phase(t, 2.6, 3.2));
-      m.position.set(0, SEAT_Y, 0.1);
+      m.position.set(0, SEAT_Y, SEAT_Z);
       paper.current.scale.setScalar(Math.max(0.001, p));
       paper.current.position.y = 1.4;
       if (r.armL && r.armR) {
@@ -80,7 +83,9 @@ function Lounge({ yaw }: { yaw: () => number }) {
 
   return (
     <group ref={scene}>
-      <Deckchair />
+      <group scale={1.25}>
+        <Deckchair />
+      </group>
       <group ref={mouse}>
         <Shadow radius={sitting ? 0.01 : 1.05} />
         <group ref={lean}>

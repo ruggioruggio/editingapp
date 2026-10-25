@@ -352,9 +352,6 @@ export function GraphPanel({ width = 7.4, height = 4.4 }: { width?: number; heig
       ["1200 px/sec", "800", "400", "0"].forEach((label, i) => ctx.fillText(label, 10, 30 + i * 132));
       ctx.fillStyle = "#2d8ceb";
       ctx.fillRect(500, 0, 3, 440); // indicatore di tempo
-      ctx.fillStyle = "#9a9a9a";
-      ctx.font = "700 22px 'Segoe UI', sans-serif";
-      ctx.fillText("Graph Editor", 560, 30);
     },
     [],
   );

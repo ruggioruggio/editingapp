@@ -44,10 +44,7 @@ const TOPICS = [
 
 function PrimaryCta({ className }: { className?: string }) {
   return (
-    <Link
-      href="/learn"
-      className={clsx("btn-3d block rounded-2xl bg-success px-8 py-4 text-center font-black uppercase tracking-wide text-[#08311f]", className)}
-    >
+    <Link href="/learn" className={clsx("duo-btn w-full py-4", className)}>
       Inizia ora
     </Link>
   );
@@ -105,10 +102,7 @@ export default function LandingPage() {
           </h1>
           <div className="space-y-3">
             <PrimaryCta />
-            <Link
-              href="/login"
-              className="btn-3d block rounded-2xl border-2 border-line bg-panel px-8 py-4 font-black uppercase tracking-wide text-pr"
-            >
+            <Link href="/login" className="duo-btn duo-ghost w-full" style={{ ["--ink" as string]: "var(--color-pr)" }}>
               Ho già un account
             </Link>
           </div>
@@ -190,66 +184,64 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Pro */}
-      <section className="mx-auto max-w-5xl px-6 py-16 md:py-24">
-        <Reveal className="relative overflow-hidden rounded-[32px] border border-pr/40 bg-linear-to-br from-pr/25 via-panel to-panel p-8 md:p-12">
-          <div className="grid items-center gap-8 md:grid-cols-[2fr_3fr]">
-            <div>
-              <p className="mb-2 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-cheese">
-                <Crown size={18} /> {brand.appName} Pro
-                {!features.payments && (
-                  <span className="rounded-full bg-cheese/20 px-2 py-0.5 text-[11px] tracking-normal">{COMING_SOON}</span>
-                )}
-              </p>
-              <h2 className="mb-3 text-3xl font-black md:text-4xl">Lezioni illimitate e {brand.aiName}</h2>
-              <p className="mb-6 text-ink-dim">
-                Niente limite giornaliero e un assistente che guarda la tua timeline e ti spiega cosa non va.
-                {!features.payments && " Squeak ci sta lavorando: arriva presto!"}
-              </p>
-              {features.payments ? (
-                <Link href="/pricing" className="btn-3d inline-block rounded-2xl bg-pr px-8 py-3.5 font-black uppercase text-pr-deep">
-                  Scopri Pro
-                </Link>
-              ) : (
-                <span className="inline-flex items-center gap-2 rounded-2xl border-2 border-cheese/40 px-6 py-3 font-black uppercase text-cheese">
-                  <Hammer size={18} /> Lavori in corso
-                </span>
-              )}
-            </div>
+      {/* Pro: banda scura a tutta larghezza, come "Super Duolingo" */}
+      <section className="relative overflow-hidden bg-[#14112e]">
+        <div className="pointer-events-none absolute -left-32 top-10 h-96 w-96 rounded-full bg-pr/20 blur-3xl" />
+        <div className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-cheese/10 blur-3xl" />
+        <div className="relative mx-auto grid max-w-5xl items-center gap-8 px-6 py-20 md:grid-cols-2 md:py-28">
+          <Reveal>
             {/* Squeak al cantiere: Pro è in costruzione */}
             <SiteScene name="construction" className="aspect-[4/3] w-full" />
-          </div>
-        </Reveal>
+          </Reveal>
+          <Reveal delay={150} className="text-center md:text-left">
+            <p className="text-sm font-black uppercase italic tracking-[0.2em] text-white">Potenzia il tuo montaggio con</p>
+            <h2 className="mb-4 bg-linear-to-r from-pr via-[#c9a7ff] to-cheese bg-clip-text text-5xl font-black uppercase italic leading-none tracking-tight text-transparent md:text-6xl">
+              {brand.appName} Pro
+            </h2>
+            <p className="mb-7 text-lg text-[#c9c6e6]">
+              Lezioni illimitate e {brand.aiName}, l&apos;assistente che guarda la tua timeline e ti spiega cosa non va.
+            </p>
+            {features.payments ? (
+              <Link href="/pricing" className="duo-btn duo-violet">
+                Scopri Pro
+              </Link>
+            ) : (
+              <span className="duo-btn duo-cheese pointer-events-none">
+                <Hammer size={18} /> {COMING_SOON}
+              </span>
+            )}
+          </Reveal>
+        </div>
       </section>
 
       {/* Community */}
-      <section className="mx-auto max-w-5xl px-6 pb-16">
-        <Reveal className="flex flex-col items-center gap-6 rounded-[32px] border border-line bg-panel p-8 text-center md:flex-row md:text-left">
-          <SiteScene name="discord" className="aspect-square w-56 shrink-0" />
-          <div className="flex-1">
-            <h2 className="mb-2 text-2xl font-black">Entra nella community</h2>
-            <p className="text-ink-dim">Aggiornamenti, sfide di montaggio e feedback diretto: ci vediamo su Discord.</p>
+      <section className="mx-auto max-w-5xl px-6 py-20">
+        <Reveal className="grid items-center gap-8 md:grid-cols-[auto_1fr]">
+          <SiteScene name="discord" className="mx-auto aspect-square w-60" />
+          <div className="text-center md:text-left">
+            <h2 className="mb-3 text-4xl font-black text-pr md:text-5xl">entra nella community</h2>
+            <p className="mb-6 text-lg text-ink-dim">Aggiornamenti, sfide di montaggio e feedback diretto: ci vediamo su Discord.</p>
+            <a href={brand.discordUrl} target="_blank" rel="noreferrer" className="duo-btn" style={{ ["--face" as string]: "#5865f2", ["--shade" as string]: "#3c45a5", ["--ink" as string]: "#fff" }}>
+              <MessagesSquare size={18} /> Unisciti al Discord
+            </a>
           </div>
-          <a
-            href={brand.discordUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-3d flex items-center gap-2 rounded-2xl bg-[#5865f2] px-6 py-3 font-black text-white"
-          >
-            <MessagesSquare size={18} /> Unisciti al Discord
-          </a>
         </Reveal>
       </section>
 
-      {/* CTA finale */}
-      <section className="mx-auto flex max-w-3xl flex-col items-center px-6 py-20 text-center">
-        <Reveal className="flex flex-col items-center">
-          <Mascot size={160} idle />
-          <h2 className="mb-8 mt-4 text-4xl font-black leading-tight md:text-5xl">
-            impara il montaggio con <span className="text-pr">{brand.appName}</span>
+      {/* CTA finale con l'onda che scende nel footer, come in Duolingo */}
+      <section className="relative pt-16">
+        <Reveal className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-6 text-center">
+          <h2 className="mb-8 text-4xl font-black leading-tight text-pr md:text-6xl">
+            impara il montaggio
+            <br />
+            con {brand.appName}
           </h2>
           <PrimaryCta className="w-72" />
+          <Mascot size={180} idle className="mt-10" />
         </Reveal>
+        <svg viewBox="0 0 1440 140" preserveAspectRatio="none" className="-mt-10 block h-24 w-full md:h-36" aria-hidden>
+          <path d="M0 70 C 240 140 480 0 720 60 C 960 120 1200 20 1440 80 L1440 140 L0 140 Z" fill="var(--color-pr)" />
+        </svg>
       </section>
 
       <SiteFooter />

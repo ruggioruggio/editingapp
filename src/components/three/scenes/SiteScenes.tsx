@@ -15,7 +15,6 @@ import {
   HardHat,
   KeyframeDiamond,
   SafetyVest,
-  TextSprite,
   TrafficCone,
   WorkSign,
 } from "../props";
@@ -33,18 +32,6 @@ function Diorama({ children, tilt = -0.22 }: { children: ReactNode; tilt?: numbe
     if (ref.current) ref.current.rotation.y = tilt + Math.sin(state.clock.elapsedTime * 0.35) * 0.08 + state.pointer.x * 0.08;
   });
   return <group ref={ref}>{children}</group>;
-}
-
-/** Comparsa "a pop" di una scritta tra due istanti. */
-function popScale(t: number, from: number, to: number) {
-  if (t < from || t > to) return 0.001;
-  const p = phase(t, from, from + 0.3);
-  const out = phase(t, to - 0.3, to);
-  return (p < 1 ? easeOut(p) * 1.15 : 1) * (1 - out);
-}
-
-function setWord(sprite: THREE.Sprite | null, k: number, size = 1) {
-  sprite?.scale.set(2.7 * k * size, k * size, 1);
 }
 
 // 1. Lo scivolo d'acqua: Squeak scende lungo una curva del Graph Editor di After Effects
@@ -122,7 +109,8 @@ function SlideScene() {
     <Diorama tilt={-0.18}>
       {/* tutto un po' più piccolo e spostato a sinistra, così la piscina resta in quadro */}
       <group scale={0.78} position={[-0.45, 0.35, 0]}>
-      <group position={[0, 1.75, -0.8]}>
+      {/* il grafico sta ben dietro la piscina, così non la taglia */}
+      <group position={[0, 1.75, -1.8]}>
         <GraphPanel />
       </group>
       <mesh geometry={rail}>
@@ -178,7 +166,6 @@ function SlideScene() {
 function ClapScene() {
   const mouse = useRef<THREE.Group>(null);
   const stick = useRef<THREE.Group>(null);
-  const word = useRef<THREE.Sprite>(null);
   const rig = useRef(createRig());
 
   useFrame((state) => {
@@ -194,7 +181,6 @@ function ClapScene() {
       stick.current.rotation.z = open * 0.65;
     }
     if (r.body) r.body.position.y = t > 1.02 && t < 1.4 ? Math.sin(phase(t, 1.02, 1.4) * Math.PI) * 0.25 : 0;
-    setWord(word.current, popScale(t, 1.02, 2.8), 0.9);
   });
 
   return (
@@ -210,7 +196,6 @@ function ClapScene() {
           }
         />
       </group>
-      <TextSprite ref={word} text="CIAK!" position={[1.2, 2.95, 0]} />
     </Diorama>
   );
 }
@@ -219,7 +204,6 @@ function ClapScene() {
 function CheeseScene() {
   const mouse = useRef<THREE.Group>(null);
   const cheese = useRef<THREE.Group>(null);
-  const word = useRef<THREE.Sprite>(null);
   const rig = useRef(createRig());
   const bites = [0.5, 1.2, 1.9];
 
@@ -243,7 +227,6 @@ function CheeseScene() {
       if (r.armL) r.armL.rotation.set(-0.7 + pat, 0, 0.5);
       if (r.armR) r.armR.rotation.set(-0.7 - pat, 0, -0.5);
     }
-    setWord(word.current, popScale(t, 2.6, 4.3), 0.9);
   });
 
   return (
@@ -258,7 +241,6 @@ function CheeseScene() {
           <Cheese />
         </group>
       </group>
-      <TextSprite ref={word} text="Gnam!" position={[-0.4, 3.0, 0]} />
     </Diorama>
   );
 }
@@ -271,24 +253,62 @@ function KeyframeScene() {
   const rig = useRef(createRig());
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 4.2;
+    const t = state.clock.elapsedTime % 4.6;
     const r = rig.current;
-    if (!mouse.current) return;
+    const m = mouse.current;
+    if (!m || !r.body) return;
     resetRig(r);
-    const hop = Math.min(3, t / 0.8);
-    const i = Math.floor(hop);
-    const f = hop - i;
-    const x = i >= 3 ? xs[3] : lerp(xs[i], xs[i + 1], easeInOut(f));
-    mouse.current.position.set(x, 0.56 + (i >= 3 ? 0 : Math.sin(f * Math.PI) * 1.1), 0);
-    mouse.current.rotation.y = t < 2.4 ? PROFILE_RIGHT : lerp(PROFILE_RIGHT, 0, easeInOut(phase(t, 2.4, 2.8)));
-    if (t > 2.8 && r.armL && r.armR) {
-      const up = easeOut(phase(t, 2.8, 3.1));
-      r.armL.rotation.set(-2.7 * up, 0, -0.2);
-      r.armR.rotation.set(-2.7 * up, 0, 0.2);
+
+    // salto "da cartone": carica schiacciandosi, vola allungato, atterra con un rimbalzo elastico
+    const HOP = 0.9;
+    const squash = (k: number) => r.body!.scale.set(1 + (1 - k) * 0.8, k, 1 + (1 - k) * 0.8);
+    const hopIndex = Math.min(2, Math.floor(t / HOP));
+    const f = t < HOP * 3 ? (t - hopIndex * HOP) / HOP : 1;
+    let x = xs[3];
+    let y = 0;
+
+    if (t < HOP * 3) {
+      const from = xs[hopIndex];
+      const to = xs[hopIndex + 1];
+      if (f < 0.18) {
+        x = from;
+        squash(1 - Math.sin((f / 0.18) * Math.PI * 0.5) * 0.25);
+      } else if (f < 0.82) {
+        const g = (f - 0.18) / 0.64;
+        x = lerp(from, to, g * g * (3 - 2 * g));
+        y = 4 * 1.25 * g * (1 - g);
+        const stretch = 1 + 0.18 * Math.abs(1 - 2 * g);
+        r.body.scale.set(1 / Math.sqrt(stretch), stretch, 1 / Math.sqrt(stretch));
+        r.body.rotation.x = (0.5 - g) * 0.5; // si sporge in avanti salendo, indietro scendendo
+        if (r.armL && r.armR) {
+          r.armL.rotation.set(-2.3 * Math.sin(g * Math.PI), 0, -0.3);
+          r.armR.rotation.set(-2.3 * Math.sin(g * Math.PI), 0, 0.3);
+        }
+      } else {
+        x = to;
+        const l = (f - 0.82) / 0.18;
+        squash(1 - 0.28 * Math.sin(l * Math.PI) * (1 - l * 0.5));
+      }
+      m.rotation.y = PROFILE_RIGHT;
+    } else {
+      // arrivato: si gira verso di noi e fa un saltello di gioia
+      m.rotation.y = lerp(PROFILE_RIGHT, 0, easeInOut(phase(t, 2.7, 3.1)));
+      const joy = phase(t, 3.2, 3.75);
+      if (joy > 0 && joy < 1) {
+        y = Math.sin(joy * Math.PI) * 0.6;
+        squash(joy < 0.15 || joy > 0.85 ? 0.82 : 1.08);
+      }
+      if (t > 3.1 && r.armL && r.armR) {
+        const up = easeOut(phase(t, 3.1, 3.35));
+        r.armL.rotation.set(-2.7 * up, 0, -0.2);
+        r.armR.rotation.set(-2.7 * up, 0, 0.2);
+      }
     }
+    m.position.set(x, 0.56 + y, 0);
+
     diamonds.current.forEach((d, k) => {
       if (!d) return;
-      const lit = t >= k * 0.8 - 0.05;
+      const lit = t >= k * HOP + (k === 0 ? 0 : -0.15);
       const mat = d.material as THREE.MeshStandardMaterial;
       mat.emissiveIntensity = lit ? 0.9 : 0;
       mat.color.set(lit ? "#ffc93c" : "#555");
@@ -367,7 +387,6 @@ function RunScene() {
 // 6. Pro in arrivo: Squeak al cantiere, col caschetto, martella il cartello
 function ConstructionScene() {
   const mouse = useRef<THREE.Group>(null);
-  const word = useRef<THREE.Sprite>(null);
   const rig = useRef(createRig());
   const hits = [0.55, 1.25, 1.95];
 
@@ -386,10 +405,7 @@ function ConstructionScene() {
         if (t > h && t < h + 0.12) arm = lerp(-2.8, -1.0, phase(t, h, h + 0.08));
       }
       if (r.armR) r.armR.rotation.set(arm, 0, 0.15);
-      const hitNow = hits.find((h) => t > h && t < h + 0.35);
-      setWord(word.current, hitNow ? popScale(t, hitNow, hitNow + 0.35) : 0.001, 0.7);
     } else {
-      setWord(word.current, 0.001);
       mouse.current.rotation.y = lerp(PROFILE_RIGHT * 0.85, 0.1, easeInOut(phase(t, 2.4, 2.8)));
       if (t > 2.8 && t < 4.4) {
         // si asciuga la fronte e saluta
@@ -430,7 +446,6 @@ function ConstructionScene() {
           }
         />
       </group>
-      <TextSprite ref={word} text="TOC!" position={[1.4, 2.7, 0.3]} color="#ff9a5c" />
     </Diorama>
   );
 }

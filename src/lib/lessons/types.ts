@@ -32,7 +32,14 @@ export interface EditorStep {
   check: (seq: Sequence) => EditorTaskResult;
 }
 
-export type LessonStep = TheoryStep | QuizStep | EditorStep;
+/** "Tocca le coppie" stile Duolingo: si abbinano termini e significati. */
+export interface MatchStep {
+  kind: "match";
+  title: string;
+  pairs: [left: string, right: string][];
+}
+
+export type LessonStep = TheoryStep | QuizStep | MatchStep | EditorStep;
 
 export interface Lesson {
   id: string;

@@ -180,7 +180,11 @@ function LessonNode({
           !locked && !done && "text-[#121212]",
           current && "ring-4 ring-white/15 ring-offset-4 ring-offset-app",
         )}
-        style={{ background: !locked && !done ? color : undefined, boxShadow: "0 6px 0 rgb(0 0 0 / 0.45)" }}
+        // bordo inferiore della stessa tinta ma più scuro, come i nodi di Duolingo
+        style={{
+          background: !locked && !done ? color : undefined,
+          boxShadow: `0 7px 0 ${locked ? "#1f1f1f" : done ? "#b88a12" : `color-mix(in srgb, ${color} 55%, black)`}`,
+        }}
       >
         <Icon size={28} strokeWidth={2.6} />
       </button>
@@ -194,8 +198,8 @@ function LessonNode({
           ) : (
             <Link
               href={`/lesson/${lesson.id}`}
-              className="btn-3d block rounded-xl py-2.5 text-center font-black uppercase text-[#121212]"
-              style={{ background: color }}
+              className="duo-btn w-full"
+              style={{ ["--face" as string]: color, ["--shade" as string]: `color-mix(in srgb, ${color} 55%, black)`, ["--ink" as string]: "#121212" }}
             >
               {done ? "Ripeti" : "Inizia"} +{getLesson(lesson.id)?.xp ?? 0} XP
             </Link>

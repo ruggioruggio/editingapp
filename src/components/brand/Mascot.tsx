@@ -1,7 +1,7 @@
 import clsx from "clsx";
 import { brand } from "@/config/brand";
 
-export type MascotMood = "happy" | "sleepy" | "wow";
+export type MascotMood = "happy" | "sleepy" | "wow" | "sad" | "dizzy";
 
 /**
  * Squeak di profilo (guarda a destra), come gruppo SVG in coordinate 120x100.
@@ -33,6 +33,15 @@ export function MouseFigure({ mood = "happy" }: { mood?: MascotMood }) {
       </g>
       {mood === "sleepy" ? (
         <path d="M81 53 Q86 57 91 53" stroke="#151515" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+      ) : mood === "dizzy" ? (
+        <path d="M82 48 L90 56 M90 48 L82 56" stroke="#151515" strokeWidth="2.4" strokeLinecap="round" />
+      ) : mood === "sad" ? (
+        <g>
+          <ellipse cx="86" cy="53" rx="4" ry="4.4" fill="#151515" />
+          <circle cx="87.4" cy="52" r="1.3" fill="#fff" />
+          {/* sopracciglio triste */}
+          <path d="M80 45 Q85 44 91 47" stroke="#6b7286" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        </g>
       ) : (
         <g className="sq-eye">
           <ellipse cx="86" cy="52" rx={mood === "wow" ? 5.5 : 4} ry={mood === "wow" ? 6 : 4.6} fill="#151515" />
@@ -43,6 +52,8 @@ export function MouseFigure({ mood = "happy" }: { mood?: MascotMood }) {
       <circle className="sq-nose" cx="104" cy="61" r="4" fill="#ff6f9a" />
       {mood === "wow" ? (
         <ellipse cx="98" cy="68.5" rx="2.2" ry="2.8" fill="#3a1f2a" />
+      ) : mood === "sad" || mood === "dizzy" ? (
+        <path d="M95 70 Q98 67 101 70" stroke="#151515" strokeWidth="1.6" fill="none" strokeLinecap="round" />
       ) : (
         <path d="M95 67 Q98 70 101 67" stroke="#151515" strokeWidth="1.6" fill="none" strokeLinecap="round" />
       )}
@@ -91,8 +102,8 @@ export function Mascot({
 }
 
 /**
- * Icona dell'app: la testa tonda di Squeak che sbuca dall'angolo in basso a
- * destra e guarda in alto a sinistra, su gradiente nero/grigio scuro.
+ * Icona dell'app: Squeak con il muso sporgente che sbuca dall'angolo in basso
+ * a destra, con un ciak accanto (si parla di montaggio), su gradiente scuro.
  * Stesso disegno di app/icon.svg.
  */
 export function AppIcon({ size = 32, className }: { size?: number; className?: string }) {
@@ -111,7 +122,8 @@ export function AppIcon({ size = 32, className }: { size?: number; className?: s
           <stop offset="0.5" stopColor="#1a1a1e" />
           <stop offset="1" stopColor="#050506" />
         </linearGradient>
-        <radialGradient id="sq-icon-head" cx="0.35" cy="0.3" r="0.8">
+        {/* una sola sfumatura per testa e muso, così non si vede la giuntura */}
+        <radialGradient id="sq-icon-head" gradientUnits="userSpaceOnUse" cx="48" cy="52" r="62">
           <stop offset="0" stopColor="#ffffff" />
           <stop offset="0.7" stopColor="#e6e8ef" />
           <stop offset="1" stopColor="#bfc3d0" />
@@ -122,42 +134,42 @@ export function AppIcon({ size = 32, className }: { size?: number; className?: s
       </defs>
       <g clipPath="url(#sq-icon-clip)">
         <rect width="100" height="100" fill="url(#sq-icon-bg)" />
-        {/* orecchie tonde */}
-        <circle cx="32" cy="42" r="17" fill="#cdd1dc" />
-        <circle cx="33" cy="43" r="10.5" fill="#ffadc5" />
-        <circle cx="66" cy="26" r="17" fill="#cdd1dc" />
-        <circle cx="66" cy="27" r="10.5" fill="#ffadc5" />
-        {/* testa tonda che sbuca dall'angolo */}
-        <circle cx="64" cy="74" r="42" fill="url(#sq-icon-head)" />
-        <ellipse cx="51" cy="78" rx="13" ry="9.5" transform="rotate(-18 51 78)" fill="#ffffff" />
-        <ellipse cx="35" cy="73" rx="5" ry="3.4" transform="rotate(-18 35 73)" fill="#ffadc5" opacity="0.7" />
-        <ellipse cx="72" cy="66" rx="5" ry="3.4" transform="rotate(-18 72 66)" fill="#ffadc5" opacity="0.7" />
-        {/* occhioni lucidi che guardano in alto a sinistra */}
-        <g transform="rotate(-15 46 61)">
-          <ellipse cx="46" cy="61" rx="6" ry="7.6" fill="#15151b" />
-          <circle cx="44" cy="58.2" r="2.5" fill="#fff" />
-          <circle cx="48" cy="64" r="1.1" fill="#fff" />
+        {/* ciak */}
+        <g transform="rotate(-10 24 30)">
+          <rect x="10" y="24" width="28" height="18" rx="2.5" fill="#1d1d22" stroke="#f2f2f2" strokeWidth="1.6" />
+          <path d="M14 31 H34 M14 36 H28" stroke="#9999ff" strokeWidth="1.8" strokeLinecap="round" />
+          <g transform="rotate(-16 10 23)">
+            <rect x="9.5" y="17" width="29" height="6" rx="1.5" fill="#f2f2f2" />
+            <path d="M14 17 L18 23 M21 17 L25 23 M28 17 L32 23" stroke="#1d1d22" strokeWidth="2.4" />
+          </g>
         </g>
-        <g transform="rotate(-15 66 55)">
-          <ellipse cx="66" cy="55" rx="6" ry="7.6" fill="#15151b" />
-          <circle cx="64" cy="52.2" r="2.5" fill="#fff" />
-          <circle cx="68" cy="58" r="1.1" fill="#fff" />
+        {/* orecchie */}
+        <circle cx="54" cy="38" r="15" fill="#cdd1dc" />
+        <circle cx="54.5" cy="39" r="9.5" fill="#ffadc5" />
+        <circle cx="82" cy="34" r="15" fill="#cdd1dc" />
+        <circle cx="82" cy="35" r="9.5" fill="#ffadc5" />
+        {/* testa e muso sporgente */}
+        <circle cx="68" cy="74" r="34" fill="url(#sq-icon-head)" />
+        <path d="M52 56 C41 57 28 61 20 67 C12 73 14 85 25 87 C37 89 50 88 64 85 Z" fill="url(#sq-icon-head)" />
+        <ellipse cx="57" cy="76" rx="5" ry="3.4" fill="#ffadc5" opacity="0.75" />
+        {/* occhioni */}
+        <g transform="rotate(-12 46 63)">
+          <ellipse cx="46" cy="63" rx="5.6" ry="7" fill="#15151b" />
+          <circle cx="44.2" cy="60.4" r="2.3" fill="#fff" />
+          <circle cx="47.8" cy="65.8" r="1" fill="#fff" />
         </g>
-        <ellipse cx="47" cy="73.5" rx="4.8" ry="3.6" transform="rotate(-18 47 73.5)" fill="#ff6f9a" />
-        <circle cx="45.6" cy="72.4" r="1.2" fill="#fff" opacity="0.8" />
-        <path
-          d="M43 80 q3 3.4 6 0 q3 3.4 6 0"
-          transform="rotate(-18 49 80)"
-          stroke="#5a5d6e"
-          strokeWidth="1.6"
-          fill="none"
-          strokeLinecap="round"
-        />
-        <g stroke="#9ca0ad" strokeWidth="1.4" strokeLinecap="round">
-          <path d="M36 79 L22 77" />
-          <path d="M37 82.5 L24 87" />
-          <path d="M63 74 L76 70" />
-          <path d="M64 77.5 L77 78" />
+        <g transform="rotate(-12 63 60)">
+          <ellipse cx="63" cy="60" rx="4.8" ry="6.2" fill="#15151b" />
+          <circle cx="61.4" cy="57.6" r="2" fill="#fff" />
+        </g>
+        {/* naso, bocca e baffi */}
+        <circle cx="17.5" cy="74.5" r="5.4" fill="#ff6f9a" />
+        <circle cx="16" cy="73" r="1.4" fill="#fff" opacity="0.8" />
+        <path d="M27 81 q3 3 6 0 q3 3 6 0" stroke="#5a5d6e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+        <g stroke="#9ca0ad" strokeWidth="1.3" strokeLinecap="round">
+          <path d="M25 72 L9 64" />
+          <path d="M25 76 L7 76" />
+          <path d="M26 79 L10 87" />
         </g>
       </g>
     </svg>

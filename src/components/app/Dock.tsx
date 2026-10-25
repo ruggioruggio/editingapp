@@ -75,17 +75,19 @@ export function Dock() {
 
       <Link href="/ai" aria-current={aiActive ? "page" : undefined} className="group mx-1 flex w-16 flex-col items-center gap-1">
         <span
+          // stesso raggio dell'icona (24% del lato), così il contorno combacia
+          style={{ borderRadius: 64 * 0.24 }}
           className={clsx(
-            "relative -mt-6 grid h-16 w-16 place-items-center rounded-[22px] transition-transform duration-200 group-hover:-translate-y-1 group-hover:scale-105",
-            "shadow-[0_10px_30px_rgb(123_108_255/0.55)] ring-2",
-            aiActive ? "ring-white/70" : "ring-white/20",
+            "relative -mt-6 grid h-16 w-16 place-items-center transition-transform duration-200 group-hover:-translate-y-1 group-hover:scale-105",
+            "shadow-[0_10px_28px_rgb(0_0_0/0.6)] outline-2 outline-offset-2",
+            aiActive ? "outline-white/80" : "outline-transparent",
           )}
         >
           <AppIcon size={64} />
           {features.squeakAi ? (
             <Sparkles size={16} className="absolute -right-1 -top-1 text-cheese drop-shadow" fill="currentColor" />
           ) : (
-            <span className="absolute -right-2 -top-2 rounded-full bg-cheese px-1.5 py-0.5 text-[9px] font-black uppercase text-[#3a2500] shadow">
+            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-[#18181f] bg-cheese px-2 py-0.5 text-[9px] font-black uppercase leading-none text-[#3a2500]">
               presto
             </span>
           )}
