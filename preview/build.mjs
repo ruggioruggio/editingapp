@@ -9,7 +9,8 @@ import { build } from "esbuild";
 const root = resolve(import.meta.dirname, "..");
 // hash lento della password admin (solo per la verifica locale dell'anteprima)
 let previewAdminHash = "";
-try {
+// le app da distribuire (desktop, Android) si costruiscono con SQUEAK_NO_ADMIN=1: niente hash dentro
+if (!process.env.SQUEAK_NO_ADMIN) try {
   previewAdminHash = /^ADMIN_PREVIEW_HASH=(.*)$/m.exec(readFileSync(resolve(root, ".env.local"), "utf8"))?.[1]?.trim() ?? "";
 } catch {
   /* nessun .env.local: pannello admin non disponibile nell'anteprima */

@@ -1,0 +1,49 @@
+{
+  "name": "squeakedit-desktop",
+  "productName": "SqueakEdit",
+  "version": "1.0.0",
+  "description": "SqueakEdit: impara il montaggio video come su Duolingo",
+  "author": "SqueakEdit",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "app": "node prepare.mjs app/index.html",
+    "start": "npm run app && electron .",
+    "dist:win": "npm run app && electron-builder --win --publish never",
+    "dist:mac": "npm run app && electron-builder --mac --publish never",
+    "dist:linux": "npm run app && electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.squeakedit.app",
+    "productName": "SqueakEdit",
+    "files": ["main.cjs", "app/**", "build/icon.png"],
+    "directories": { "output": "dist", "buildResources": "build" },
+    "win": {
+      "target": ["portable", "nsis"],
+      "icon": "build/icon.png"
+    },
+    "portable": { "artifactName": "SqueakEdit-${version}-Windows-portable.${ext}" },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "SqueakEdit-${version}-Windows-setup.${ext}"
+    },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "category": "public.app-category.education",
+      "icon": "build/icon.png",
+      "identity": "-"
+    },
+    "dmg": { "artifactName": "SqueakEdit-${version}-Mac-${arch}.${ext}" },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Education",
+      "icon": "build/icon.png"
+    },
+    "appImage": { "artifactName": "SqueakEdit-${version}-Linux.${ext}" }
+  }
+}

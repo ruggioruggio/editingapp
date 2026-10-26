@@ -1,0 +1,85 @@
+# App installabili di SqueakEdit: Windows, Mac, Linux (Electron) e Android
+# (Capacitor). Partono a ogni modifica di desktop/ o mobile/, a mano da
+# GitHub (Actions → "App desktop e Android" → Run workflow) o con un tag v*.
+# I file pronti si scaricano dagli "Artifacts" del run; con un tag v* finiscono
+# anche in una Release.
+name: App desktop e Android
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+    branches: [main]
+    paths: ["desktop/**", "mobile/**", ".github/workflows/apps.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: dist:win
+            files: desktop/dist/*.exe
+          - os: macos-latest
+            target: dist:mac
+            files: desktop/dist/*.dmg
+          - os: ubuntu-latest
+            target: dist:linux
+            files: desktop/dist/*.AppImage
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm install --no-audit --no-fund
+        working-directory: desktop
+      - run: npm run ${{ matrix.target }}
+        working-directory: desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SqueakEdit-${{ runner.os }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.files }}
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm install --no-audit --no-fund
+        working-directory: mobile
+      - run: npm run android
+        working-directory: mobile
+      - run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+        working-directory: mobile/android
+      - run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk SqueakEdit-Android.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SqueakEdit-Android
+          path: SqueakEdit-Android.apk
+          if-no-files-found: error
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: SqueakEdit-Android.apk

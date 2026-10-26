@@ -8,3 +8,9 @@ next-env.d.ts
 .DS_Store
 .claude/
 preview/dist/
+
+# app desktop e Android (generate)
+desktop/app/
+desktop/dist/
+mobile/www/
+mobile/android/

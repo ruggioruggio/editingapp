@@ -1,0 +1,7 @@
+{
+  "appId": "com.squeakedit.app",
+  "appName": "SqueakEdit",
+  "webDir": "www",
+  "backgroundColor": "#121212",
+  "android": { "backgroundColor": "#121212" }
+}
