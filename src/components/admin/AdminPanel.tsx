@@ -8,7 +8,7 @@ import { todayKey } from "@/lib/date";
 import { adminAction, adminLogin, adminLogout, useAdmin, type Announcement } from "@/lib/admin/client";
 import { useProgress } from "@/lib/progress/store";
 import { useAuth } from "@/lib/supabase/auth";
-import { ModMouse } from "./ModMouse";
+import { ModSqueakScene } from "@/components/three/lazy";
 
 // Pannello di amministrazione: Pro regalato, sospensioni, amicizie forzate,
 // annunci per tutti, statistiche e strumenti di test per il proprio account.
@@ -27,7 +27,6 @@ interface UserRow {
 }
 
 const TABS = [
-  ["overview", "Panoramica", Shield],
   ["users", "Utenti", UserCog],
   ["friends", "Amicizie", Handshake],
   ["announce", "Annuncio", Megaphone],
@@ -110,36 +109,25 @@ function ServerOnly({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function Overview() {
+function Stats() {
   const [s, setS] = useState<{ users: number; banned: number; pro: number; messages: number } | null>(null);
-  const { msg, run } = useAsync();
   useEffect(() => {
-    if (useAdmin.getState().mode === "server" && useAdmin.getState().database) void run(async () => setS(await adminAction("stats")), "Statistiche aggiornate");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (useAdmin.getState().mode === "server" && useAdmin.getState().database) void adminAction<{ users: number; banned: number; pro: number; messages: number }>("stats").then(setS).catch(() => {});
   }, []);
+  if (!s) return null;
   return (
-    <div className="space-y-4">
-      <ServerOnly>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[
-            ["Utenti", s?.users],
-            ["Pro attivi", s?.pro],
-            ["Sospesi", s?.banned],
-            ["Messaggi", s?.messages],
-          ].map(([k, v]) => (
-            <div key={k as string} className="rounded-xl bg-black/30 p-4">
-              <p className="text-2xl font-black text-white">{v ?? "…"}</p>
-              <p className="text-xs font-bold text-[#b5bac1]">{k}</p>
-            </div>
-          ))}
+    <div className="grid grid-cols-4 gap-2">
+      {[
+        ["Utenti", s.users],
+        ["Pro", s.pro],
+        ["Sospesi", s.banned],
+        ["Messaggi", s.messages],
+      ].map(([k, v]) => (
+        <div key={k as string} className="rounded-lg bg-black/30 px-3 py-2">
+          <p className="text-lg font-black text-white">{v}</p>
+          <p className="text-[11px] font-bold text-[#b5bac1]">{k}</p>
         </div>
-        {msg && !msg.ok && <Note msg={msg} />}
-      </ServerOnly>
-      <ul className="space-y-1.5 text-sm text-[#b5bac1]">
-        <li>• Scorciatoia per aprire il pannello: AltGr + Maiusc + ù + à (dal telefono: tocca 7 volte il logo).</li>
-        <li>• Con le scorciatoie di moderazione attive, Ctrl + Maiusc + B apre il ban rapido e nella pagina Amici compare il martello accanto agli utenti.</li>
-        <li>• Ogni azione sugli utenti finisce nel Registro.</li>
-      </ul>
+      ))}
     </div>
   );
 }
@@ -160,6 +148,7 @@ function Users() {
   return (
     <ServerOnly>
       <div className="space-y-3">
+        <Stats />
         <form className="flex gap-2" onSubmit={(e) => (e.preventDefault(), void search())}>
           <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.stopPropagation()} placeholder="Cerca per nome utente" className={clsx(input, "flex-1")} />
           <button type="submit" className={clsx(btn, "flex items-center gap-1 bg-[#5865f2] text-white")}>
@@ -416,14 +405,19 @@ function Log() {
   );
 }
 
+/** Chiudere il pannello chiude anche la sessione: alla prossima apertura serve la password. */
+const closePanel = () => void adminLogout();
+
 export function AdminPanel() {
   const st = useAdmin();
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>("users");
   return (
-    <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-6" onPointerDown={(e) => e.target === e.currentTarget && st.set({ open: false })}>
-      <div className="flex max-h-[94dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#1e1f22] text-white shadow-2xl sm:rounded-3xl" onKeyDown={(e) => e.key === "Escape" && st.set({ open: false })}>
+    <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-6" onPointerDown={(e) => e.target === e.currentTarget && closePanel()}>
+      <div className="flex max-h-[94dvh] w-full max-w-4xl flex-col overflow-hidden rounded-t-3xl border border-white/10 bg-[#1e1f22] text-white shadow-2xl sm:rounded-3xl" onKeyDown={(e) => e.key === "Escape" && closePanel()}>
         <div className="relative shrink-0">
-          <ModMouse className="block h-44 w-full sm:h-56" />
+          <div className="h-44 w-full bg-[radial-gradient(ellipse_at_center,#2a2840_0%,#17151f_70%)] sm:h-56">
+            <ModSqueakScene className="h-full w-full" />
+          </div>
           <div className="absolute left-4 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-black uppercase tracking-wide">
             <Ban size={12} className="mr-1 inline text-[#ed4245]" />
             Pannello admin {st.unlocked && <span className="ml-1 text-[#57f287]">· {st.mode === "server" ? "server" : "anteprima locale"}</span>}
@@ -434,7 +428,7 @@ export function AdminPanel() {
                 <LogOut size={15} />
               </button>
             )}
-            <button type="button" onClick={() => st.set({ open: false })} className="grid h-8 w-8 place-items-center rounded-full bg-black/60 hover:bg-black/80" aria-label="Chiudi">
+            <button type="button" onClick={closePanel} className="grid h-8 w-8 place-items-center rounded-full bg-black/60 hover:bg-black/80" aria-label="Chiudi">
               <X size={16} />
             </button>
           </div>
@@ -451,7 +445,6 @@ export function AdminPanel() {
               ))}
             </nav>
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-              {tab === "overview" && <Overview />}
               {tab === "users" && <Users />}
               {tab === "friends" && <Friends />}
               {tab === "announce" && <AnnounceTab />}

@@ -84,6 +84,7 @@ export function SqueakModel({
   rig,
   sitting = false,
   wow = false,
+  sleepy = false,
   leftHand,
   rightHand,
   hat,
@@ -92,6 +93,8 @@ export function SqueakModel({
   rig?: MutableRefObject<SqueakRig>;
   sitting?: boolean;
   wow?: boolean;
+  /** occhi chiusi (dorme) */
+  sleepy?: boolean;
   leftHand?: ReactNode;
   rightHand?: ReactNode;
   /** accessorio in testa (coordinate della testa, centro a y=0) */
@@ -106,7 +109,7 @@ export function SqueakModel({
 
   // battito di ciglia ogni ~3.5 s
   useFrame((state) => {
-    if (eyes.current) eyes.current.scale.y = state.clock.elapsedTime % 3.5 > 3.38 ? 0.15 : 1;
+    if (eyes.current) eyes.current.scale.y = sleepy ? 0.12 : state.clock.elapsedTime % 3.5 > 3.38 ? 0.15 : 1;
   });
 
   const eyeScale = wow ? 1.25 : 1;

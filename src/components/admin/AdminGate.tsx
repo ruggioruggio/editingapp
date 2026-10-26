@@ -3,15 +3,16 @@
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Gavel, X } from "lucide-react";
-import { adminAction, checkSession, useAdmin } from "@/lib/admin/client";
+import { adminAction, adminLogout, useAdmin } from "@/lib/admin/client";
 import { AdminPanel } from "./AdminPanel";
 
 // Apre il pannello admin con AltGr + Maiusc + ù + à (tastiera italiana) o
 // toccando 7 volte il logo dal telefono. Gestisce anche il ban rapido.
 
+// ogni apertura chiede di nuovo la password (la sessione precedente viene chiusa)
 const openPanel = () => {
-  useAdmin.setState({ open: true });
-  void checkSession();
+  useAdmin.setState({ open: true, unlocked: false, mode: null });
+  void fetch("/api/admin/login", { method: "DELETE" }).catch(() => {});
 };
 
 export function AdminGate() {
@@ -33,7 +34,7 @@ export function AdminGate() {
       const s = useAdmin.getState();
       if (s.modShortcuts && (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "b") {
         e.preventDefault();
-        if (s.unlocked) s.set({ quickBan: true });
+        if (s.unlocked && s.mode) s.set({ quickBan: true });
         else openPanel();
       }
     };

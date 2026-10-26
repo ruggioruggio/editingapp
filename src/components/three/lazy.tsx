@@ -7,3 +7,4 @@ const placeholder = () => <div className="h-full w-full" />;
 
 export const LoungeHero = dynamic(() => import("./scenes/LoungeHero"), { ssr: false, loading: placeholder });
 export const SiteScene = dynamic(() => import("./scenes/SiteScenes"), { ssr: false, loading: placeholder });
+export const ModSqueakScene = dynamic(() => import("./scenes/ModSqueak"), { ssr: false, loading: placeholder });
