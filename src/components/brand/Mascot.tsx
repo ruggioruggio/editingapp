@@ -119,24 +119,27 @@ export function AppIcon({ size = 32, className }: { size?: number; className?: s
       <g clipPath="url(#sq-icon-CLIP)">
         <rect width={100} height={100} fill="url(#sq-icon-BG)" />
         <circle cx={22} cy={18} r={40} fill="url(#sq-icon-GLOW)" />
-        <circle cx={27} cy={34} r={15.5} fill="url(#sq-icon-HEAD)" />
-        <circle cx={27.5} cy={35} r={9.5} fill="#ffb3c9" />
-        <circle cx={75} cy={31} r={15.5} fill="url(#sq-icon-HEAD)" />
-        <circle cx={75} cy={32} r={9.5} fill="#ffb3c9" />
-        <circle cx={53} cy={61} r={29} fill="url(#sq-icon-HEAD)" />
-        <ellipse cx={36} cy={69} rx={14} ry={11} fill="url(#sq-icon-HEAD)" />
-        <ellipse cx={63} cy={71} rx={6} ry={3.8} fill="#ffb3c9" opacity={0.7} />
-        <ellipse cx={40} cy={74} rx={4.5} ry={3} fill="#ffb3c9" opacity={0.55} />
-        <ellipse cx={44} cy={56} rx={5.6} ry={6.8} fill="#15151b" />
-        <circle cx={42.2} cy={53.4} r={2.4} fill="#fff" />
-        <circle cx={46} cy={59} r={1.1} fill="#fff" />
-        <ellipse cx={62} cy={54} rx={5} ry={6.2} fill="#15151b" />
-        <circle cx={60.4} cy={51.6} r={2.1} fill="#fff" />
-        <circle cx={63.8} cy={56.8} r={0.9} fill="#fff" />
-        <circle cx={24.5} cy={67} r={4.3} fill="#ff6f9a" />
-        <circle cx={23.2} cy={65.7} r={1.2} fill="#fff" opacity={0.85} />
-        <path d="M29 75 q2.5 2.6 5 0 q2.5 2.6 5 0" stroke="#5a5d6e" strokeWidth={1.4} fill="none" strokeLinecap="round" />
-        <path d="M27 69 L12 64 M27 72 L11 73 M28 75 L13 81" stroke="#a7abb8" strokeWidth={1.1} strokeLinecap="round" />
+        {/* il topolino sta in basso a destra, un po' tagliato dal bordo */}
+        <g transform="translate(6 0.6) scale(1.17)">
+          <circle cx={27} cy={34} r={15.5} fill="url(#sq-icon-HEAD)" />
+          <circle cx={27.5} cy={35} r={9.5} fill="#ffb3c9" />
+          <circle cx={75} cy={31} r={15.5} fill="url(#sq-icon-HEAD)" />
+          <circle cx={75} cy={32} r={9.5} fill="#ffb3c9" />
+          <circle cx={53} cy={61} r={29} fill="url(#sq-icon-HEAD)" />
+          <ellipse cx={36} cy={69} rx={14} ry={11} fill="url(#sq-icon-HEAD)" />
+          <ellipse cx={63} cy={71} rx={6} ry={3.8} fill="#ffb3c9" opacity={0.7} />
+          <ellipse cx={40} cy={74} rx={4.5} ry={3} fill="#ffb3c9" opacity={0.55} />
+          <ellipse cx={44} cy={56} rx={5.6} ry={6.8} fill="#15151b" />
+          <circle cx={42.2} cy={53.4} r={2.4} fill="#fff" />
+          <circle cx={46} cy={59} r={1.1} fill="#fff" />
+          <ellipse cx={62} cy={54} rx={5} ry={6.2} fill="#15151b" />
+          <circle cx={60.4} cy={51.6} r={2.1} fill="#fff" />
+          <circle cx={63.8} cy={56.8} r={0.9} fill="#fff" />
+          <circle cx={24.5} cy={67} r={4.3} fill="#ff6f9a" />
+          <circle cx={23.2} cy={65.7} r={1.2} fill="#fff" opacity={0.85} />
+          <path d="M29 75 q2.5 2.6 5 0 q2.5 2.6 5 0" stroke="#5a5d6e" strokeWidth={1.4} fill="none" strokeLinecap="round" />
+          <path d="M27 69 L12 64 M27 72 L11 73 M28 75 L13 81" stroke="#a7abb8" strokeWidth={1.1} strokeLinecap="round" />
+        </g>
       </g>
     </svg>
   );
