@@ -50,12 +50,19 @@ export function lessonsUsedToday(daily: DailyUsage): number {
 /** Finché i pagamenti sono spenti, tutti sono sul piano gratuito. */
 export const effectivePlan = (plan: PlanId): PlanId => (features.payments ? plan : "free");
 
+/** Piano reale: Pro se pagato oppure regalato da un admin (anche a tempo). */
+export function planOf(s: { plan: PlanId; proUntil?: string | null; adminPro?: boolean }): PlanId {
+  if (s.adminPro) return "pro";
+  if (s.proUntil && new Date(s.proUntil).getTime() > Date.now()) return "pro";
+  return effectivePlan(s.plan);
+}
+
 /** Rifare una lezione già iniziata oggi non consuma un altro slot. */
 export function canStartLesson(plan: PlanId, daily: DailyUsage, lessonId: string): boolean {
-  const limit = PLANS[effectivePlan(plan)].dailyLessonLimit;
+  const limit = PLANS[plan].dailyLessonLimit;
   if (limit === null) return true;
   if (daily.day === todayKey() && daily.lessonIds.includes(lessonId)) return true;
   return lessonsUsedToday(daily) < limit;
 }
 
-export const hasAiAssistant = (plan: PlanId) => features.squeakAi && PLANS[effectivePlan(plan)].aiAssistant;
+export const hasAiAssistant = (plan: PlanId) => features.squeakAi && PLANS[plan].aiAssistant;

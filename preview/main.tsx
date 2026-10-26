@@ -20,6 +20,7 @@ import { SupabaseSync } from "@/components/app/SupabaseSync";
 import { getLesson } from "@/content/lessons";
 import { getLegalDoc, LEGAL_UPDATED } from "@/content/legal";
 import { PreviewRouter } from "./router";
+import { AdminGate } from "@/components/admin/AdminGate";
 
 // Anteprima a file unico di SqueakEdit: le stesse pagine e componenti
 // dell'app, con un router in memoria al posto delle rotte di Next.js.
@@ -74,7 +75,8 @@ function render(fullPath: string) {
     return <LessonPlayer key={id} unitTestId={id} />;
   }
   if (path.startsWith("/legal/")) return <LegalPreview slug={path.slice("/legal/".length)} />;
-  if (APP_PAGES[path]) return <AppLayout>{APP_PAGES[path]()}</AppLayout>;
+  // il layout dell'app resta montato tra le schede (come in Next): cambia solo la pagina
+  if (APP_PAGES[path]) return <AppLayout>{<div key={path}>{APP_PAGES[path]()}</div>}</AppLayout>;
   return (SITE_PAGES[path] ?? SITE_PAGES["/"])();
 }
 
@@ -83,7 +85,8 @@ createRoot(document.getElementById("root")!).render(
     {(path) => (
       <>
         <SupabaseSync />
-        <div key={path}>{render(path)}</div>
+        <AdminGate />
+        <div key={APP_PAGES[path.split("?")[0]] ? "app" : path}>{render(path)}</div>
       </>
     )}
   </PreviewRouter>,

@@ -10,7 +10,7 @@ import { Mascot } from "@/components/brand/Mascot";
 import { SqueakReaction } from "@/components/brand/Reactions";
 import { features } from "@/config/features";
 import { getLesson } from "@/content/lessons";
-import { canStartLesson, PLANS } from "@/lib/billing/plans";
+import { canStartLesson, planOf, PLANS } from "@/lib/billing/plans";
 import { todayKey } from "@/lib/date";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { buildUnitTest, isLessonUnlocked, skippedLessons, UNIT_TEST_HEARTS } from "@/lib/lessons/progression";
@@ -61,7 +61,7 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
     }
     if (!lessonId || !getLesson(lessonId)) return setAccess("missing");
     if (!isLessonUnlocked(lessonId, s.completed)) return setAccess("locked");
-    const ok = canStartLesson(s.plan, s.daily, lessonId);
+    const ok = canStartLesson(planOf(s), s.daily, lessonId);
     setAccess(ok ? "ok" : "limit");
     if (ok) s.startLesson(lessonId);
   }, [hydrated, lessonId, unitTestId]);

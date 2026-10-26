@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import { Check, Crown, Hammer } from "lucide-react";
 import { COMING_SOON, features } from "@/config/features";
-import { effectivePlan, PLANS, type PlanId } from "@/lib/billing/plans";
+import { planOf, PLANS, type PlanId } from "@/lib/billing/plans";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useProgress } from "@/lib/progress/store";
 import { useAuth } from "@/lib/supabase/auth";
@@ -12,7 +12,7 @@ const eur = (n: number) => n.toLocaleString("it-IT", { style: "currency", curren
 
 export function PricingTable() {
   const hydrated = useHydrated();
-  const plan = useProgress((s) => effectivePlan(s.plan));
+  const plan = useProgress((s) => planOf(s));
   const setPlan = useProgress((s) => s.setPlan);
   // con un account il piano arriva dal server: la simulazione vale solo da ospite
   const signedIn = useAuth((s) => s.status === "user");

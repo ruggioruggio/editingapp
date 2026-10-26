@@ -34,11 +34,12 @@ import {
   type Track,
 } from "@/lib/studio/premiere";
 import { isStill } from "@/lib/studio/media";
-import { Scrub, timecode } from "../chrome";
+import { Scrub, timecode, useWide } from "../chrome";
 import { Thumb } from "../render";
 import * as A from "./actions";
 
-const HEAD = 196;
+const HEAD_WIDE = 196;
+const HEAD_PHONE = 104;
 const TOP = 62;
 const DIV = 6;
 const MIX = 30;
@@ -100,6 +101,8 @@ function TimelineBody({ seq }: { seq: Sequence }) {
   const playhead = playheadOf(st);
   const pps = st.zooms[seq.id] ?? 60;
   const scroller = useRef<HTMLDivElement>(null);
+  const wide = useWide();
+  const HEAD = wide ? HEAD_WIDE : HEAD_PHONE;
   const [snapLine, setSnapLine] = useState<number | null>(null);
   const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [hover, setHover] = useState<number | null>(null);
@@ -146,11 +149,28 @@ function TimelineBody({ seq }: { seq: Sequence }) {
 
   const drag = (e: React.PointerEvent, onMove: (ev: PointerEvent, dx: number, dy: number) => void, onUp?: (moved: boolean) => void) => {
     const el = e.currentTarget as HTMLElement;
-    try { el.setPointerCapture(e.pointerId); } catch {}
     const x0 = e.clientX;
     const y0 = e.clientY;
     let moved = false;
+    // col dito: uno scorrimento veloce muove la timeline, tenere premuto afferra la clip
+    const touch = e.pointerType === "touch";
+    let armed = !touch;
+    const block = (ev: TouchEvent) => ev.preventDefault();
+    const pid = e.pointerId;
+    const timer = touch
+      ? setTimeout(() => {
+          armed = true;
+          try { el.setPointerCapture(pid); } catch {}
+          document.addEventListener("touchmove", block, { passive: false });
+          navigator.vibrate?.(12);
+        }, 280)
+      : undefined;
+    if (!touch) try { el.setPointerCapture(pid); } catch {}
     const move = (ev: PointerEvent) => {
+      if (!armed) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) clearTimeout(timer);
+        return;
+      }
       const dx = ev.clientX - x0;
       const dy = ev.clientY - y0;
       if (!moved && Math.abs(dx) < 3 && Math.abs(dy) < 3) return;
@@ -158,6 +178,8 @@ function TimelineBody({ seq }: { seq: Sequence }) {
       onMove(ev, dx, dy);
     };
     const up = () => {
+      clearTimeout(timer);
+      document.removeEventListener("touchmove", block);
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerup", up);
       el.removeEventListener("pointercancel", up);
@@ -306,6 +328,8 @@ function TimelineBody({ seq }: { seq: Sequence }) {
     }
     const g = r ? gapAt(seq, r.track.id, t) : null;
     if (!e.shiftKey) st.set({ selection: [], selTrans: null, gap: g && r ? { track: r.track.id, ...g } : null });
+    // col dito niente selezione a riquadro: si scorre la timeline
+    if (e.pointerType !== "mouse") return;
     // selezione a riquadro
     const rect = el.getBoundingClientRect();
     const sx = e.clientX - rect.left + el.scrollLeft;
@@ -541,7 +565,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
         <div className="relative" style={{ width: width + HEAD, height: total }}>
           {/* intestazione: codice di tempo, pulsanti e righello */}
           <div className="sticky top-0 z-30 flex" style={{ height: TOP }}>
-            <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-between bg-[#1e1e1e] px-3 pb-1.5 pt-1" style={{ width: HEAD }}>
+            <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-between overflow-hidden bg-[#1e1e1e] px-2 pb-1.5 pt-1 sm:px-3" style={{ width: HEAD }}>
               {editTc ? (
                 <input
                   autoFocus
@@ -560,7 +584,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
                   }}
                 />
               ) : (
-                <button type="button" onClick={() => setEditTc(true)} className="text-left font-mono text-[17px] tracking-tight text-[#3d9cf0]" title="Clic per scrivere un tempo">
+                <button type="button" onClick={() => setEditTc(true)} className="text-left font-mono text-[13px] tracking-tight text-[#3d9cf0] sm:text-[17px]" title="Clic per scrivere un tempo">
                   {timecode(playhead, fps)}
                 </button>
               )}
@@ -606,7 +630,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
               </div>
             </div>
             <div
-              className="relative shrink-0 cursor-default bg-[#1e1e1e]"
+              className="relative shrink-0 cursor-default touch-none bg-[#1e1e1e]"
               style={{ width }}
               onPointerDown={(e) => {
                 e.stopPropagation();
@@ -668,7 +692,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
               return (
                 <div
                   key={t.id}
-                  className="absolute left-0 flex w-full items-center gap-1.5 border-b border-[#141414] pl-1.5 pr-2 text-[12px]"
+                  className="absolute left-0 flex w-full items-center gap-1.5 border-b border-[#141414] overflow-hidden pl-1.5 pr-2 text-[12px]"
                   style={{ top: y - TOP, height: h }}
                   onContextMenu={(e) => trackMenu(e, t)}
                   onDoubleClick={() => A.updateTrack(t.id, { height: t.height > 60 ? 44 : 90 }, "Altezza traccia")}

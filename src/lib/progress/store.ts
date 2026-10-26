@@ -41,6 +41,12 @@ interface ProgressData extends GameData {
   username: string | null;
   /** a quale account appartengono i dati locali (null = ospite) */
   ownerId: string | null;
+  /** Pro regalato da un admin (dal profilo sul server) */
+  proUntil: string | null;
+  /** Pro attivato dal pannello admin su questo dispositivo */
+  adminPro: boolean;
+  bannedUntil: string | null;
+  banReason: string | null;
 }
 
 interface ProgressState extends ProgressData {
@@ -52,6 +58,7 @@ interface ProgressState extends ProgressData {
   completeLessons: (lessonIds: string[], xp: number) => void;
   /** Solo per sviluppo finché non c'è Stripe: simula il cambio piano. */
   setPlan: (plan: PlanId) => void;
+  setAdminPro: (on: boolean) => void;
   reset: () => void;
 }
 
@@ -68,7 +75,7 @@ export const initialGameData = (): GameData => ({
   questsClaimed: 0,
 });
 
-const initial = (): ProgressData => ({ ...initialGameData(), plan: "free", username: null, ownerId: null });
+const initial = (): ProgressData => ({ ...initialGameData(), plan: "free", username: null, ownerId: null, proUntil: null, adminPro: false, bannedUntil: null, banReason: null });
 
 /** Statistiche di oggi, azzerate se il giorno salvato non è oggi. */
 export function todayState(today: TodayState): TodayState {
@@ -151,7 +158,9 @@ export const useProgress = create<ProgressState>()(
         },
 
         setPlan: (plan) => set({ plan }),
-        reset: () => set(initial()),
+        setAdminPro: (adminPro) => set({ adminPro }),
+        // il Pro attivato dall'admin su questo dispositivo sopravvive al reset dei progressi
+        reset: () => set({ ...initial(), adminPro: get().adminPro }),
       };
     },
     { name: "progress-v1", version: 1 },

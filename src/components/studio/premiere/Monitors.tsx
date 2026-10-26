@@ -185,13 +185,13 @@ export function SourceMonitor() {
         <div className="pointer-events-none absolute left-3 top-2 text-[11px] text-white/70">{m.name}</div>
       </div>
       <div className="flex shrink-0 items-center gap-2 px-3 pt-1.5 text-[12px]">
-        <span className="font-mono text-[16px] text-[#3d9cf0]">{timecode(source.t, fps)}</span>
+        <span className="font-mono text-[13px] text-[#3d9cf0] sm:text-[16px]">{timecode(source.t, fps)}</span>
         <ZoomSelect value={zoom} onChange={setZoom} />
-        <span className="ml-auto">
+        <span className="ml-auto hidden sm:inline">
           <ResSelect />
         </span>
-        <Wrench size={13} className="text-[#9a9a9a]" />
-        <span className="font-mono text-[16px] text-[#d0d0d0]">{timecode((source.out ?? dur) - (source.in ?? 0), fps)}</span>
+        <Wrench size={13} className="hidden text-[#9a9a9a] sm:block" />
+        <span className="ml-auto font-mono text-[13px] text-[#d0d0d0] sm:ml-0 sm:text-[16px]">{timecode((source.out ?? dur) - (source.in ?? 0), fps)}</span>
       </div>
       <TimeBar value={source.t} max={dur} inP={source.in} outP={source.out} fps={fps} onScrub={(t) => set({ t, playing: false })} />
       <div className="flex shrink-0 flex-wrap items-center justify-center gap-0.5 pb-1.5">
@@ -382,13 +382,13 @@ export function ProgramMonitor() {
         <SequenceAudio seq={seq} project={st.project} t={T} playing={st.playing} />
       </div>
       <div className="flex shrink-0 items-center gap-2 px-3 pt-1.5 text-[12px]">
-        <span className="font-mono text-[16px] text-[#3d9cf0]">{timecode(T, seq.fps)}</span>
+        <span className="font-mono text-[13px] text-[#3d9cf0] sm:text-[16px]">{timecode(T, seq.fps)}</span>
         <ZoomSelect value={st.programZoom} onChange={(v) => st.set({ programZoom: v })} />
-        <span className="ml-auto">
+        <span className="ml-auto hidden sm:inline">
           <ResSelect />
         </span>
-        <Wrench size={13} className="text-[#9a9a9a]" />
-        <span className="font-mono text-[16px] text-[#d0d0d0]">{timecode(seq.outPoint !== null && seq.inPoint !== null ? seq.outPoint - seq.inPoint : seqDuration(seq), seq.fps)}</span>
+        <Wrench size={13} className="hidden text-[#9a9a9a] sm:block" />
+        <span className="ml-auto font-mono text-[13px] text-[#d0d0d0] sm:ml-0 sm:text-[16px]">{timecode(seq.outPoint !== null && seq.inPoint !== null ? seq.outPoint - seq.inPoint : seqDuration(seq), seq.fps)}</span>
       </div>
       <TimeBar value={T} max={dur} inP={seq.inPoint} outP={seq.outPoint} markers={seq.markers} fps={seq.fps} onScrub={(t) => (st.set({ playing: false }), st.setPlayhead(t))} />
       <div className="flex shrink-0 flex-wrap items-center justify-center gap-0.5 pb-1.5">

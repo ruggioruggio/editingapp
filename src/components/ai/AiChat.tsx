@@ -12,7 +12,7 @@ import { COMING_SOON, features } from "@/config/features";
 import { getLesson } from "@/content/lessons";
 import type { PracticeScenarioId } from "@/content/practice";
 import type { AiHistoryItem, AiStreamEvent } from "@/lib/ai/types";
-import { hasAiAssistant } from "@/lib/billing/plans";
+import { hasAiAssistant, planOf } from "@/lib/billing/plans";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useProgress } from "@/lib/progress/store";
 import { Markdown } from "./Markdown";
@@ -45,7 +45,7 @@ const fileIcon = (name: string) => (/\.(png|jpe?g|webp|gif)$/i.test(name) ? Imag
 
 export function AiChat() {
   const hydrated = useHydrated();
-  const plan = useProgress((s) => s.plan);
+  const plan = useProgress((s) => planOf(s));
   const params = useSearchParams();
   const lesson = getLesson(params.get("lesson") ?? "");
 

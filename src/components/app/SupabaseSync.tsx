@@ -11,6 +11,14 @@ import { getSupabase } from "@/lib/supabase/client";
 import { publishEvents, saveDailyActivity } from "@/lib/supabase/social";
 
 const SAVE_DELAY_MS = 1500;
+const ADMIN_POLL_MS = 60_000;
+
+/** Pro regalato e sospensioni decisi dal pannello admin (colonne di 0003_admin.sql). */
+async function loadAdminFlags(sb: SupabaseClient, userId: string) {
+  const { data, error } = await sb.from("profiles").select("pro_until, banned_until, ban_reason").eq("id", userId).maybeSingle<{ pro_until: string | null; banned_until: string | null; ban_reason: string | null }>();
+  if (error || !data) return; // migrazione non ancora eseguita: nessun effetto
+  useProgress.setState({ proUntil: data.pro_until, bannedUntil: data.banned_until, banReason: data.ban_reason });
+}
 
 async function saveProgress(sb: SupabaseClient, userId: string) {
   const s = useProgress.getState();
@@ -73,6 +81,7 @@ export function SupabaseSync() {
     let activeUser: string | null = null;
     let stopWatching: (() => void) | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let adminPoll: ReturnType<typeof setInterval> | undefined;
 
     const flush = () => {
       clearTimeout(timer);
@@ -97,6 +106,9 @@ export function SupabaseSync() {
 
       useProgress.setState({ ...merged, ownerId: user.id, plan: profile?.plan ?? "free", username: profile?.username ?? null });
       useAuth.setState({ profile: profile ?? null });
+      void loadAdminFlags(sb, user.id);
+      clearInterval(adminPoll);
+      adminPoll = setInterval(() => activeUser && void loadAdminFlags(sb, activeUser), ADMIN_POLL_MS);
       await saveProgress(sb, user.id);
       // recupera l'attività di oggi fatta da ospite, per le serie condivise
       const today = todayState(merged.today);
@@ -115,6 +127,8 @@ export function SupabaseSync() {
       stopWatching?.();
       stopWatching = null;
       activeUser = null;
+      clearInterval(adminPoll);
+      useProgress.setState({ proUntil: null, bannedUntil: null, banReason: null });
       useAuth.setState({ status: "guest", userId: null, email: null, profile: null });
       // i dati di un account non devono restare a chi usa il dispositivo dopo
       if (useProgress.getState().ownerId !== null) useProgress.getState().reset();

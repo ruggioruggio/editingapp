@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Nunito } from "next/font/google";
 import { SupabaseSync } from "@/components/app/SupabaseSync";
+import { AdminGate } from "@/components/admin/AdminGate";
 import { brand } from "@/config/brand";
 import "./globals.css";
 
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-dvh bg-app text-ink">
         <SupabaseSync />
         {children}
+        <AdminGate />
       </body>
     </html>
   );

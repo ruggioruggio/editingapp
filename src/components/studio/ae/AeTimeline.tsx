@@ -7,11 +7,12 @@ import { keyKind, mapKeys, setAt, toggleStopwatch, valueAt, withKind, type Key, 
 import { BLEND_MODES, getEffect, hexToRgb, rgbToHex } from "@/lib/studio/effects";
 import { AE_LABELS, compOf, getProp, layerProps, shiftLayer, timeOf, useAe, withProp, type Comp, type Layer, type Mask } from "@/lib/studio/ae";
 import type { MenuItemLike } from "@/lib/studio/premiere";
-import { Scrub } from "../chrome";
+import { Scrub, useWide } from "../chrome";
 import { KeyGlyph } from "../premiere/Inspectors";
 import * as A from "./actions";
 
-const LEFT = 560;
+const LEFT_WIDE = 560;
+const LEFT_PHONE = 196;
 const ROW = 22;
 
 export const aeTime = (t: number, fps: number) => {
@@ -52,6 +53,9 @@ function TimelineBody({ comp }: { comp: Comp }) {
   const t = timeOf(st);
   const pps = st.zooms[comp.id] ?? 220;
   const scroller = useRef<HTMLDivElement>(null);
+  const wide = useWide();
+  const LEFT = wide ? LEFT_WIDE : LEFT_PHONE;
+  const INDENT = wide ? 96 : 30;
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [rename, setRename] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -68,22 +72,43 @@ function TimelineBody({ comp }: { comp: Comp }) {
 
   const drag = (e: React.PointerEvent, onMove: (ev: PointerEvent, dx: number, dy: number) => void, onUp?: (moved: boolean) => void) => {
     const el = e.currentTarget as HTMLElement;
-    try { el.setPointerCapture(e.pointerId); } catch {}
     const x0 = e.clientX;
     const y0 = e.clientY;
     let moved = false;
+    // col dito: scorrere muove la timeline, tenere premuto afferra
+    const touch = e.pointerType === "touch";
+    let armed = !touch;
+    const block = (ev: TouchEvent) => ev.preventDefault();
+    const pid = e.pointerId;
+    const timer = touch
+      ? setTimeout(() => {
+          armed = true;
+          try { el.setPointerCapture(pid); } catch {}
+          document.addEventListener("touchmove", block, { passive: false });
+          navigator.vibrate?.(12);
+        }, 280)
+      : undefined;
+    if (!touch) try { el.setPointerCapture(pid); } catch {}
     const move = (ev: PointerEvent) => {
+      if (!armed) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 8) clearTimeout(timer);
+        return;
+      }
       if (!moved && Math.abs(ev.clientX - x0) < 3 && Math.abs(ev.clientY - y0) < 3) return;
       moved = true;
       onMove(ev, ev.clientX - x0, ev.clientY - y0);
     };
     const up = () => {
+      clearTimeout(timer);
+      document.removeEventListener("touchmove", block);
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerup", up);
+      el.removeEventListener("pointercancel", up);
       onUp?.(moved);
     };
     el.addEventListener("pointermove", move);
     el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
   };
 
   // ---- righe -------------------------------------------------------------------------
@@ -338,7 +363,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
             {String(Math.round(t * fps)).padStart(5, "0")} ({fps.toFixed(2)} fps)
           </div>
         </div>
-        <label className="flex h-6 w-56 items-center gap-1 rounded border border-[#3a3a3a] bg-[#151515] px-2">
+        <label className="flex h-6 w-24 items-center gap-1 rounded border border-[#3a3a3a] bg-[#151515] px-2 sm:w-56">
           <Search size={12} className="text-[#8a8a8a]" />
           <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.stopPropagation()} className="min-w-0 flex-1 bg-transparent text-[#e0e0e0] outline-none" />
         </label>
@@ -383,7 +408,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
           {/* intestazione colonne + righello */}
           <div className="sticky top-0 z-30 flex h-[28px] border-b border-[#111] bg-[#232323]">
             <div className="sticky left-0 z-10 flex shrink-0 items-center bg-[#232323] text-[11px] text-[#bdbdbd]" style={{ width: LEFT }}>
-              <span className="flex w-[74px] justify-around">
+              <span className={clsx("flex justify-around", wide ? "w-[74px]" : "w-[22px] [&>*:not(:first-child)]:hidden")}>
                 <Eye size={12} />
                 <Volume2 size={12} />
                 <span className="h-2 w-2 rounded-full bg-[#bdbdbd]" />
@@ -394,7 +419,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
               <button type="button" onClick={() => st.set({ sourceName: !st.sourceName })} className="flex-1 text-left hover:text-white">
                 {st.sourceName ? "Nome sorgente" : "Nome livello"}
               </button>
-              {st.modes ? (
+              {!wide ? null : st.modes ? (
                 <span className="flex w-[200px] justify-between pr-3">
                   <span>Modalità</span>
                   <span>T</span>
@@ -412,7 +437,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
                   <span>⬡</span>
                 </span>
               )}
-              <span className="w-[130px] pl-2">Principale e collega</span>
+              {wide && <span className="w-[130px] pl-2">Principale e collega</span>}
             </div>
             <div
               className="relative shrink-0 cursor-pointer"
@@ -485,7 +510,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
                     }}
                     onDoubleClick={() => (l.type === "precomp" && l.source ? st.openComp(l.source) : setRename(l.id))}
                   >
-                    <span className="flex w-[74px] items-center justify-around text-[#bdbdbd]">
+                    <span className={clsx("flex items-center justify-around text-[#bdbdbd]", wide ? "w-[74px]" : "w-[22px] [&>*:not(:first-child)]:hidden")}>
                       <button type="button" title="Video" onClick={() => tw("visible", !l.visible, "Visibilità")}>
                         {l.visible ? <Eye size={12} /> : <span className="block h-3 w-3" />}
                       </button>
@@ -533,7 +558,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
                         <span className={clsx("truncate", isSel ? "text-white" : "text-[#d6d6d6]")}>{st.sourceName && m ? m.name : l.name}</span>
                       )}
                     </span>
-                    {st.modes ? (
+                    {!wide ? null : st.modes ? (
                       <span className="flex w-[200px] items-center gap-2 pr-3">
                         <select value={l.blend} onChange={(e) => A.updateLayer(l.id, (x) => ({ ...x, blend: Number(e.target.value) }), "Metodo fusione")} className="h-4 w-[110px] rounded-sm border border-[#3e3e3e] bg-[#151515] text-[11px] text-[#d0d0d0] outline-none">
                           {BLEND_MODES.map(([n], i) => (
@@ -566,7 +591,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
                         </button>
                       </span>
                     )}
-                    <span className="flex w-[130px] items-center gap-1 pl-2">
+                    <span className={clsx("flex w-[130px] items-center gap-1 pl-2", !wide && "hidden")}>
                       <span className="text-[#9a9a9a]" title="Selettore di collegamento">
                         @
                       </span>
@@ -644,7 +669,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
               const c = collapsed.has(id);
               return (
                 <div key={id + ri} className="flex border-b border-[#1b1b1b] bg-[#232323]" style={{ height: ROW }}>
-                  <div className="sticky left-0 z-10 flex shrink-0 items-center gap-1 bg-[#232323] pr-2 text-[#d0d0d0]" style={{ width: LEFT, paddingLeft: 96 + r.depth * 14 }}>
+                  <div className="sticky left-0 z-10 flex shrink-0 items-center gap-1 bg-[#232323] pr-2 text-[#d0d0d0]" style={{ width: LEFT, paddingLeft: INDENT + r.depth * 14 }}>
                     <button type="button" onClick={() => setCollapsed((s) => (s.has(id) ? new Set([...s].filter((x) => x !== id)) : new Set([...s, id])))} className="text-[#9a9a9a]">
                       {c ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                     </button>
@@ -666,7 +691,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
               void res;
               return (
                 <div key={r.l.id + r.path + "x"} className="flex border-b border-[#1b1b1b] bg-[#202020]" style={{ minHeight: ROW * 2 }}>
-                  <div className="sticky left-0 z-10 flex shrink-0 items-start gap-2 bg-[#202020] py-1 pr-2" style={{ width: LEFT, paddingLeft: 96 + 3 * 14 }}>
+                  <div className="sticky left-0 z-10 flex shrink-0 items-start gap-2 bg-[#202020] py-1 pr-2" style={{ width: LEFT, paddingLeft: INDENT + 3 * 14 }}>
                     <span className="pt-0.5 text-[11px] text-[#e8d43a]">Espressione:</span>
                   </div>
                   <textarea
@@ -693,7 +718,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
               <div key={pid} className={clsx("flex border-b border-[#1b1b1b]", propSel ? "bg-[#2b2b3a]" : "bg-[#232323]")} style={{ height: ROW }}>
                 <div
                   className="sticky left-0 z-10 flex shrink-0 items-center gap-1.5 pr-2"
-                  style={{ width: LEFT, paddingLeft: 96 + r.depth * 14, background: propSel ? "#2b2b3a" : "#232323" }}
+                  style={{ width: LEFT, paddingLeft: INDENT + r.depth * 14, background: propSel ? "#2b2b3a" : "#232323" }}
                   onPointerDown={(e) => {
                     if ((e.target as HTMLElement).closest("button,select,input,[role=spinbutton]")) return;
                     st.set({ selectedProps: e.shiftKey ? [...st.selectedProps, pid] : [pid], selected: [l.id], selectedKeys: keys.map((k) => k.id) });
@@ -814,18 +839,19 @@ function TimelineBody({ comp }: { comp: Comp }) {
               </div>
             );
           })}
-          {st.graph && <GraphEditor comp={comp} props={graphProps} pps={pps} top={28} />}
+          {st.graph && <GraphEditor comp={comp} props={graphProps} pps={pps} top={28} left={LEFT} />}
           {box && <div className="pointer-events-none absolute z-40 border border-white/80 bg-white/10" style={{ left: Math.min(box.x0, box.x1), top: Math.min(box.y0, box.y1), width: Math.abs(box.x1 - box.x0), height: Math.abs(box.y1 - box.y0) }} />}
           <div className="pointer-events-none absolute bottom-0 top-[28px] z-20 w-px bg-[#3d9cf0]" style={{ left: LEFT + t * pps }} />
           <div className="absolute" style={{ height: 40, top: 28 + rows.length * ROW }} />
         </div>
       </div>
       <div className="flex h-[26px] shrink-0 items-center gap-4 border-t border-[#111] px-3 text-[11.5px] text-[#bdbdbd]">
-        <span>
+        <span className="hidden sm:inline">
           Tempo di rendering fotogramma: <span className="text-[#3ecf8e]">{st.playing ? "4ms" : "0ms"}</span>
         </span>
         <button type="button" onClick={() => st.set({ modes: !st.modes })} className="hover:text-white">
-          Passa a switch o modalità
+          <span className="hidden sm:inline">Passa a switch o modalità</span>
+          <span className="sm:hidden">Switch/modalità</span>
         </button>
         <input
           type="range"
@@ -851,7 +877,7 @@ function mapLayerKeys(l: Layer, ids: Set<string>, dt: number, max: number): Part
 }
 
 /** Editor grafico: curve del valore (o della velocità) delle proprietà scelte. */
-function GraphEditor({ comp, props, pps, top }: { comp: Comp; props: { l: Layer; path: string; name: string; prop: Prop }[]; pps: number; top: number }) {
+function GraphEditor({ comp, props, pps, top, left: LEFT }: { comp: Comp; props: { l: Layer; path: string; name: string; prop: Prop }[]; pps: number; top: number; left: number }) {
   const st = useAe();
   const [speed, setSpeed] = useState(false);
   const H = 260;

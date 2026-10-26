@@ -10,8 +10,11 @@ const EXIT_MS = 550;
 
 // Scelta presa una volta per caricamento pagina (evita il doppio effetto di StrictMode).
 let sessionChoice: number | null | undefined;
+// già mostrata in questo caricamento: cambiando scheda non deve ripartire
+let played = false;
 
 function pickScene(): number | null {
+  if (played) return null;
   if (sessionChoice !== undefined) return sessionChoice;
   let seen = false;
   try {
@@ -38,6 +41,7 @@ export function Splash() {
     }
     setIndex(choice);
     setPhase("play");
+    played = true;
   }, []);
 
   useEffect(() => {

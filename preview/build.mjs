@@ -7,6 +7,13 @@ import { dirname, resolve } from "node:path";
 import { build } from "esbuild";
 
 const root = resolve(import.meta.dirname, "..");
+// hash lento della password admin (solo per la verifica locale dell'anteprima)
+let previewAdminHash = "";
+try {
+  previewAdminHash = /^ADMIN_PREVIEW_HASH=(.*)$/m.exec(readFileSync(resolve(root, ".env.local"), "utf8"))?.[1]?.trim() ?? "";
+} catch {
+  /* nessun .env.local: pannello admin non disponibile nell'anteprima */
+}
 const out = resolve(process.argv[2] ?? resolve(root, "preview/dist/squeakedit.html"));
 const tmp = resolve(root, "preview/dist");
 mkdirSync(tmp, { recursive: true });
@@ -34,6 +41,7 @@ const result = await build({
     "process.env.NEXT_PUBLIC_SUPABASE_URL": '""',
     "process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY": '""',
     "process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": '""',
+    "process.env.ADMIN_PREVIEW_HASH": JSON.stringify(previewAdminHash),
   },
   banner: { js: "var process=globalThis.process||{env:{}};" },
   logLevel: "warning",

@@ -1,5 +1,6 @@
 "use client";
 
+import { ModHammer } from "@/components/admin/AdminGate";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import clsx from "clsx";
@@ -229,6 +230,7 @@ function SignedInFriends() {
               <li key={r.id} className="flex items-center gap-3 rounded-2xl border border-[#5ce1e6]/40 bg-panel p-3">
                 <Avatar name={r.other.username} />
                 <p className="min-w-0 flex-1 truncate font-bold">@{r.other.username}</p>
+                <ModHammer username={r.other.username} />
                 <button
                   type="button"
                   onClick={() => act(() => acceptFriendRequest(sb, r.id))}
@@ -290,6 +292,7 @@ function SignedInFriends() {
                     )}
                   </span>
                 </button>
+                {!row.isMe && <ModHammer username={row.username} />}
                 <span className="flex items-center gap-1 text-sm font-black text-[#ff8a3d]">
                   <Flame size={15} /> {row.streak}
                 </span>
@@ -342,6 +345,7 @@ function SignedInFriends() {
                 <Avatar name={r.other.username} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold">@{r.other.username}</p>
+                  <ModHammer username={r.other.username} />
                   <p className="flex items-center gap-1 text-xs text-ink-mute">
                     <Clock size={12} /> In attesa di risposta
                   </p>

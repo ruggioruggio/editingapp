@@ -8,7 +8,8 @@ import { useHydrated } from "@/lib/hooks/useHydrated";
 import { EFFECTS, EFFECT_CATEGORIES } from "@/lib/studio/effects";
 import { restoreFiles } from "@/lib/studio/media";
 import { compOf, useAe, type AeTool } from "@/lib/studio/ae";
-import { ContextMenu, Gutter, MenuBar, Panel, Toast, useWide, type Menu } from "../chrome";
+import { ContextMenu, Gutter, MenuBar, Toast, useWide, type Menu } from "../chrome";
+import { CloseX, DockZone, DragGhost, useDockLayout, type Zones } from "../dock";
 import { AeTimeline } from "./AeTimeline";
 import { Viewer } from "./Viewer";
 import { AeAlign, AeCharacter, AeEffectControls, AeEffectsPresets, AeProjectPanel, AeProperties, AeTracker, applyAePreset, openAeImport } from "./Panels";
@@ -20,6 +21,31 @@ import * as A from "./actions";
 // effetti a sinistra, Composizione a destra, Timeline sotto (come l'area di
 // lavoro Standard).
 
+const PANEL_LABEL: Record<string, string> = {
+  project: "Progetto",
+  effectControls: "Controlli effetti",
+  effects: "Effetti e predefiniti",
+  properties: "Proprietà",
+  character: "Carattere",
+  align: "Allinea",
+  tracker: "Tracciatore",
+  composition: "Composizione",
+  queue: "Coda di rendering",
+  timeline: "Timeline",
+};
+const DESK_ZONES: Zones = {
+  LEFT: { tabs: ["project", "effectControls", "effects", "properties", "character", "align", "tracker"], active: "project" },
+  RIGHT: { tabs: ["composition"], active: "composition" },
+  BOTTOM: { tabs: ["queue", "timeline"], active: "timeline" },
+};
+const DESK_PANELS = Object.values(DESK_ZONES).flatMap((z) => z.tabs);
+const DESK_ZONE_NAMES = { LEFT: "In alto a sinistra", RIGHT: "In alto a destra", BOTTOM: "In basso" };
+const PHONE_ZONES: Zones = {
+  A: { tabs: ["composition", "project", "effectControls", "effects", "properties", "character"], active: "composition" },
+  B: { tabs: ["timeline"], active: "timeline" },
+};
+const PHONE_PANELS = Object.values(PHONE_ZONES).flatMap((z) => z.tabs);
+const PHONE_ZONE_NAMES = { A: "Pannello in alto", B: "Pannello in basso" };
 const LEFT_TABS = ["Progetto", "Controlli effetti", "Effetti e predefiniti", "Proprietà", "Carattere", "Allinea", "Tracciatore"] as const;
 type LeftTab = (typeof LEFT_TABS)[number];
 const WORKSPACES = ["Predefinito", "Revisione", "Scopri", "Schermo piccolo", "Standard", "Librerie"];
@@ -67,7 +93,7 @@ function Toolbar() {
         const ai = g.tools.findIndex(([id]) => id === st.tool);
         const [id, name, key, icon] = g.tools[Math.max(0, ai)];
         return (
-          <div key={gi} className="relative">
+          <div key={gi} className={clsx("relative", !g.tools.some(([t]) => t) && "hidden sm:block")}>
             <button
               type="button"
               title={`${name} (${key})`}
@@ -139,12 +165,12 @@ function AeInner() {
   const st = useAe();
   const wide = useWide();
   const comp = compOf(st);
-  const [left, setLeft] = useState<LeftTab>("Progetto");
-  const [mob, setMob] = useState<"Timeline" | "Progetto" | "Effetti" | "Proprietà">("Timeline");
+  const desk = useDockLayout("ae-dock-desktop-v1", DESK_ZONES, DESK_PANELS);
+  const phone = useDockLayout("ae-dock-phone-v1", PHONE_ZONES, PHONE_PANELS);
+  const layout = wide ? desk : phone;
   const [sizes, setSizes] = useState({ top: 0.6, left: 0.48 });
   const [vw, setVw] = useState(1400);
   const [vh, setVh] = useState(800);
-  const [queue, setQueue] = useState(false);
 
   useEffect(() => {
     const on = () => {
@@ -316,30 +342,56 @@ function AeInner() {
         { label: "Mostra modalità", keys: "F4", checked: st.modes, action: () => st.set({ modes: !st.modes }) },
       ],
     },
-    { label: "Finestra", items: LEFT_TABS.map((t) => ({ label: t, checked: left === t, action: () => setLeft(t) })) },
+    { label: "Finestra", items: [...Object.entries(PANEL_LABEL).map(([id, n]) => ({ label: n, action: () => layout.show(id) })), "-", { label: "Ripristina disposizione pannelli", action: layout.reset }] },
     { label: "Aiuto", items: [{ label: "Scelte rapide da tastiera", action: () => st.set({ dialog: { type: "keys" } }) }, { label: "Torna alle lezioni di SqueakEdit", action: () => (window.location.href = "/learn") }] },
   ];
 
-  const leftPanel = (t: LeftTab) =>
-    t === "Progetto" ? <AeProjectPanel /> : t === "Controlli effetti" ? <AeEffectControls /> : t === "Effetti e predefiniti" ? <AeEffectsPresets /> : t === "Proprietà" ? <AeProperties /> : t === "Carattere" ? <AeCharacter /> : t === "Allinea" ? <AeAlign /> : <AeTracker />;
-  const leftTabs = LEFT_TABS.map((t) => (t === "Controlli effetti" ? `Controlli effetti ${layer ? layer.name : "(nessuno)"}` : t));
-
-  const timelinePanel = (
-    <Panel
-      tabs={["Coda di rendering", ...st.openComps.map((id) => st.project.comps[id]?.name ?? "?")]}
-      tab={queue || !comp ? "Coda di rendering" : comp.name}
-      onTab={(n) => {
-        if (n === "Coda di rendering") return setQueue(true);
-        setQueue(false);
-        const id = st.openComps.find((x) => st.project.comps[x]?.name === n);
-        if (id) st.openComp(id);
-      }}
-      onClose={(n) => n !== "Coda di rendering" && comp && st.closeComp(comp.id)}
-      focused
-      className="h-full"
-    >
-      {queue ? <div className="grid h-full place-items-center text-[12px] text-[#8a8a8a]">La coda di rendering è vuota: l&apos;esportazione non è disponibile nel simulatore.</div> : <AeTimeline />}
-    </Panel>
+  const labels: Record<string, string> = { ...PANEL_LABEL, effectControls: `Controlli effetti ${layer ? layer.name : "(nessuno)"}`, composition: `Composizione ${comp?.name ?? ""}`, timeline: comp?.name ?? "Timeline" };
+  const panelFor = (id: string): ReactNode => {
+    switch (id) {
+      case "project":
+        return <AeProjectPanel />;
+      case "effectControls":
+        return <AeEffectControls />;
+      case "effects":
+        return <AeEffectsPresets />;
+      case "properties":
+        return <AeProperties />;
+      case "character":
+        return <AeCharacter />;
+      case "align":
+        return <AeAlign />;
+      case "tracker":
+        return <AeTracker />;
+      case "composition":
+        return <Viewer />;
+      case "queue":
+        return <div className="grid h-full place-items-center p-4 text-center text-[12px] text-[#8a8a8a]">La coda di rendering è vuota: l&apos;esportazione non è disponibile nel simulatore.</div>;
+      case "timeline":
+        return (
+          <div className="absolute inset-0 flex flex-col">
+            {st.openComps.length > 1 && (
+              <div className="flex shrink-0 gap-1 overflow-x-auto px-2 pb-1 [scrollbar-width:none]">
+                {st.openComps.map((id2) => (
+                  <span key={id2} className={clsx("flex shrink-0 items-center gap-1.5 rounded px-2 py-0.5 text-[11.5px]", id2 === comp?.id ? "bg-[#3a3a3a] text-white" : "text-[#9a9a9a] hover:bg-white/5")}>
+                    <button type="button" onClick={() => st.openComp(id2)}>
+                      {st.project.comps[id2]?.name}
+                    </button>
+                    <CloseX onClick={() => st.closeComp(id2)} />
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="relative min-h-0 flex-1">
+              <AeTimeline />
+            </div>
+          </div>
+        );
+    }
+    return null;
+  };
+  const zone = (id: string, cls?: string, style?: React.CSSProperties) => (
+    <DockZone id={id} layout={layout} labels={labels} render={panelFor} zoneNames={wide ? DESK_ZONE_NAMES : PHONE_ZONE_NAMES} focused={id === "B" || id === "BOTTOM"} className={cls} style={style} />
   );
 
   let body: ReactNode;
@@ -348,27 +400,39 @@ function AeInner() {
     body = (
       <div className="flex min-h-0 flex-1 flex-col p-1">
         <div className="flex shrink-0" style={{ height: topH }}>
-          <Panel tabs={leftTabs} tab={leftTabs[LEFT_TABS.indexOf(left)]} onTab={(n) => setLeft(LEFT_TABS[leftTabs.indexOf(n)])} className="shrink-0" style={{ width: sizes.left * vw }}>
-            {leftPanel(left)}
-          </Panel>
+          {zone("LEFT", "shrink-0", { width: sizes.left * vw })}
           <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, left: Math.max(0.2, Math.min(0.7, s.left + d / vw)) }))} />
-          <Panel tabs={[`Composizione ${comp?.name ?? ""}`]} tab={`Composizione ${comp?.name ?? ""}`} onClose={() => comp && st.closeComp(comp.id)} className="min-w-0 flex-1">
-            <Viewer />
-          </Panel>
+          {zone("RIGHT", "min-w-0 flex-1")}
         </div>
         <Gutter dir="y" onDrag={(d) => setSizes((s) => ({ ...s, top: Math.max(0.25, Math.min(0.8, s.top + d / vh)) }))} />
-        <div className="min-h-0 flex-1">{timelinePanel}</div>
+        {zone("BOTTOM", "min-h-0 flex-1")}
       </div>
     );
   } else {
     body = (
       <div className="flex min-h-0 flex-1 flex-col gap-1 p-1">
-        <Panel tabs={["Composizione"]} tab="Composizione" className="h-[40%] shrink-0">
-          <Viewer />
-        </Panel>
-        <Panel tabs={["Timeline", "Progetto", "Effetti", "Proprietà"] as const} tab={mob} onTab={setMob} className="min-h-0 flex-1">
-          {mob === "Progetto" ? <AeProjectPanel /> : mob === "Effetti" ? <AeEffectsPresets /> : mob === "Proprietà" ? <AeProperties /> : <AeTimeline />}
-        </Panel>
+        {zone("A", "shrink-0", { height: `${Math.round(sizes.top * 70)}%` })}
+        <Gutter dir="y" onDrag={(d) => setSizes((s) => ({ ...s, top: Math.max(0.3, Math.min(1.1, s.top + d / vh)) }))} />
+        <div className="flex shrink-0 gap-0.5 overflow-x-auto rounded-[4px] bg-[#1e1e1e] p-0.5 text-[11px] font-semibold text-[#d0d0d0] [scrollbar-width:none]">
+          {(
+            [
+              [st.playing ? "Pausa" : "Play", () => st.set({ playing: !st.playing })],
+              ["Easy Ease", () => A.setInterp("ease")],
+              ["P", () => A.reveal(["t.position"], false)],
+              ["S", () => A.reveal(["t.scale"], false)],
+              ["R", () => A.reveal(["t.rotation"], false)],
+              ["T", () => A.reveal(["t.opacity"], false)],
+              ["Duplica", A.duplicate],
+              ["Elimina", A.deleteSelected],
+              ["Annulla", st.undo],
+            ] as [string, () => void][]
+          ).map(([label, fn]) => (
+            <button key={label} type="button" onClick={fn} className="shrink-0 rounded px-2.5 py-1.5 hover:bg-white/10">
+              {label}
+            </button>
+          ))}
+        </div>
+        {zone("B", "min-h-0 flex-1")}
       </div>
     );
   }
@@ -390,6 +454,7 @@ function AeInner() {
       </div>
       <Toolbar />
       {body}
+      <DragGhost />
       <input
         id="ae-import-input"
         type="file"

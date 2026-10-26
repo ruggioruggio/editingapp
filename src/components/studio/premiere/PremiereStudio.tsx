@@ -8,6 +8,8 @@ import { useHydrated } from "@/lib/hooks/useHydrated";
 import { restoreFiles } from "@/lib/studio/media";
 import { playheadOf, seqOf, usePremiere, type PanelId, type PrTool } from "@/lib/studio/premiere";
 import { ContextMenu, Gutter, MenuBar, Panel, Toast, useWide, type Menu } from "../chrome";
+import { CloseX, DockZone, DragGhost, useDockLayout, type Zones } from "../dock";
+import type { MenuItemLike } from "@/lib/studio/premiere";
 import { ProgramMonitor, SourceMonitor } from "./Monitors";
 import { AudioMixer, EffectControls, EssentialGraphics, Metadata, PropertiesPanel, TextPanel } from "./Inspectors";
 import { EffectsPanel, HistoryPanel, InfoPanel, Libraries, MediaBrowser, ProjectPanel, applyPreset, openImport } from "./ProjectPanels";
@@ -22,6 +24,39 @@ import * as A from "./actions";
 // Timeline | Indicatori audio sotto), menu, scorciatoie e modalità
 // Importa / Modifica / Esporta.
 
+const PANEL_LABEL: Record<string, string> = {
+  source: "Sorgente",
+  effectControls: "Controlli effetti",
+  mixer: "Mixer clip audio",
+  metadata: "Metadati",
+  program: "Programma",
+  properties: "Proprietà",
+  graphics: "Grafica essenziale",
+  text: "Testo",
+  project: "Progetto",
+  media: "Browser multimediale",
+  libraries: "Librerie",
+  info: "Info",
+  effects: "Effetti",
+  history: "Cronologia",
+  timeline: "Timeline",
+};
+const DESK_ZONES: Zones = {
+  TL: { tabs: ["source", "effectControls", "mixer", "metadata"], active: "source" },
+  TC: { tabs: ["program"], active: "program" },
+  TR: { tabs: ["properties", "graphics", "text"], active: "properties" },
+  BL: { tabs: ["project", "media", "libraries", "info", "effects", "history"], active: "project" },
+  BR: { tabs: ["timeline"], active: "timeline" },
+};
+const DESK_PANELS = Object.values(DESK_ZONES).flatMap((z) => z.tabs);
+const DESK_ZONE_NAMES = { TL: "In alto a sinistra", TC: "In alto al centro", TR: "In alto a destra", BL: "In basso a sinistra", BR: "In basso (timeline)" };
+// dal telefono niente browser multimediale, librerie, metadati né mixer audio
+const PHONE_ZONES: Zones = {
+  A: { tabs: ["program", "project", "effectControls", "source", "effects", "properties", "graphics", "history"], active: "program" },
+  B: { tabs: ["timeline"], active: "timeline" },
+};
+const PHONE_PANELS = Object.values(PHONE_ZONES).flatMap((z) => z.tabs);
+const PHONE_ZONE_NAMES = { A: "Pannello in alto", B: "Pannello in basso" };
 const TL = ["Sorgente", "Controlli effetti", "Mixer clip audio", "Metadati"] as const;
 const TR = ["Proprietà", "Grafica essenziale", "Testo"] as const;
 const BL = ["Progetto", "Browser multimediale", "Librerie", "Info", "Effetti", "Cronologia"] as const;
@@ -251,10 +286,9 @@ export function PremiereStudio() {
 function PremiereInner() {
   const st = usePremiere();
   const wide = useWide();
-  const [tl, setTl] = useState<(typeof TL)[number]>("Sorgente");
-  const [tr, setTr] = useState<(typeof TR)[number]>("Proprietà");
-  const [bl, setBl] = useState<(typeof BL)[number]>("Progetto");
-  const [mob, setMob] = useState<"Programma" | "Sorgente" | "Controlli effetti" | "Proprietà" | "Progetto" | "Effetti">("Programma");
+  const desk = useDockLayout("pr-dock-desktop-v1", DESK_ZONES, DESK_PANELS);
+  const phone = useDockLayout("pr-dock-phone-v1", PHONE_ZONES, PHONE_PANELS);
+  const layout = wide ? desk : phone;
   const [sizes, setSizes] = useState({ top: 0.57, src: 0.36, prog: 0.36, proj: 0.27, meters: 110 });
   const [vw, setVw] = useState(1400);
   const [vh, setVh] = useState(800);
@@ -278,14 +312,10 @@ function PremiereInner() {
     };
   }, []);
 
-  // tl/tr/bl segue il pannello scelto dai menu Finestra
+  // il menu Finestra porta in primo piano il pannello, ovunque sia agganciato
   const focusPanel = (p: PanelId) => {
     st.set({ focus: p, maximized: null });
-    const name = Object.entries(PANEL_ID).find(([, v]) => v === p)?.[0];
-    if (!name) return;
-    if ((TL as readonly string[]).includes(name)) setTl(name as (typeof TL)[number]);
-    if ((TR as readonly string[]).includes(name)) setTr(name as (typeof TR)[number]);
-    if ((BL as readonly string[]).includes(name)) setBl(name as (typeof BL)[number]);
+    layout.show(p);
   };
 
   const has = !!seq;
@@ -430,70 +460,95 @@ function PremiereInner() {
     },
   ];
 
-  const focused = (name: string) => st.focus === PANEL_ID[name];
-  const panelFor = (name: string): ReactNode => {
-    switch (name) {
-      case "Sorgente":
+  const labels: Record<string, string> = { ...PANEL_LABEL, program: `Programma: ${seq?.name ?? "(nessuna sequenza)"}`, timeline: seq?.name ?? "Timeline" };
+  const panelFor = (id: string): ReactNode => {
+    switch (id) {
+      case "source":
         return <SourceMonitor />;
-      case "Controlli effetti":
+      case "effectControls":
         return <EffectControls />;
-      case "Mixer clip audio":
+      case "mixer":
         return <AudioMixer />;
-      case "Metadati":
+      case "metadata":
         return <Metadata />;
-      case "Proprietà":
+      case "program":
+        return <ProgramMonitor />;
+      case "properties":
         return <PropertiesPanel />;
-      case "Grafica essenziale":
+      case "graphics":
         return <EssentialGraphics />;
-      case "Testo":
+      case "text":
         return <TextPanel />;
-      case "Progetto":
+      case "project":
         return <ProjectPanel />;
-      case "Browser multimediale":
+      case "media":
         return <MediaBrowser />;
-      case "Librerie":
+      case "libraries":
         return <Libraries />;
-      case "Info":
+      case "info":
         return <InfoPanel />;
-      case "Effetti":
+      case "effects":
         return <EffectsPanel />;
-      case "Cronologia":
+      case "history":
         return <HistoryPanel />;
+      case "timeline":
+        return (
+          <div
+            className="absolute inset-0 flex flex-col"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              const preset = e.dataTransfer.getData("text/x-preset");
+              if (preset) applyPreset(preset);
+            }}
+          >
+            {st.openSeqs.length > 1 && (
+              <div className="flex shrink-0 gap-1 overflow-x-auto px-2 pb-1 [scrollbar-width:none]">
+                {st.openSeqs.map((id) => (
+                  <span key={id} className={clsx("flex shrink-0 items-center gap-1.5 rounded px-2 py-0.5 text-[11.5px]", id === seq?.id ? "bg-[#3a3a3a] text-white" : "text-[#9a9a9a] hover:bg-white/5")}>
+                    <button type="button" onClick={() => st.openSequence(id)}>
+                      {st.project.sequences[id]?.name}
+                    </button>
+                    <CloseX onClick={() => st.closeSequence(id)} />
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="relative min-h-0 flex-1">
+              <Timeline />
+            </div>
+          </div>
+        );
     }
     return null;
   };
-
-  const timelinePanel = (
-    <Panel
-      tabs={st.openSeqs.map((id) => st.project.sequences[id]?.name ?? "?")}
-      tab={seq?.name ?? ""}
-      onTab={(name) => {
-        const id = st.openSeqs.find((x) => st.project.sequences[x]?.name === name);
-        if (id) st.openSequence(id);
-      }}
-      onClose={() => seq && st.closeSequence(seq.id)}
-      focused={st.focus === "timeline"}
-      onFocus={() => st.set({ focus: "timeline" })}
-      className="h-full"
-      menu={[
-        { label: "Impostazioni sequenza…", disabled: !has, action: () => st.set({ dialog: { type: "seqSettings" } }) },
-        { label: "Aggiungi tracce…", disabled: !has, action: () => st.set({ dialog: { type: "tracks" } }) },
-        { label: "Chiudi", action: () => seq && st.closeSequence(seq.id) },
-      ]}
-    >
-      <div
-        className="absolute inset-0"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => {
-          const preset = e.dataTransfer.getData("text/x-preset");
-          if (preset) applyPreset(preset);
-          const sample = e.dataTransfer.getData("text/x-sample");
-          if (sample) st.notify("Importa prima il file nel progetto (doppio clic nel Browser multimediale)");
-        }}
-      >
-        <Timeline />
-      </div>
-    </Panel>
+  const zoneMenu = (tab: string): MenuItemLike[] =>
+    tab === "timeline"
+      ? [
+          { label: "Impostazioni sequenza…", disabled: !has, action: () => st.set({ dialog: { type: "seqSettings" } }) },
+          { label: "Aggiungi tracce…", disabled: !has, action: () => st.set({ dialog: { type: "tracks" } }) },
+          { label: "Chiudi sequenza", disabled: !has, action: () => seq && st.closeSequence(seq.id) },
+        ]
+      : tab === "project"
+        ? [
+            { label: "Nuovo raccoglitore", action: A.newBin },
+            { label: "Importa…", action: openImport },
+          ]
+        : tab === "source"
+          ? [{ label: "Chiudi clip", action: () => st.set({ source: { mediaId: null, t: 0, in: null, out: null, playing: false } }) }]
+          : [{ label: "Ingrandisci pannello", keys: "`", action: () => st.set({ maximized: tab as PanelId }) }];
+  const zone = (id: string, cls?: string, style?: React.CSSProperties) => (
+    <DockZone
+      id={id}
+      layout={layout}
+      labels={labels}
+      render={panelFor}
+      zoneNames={wide ? DESK_ZONE_NAMES : PHONE_ZONE_NAMES}
+      focused={st.focus === layout.zones[id]?.active}
+      onFocus={(tab) => st.set({ focus: tab as PanelId })}
+      className={cls}
+      style={style}
+      menu={zoneMenu}
+    />
   );
 
   const header = (
@@ -522,8 +577,8 @@ function PremiereInner() {
         {st.saved ? "" : " - Modificato"}
       </div>
       <div className="ml-auto flex items-center gap-1 text-[#d0d0d0]">
-        <button type="button" title="Area di lavoro" className="flex items-center gap-1.5 rounded px-2 py-1 text-[12px] font-semibold hover:bg-white/10" onClick={(e) => st.set({ menu: { x: e.clientX - 160, y: e.clientY + 14, items: [{ label: "Modifica", checked: true }, { label: "Ripristina layout salvato", action: () => setSizes({ top: 0.57, src: 0.36, prog: 0.36, proj: 0.27, meters: 110 }) }] } })}>
-          MODIFICA <LayoutPanelLeft size={15} />
+        <button type="button" title="Area di lavoro" className="flex items-center gap-1.5 rounded px-2 py-1 text-[12px] font-semibold hover:bg-white/10" onClick={(e) => st.set({ menu: { x: e.clientX - 160, y: e.clientY + 14, items: [{ label: "Modifica", checked: true }, { label: "Ripristina layout salvato", action: () => (setSizes({ top: 0.57, src: 0.36, prog: 0.36, proj: 0.27, meters: 110 }), layout.reset()) }] } })}>
+          <span className="hidden sm:inline">MODIFICA</span> <LayoutPanelLeft size={15} />
         </button>
         {[
           [Moon, "Tema", () => st.notify("Il tema scuro è l'unico disponibile")],
@@ -535,7 +590,7 @@ function PremiereInner() {
         ].map(([Icon, title, fn]) => {
           const I = Icon as typeof Moon;
           return (
-            <button key={title as string} type="button" title={title as string} onClick={fn as () => void} className="grid h-8 w-8 place-items-center rounded hover:bg-white/10">
+            <button key={title as string} type="button" title={title as string} onClick={fn as () => void} className="hidden h-8 w-8 place-items-center rounded hover:bg-white/10 sm:grid">
               <I size={16} />
             </button>
           );
@@ -577,22 +632,17 @@ function PremiereInner() {
       </div>
     );
   } else if (st.maximized) {
-    const name = Object.entries(PANEL_ID).find(([, v]) => v === st.maximized)?.[0];
     body = (
       <div className="flex min-h-0 flex-1 p-1">
-        {st.maximized === "timeline" ? (
-          timelinePanel
-        ) : st.maximized === "program" ? (
-          <Panel tabs={[`Programma: ${seq?.name ?? ""}`]} tab={`Programma: ${seq?.name ?? ""}`} className="flex-1" focused>
-            <ProgramMonitor />
-          </Panel>
-        ) : name ? (
-          <Panel tabs={[name]} tab={name} className="flex-1" focused>
-            {panelFor(name)}
-          </Panel>
-        ) : (
-          timelinePanel
-        )}
+        <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-[4px] border border-[#2d8ceb] bg-[#1e1e1e]">
+          <div className="flex h-[34px] shrink-0 items-center gap-2 px-3 text-[12.5px] text-white">
+            {labels[st.maximized] ?? st.maximized}
+            <button type="button" onClick={() => st.set({ maximized: null })} className="ml-auto text-[#9a9a9a] hover:text-white">
+              Ripristina (`)
+            </button>
+          </div>
+          <div className="relative min-h-0 flex-1">{panelFor(st.maximized)}</div>
+        </section>
       </div>
     );
   } else if (wide) {
@@ -600,37 +650,21 @@ function PremiereInner() {
     body = (
       <div className="flex min-h-0 flex-1 flex-col p-1">
         <div className="flex shrink-0" style={{ height: topH }}>
-          <Panel tabs={TL} tab={tl} onTab={(t) => (setTl(t), st.set({ focus: PANEL_ID[t] }))} focused={focused(tl)} onFocus={() => st.set({ focus: PANEL_ID[tl] })} className="shrink-0" style={{ width: sizes.src * vw }} menu={[{ label: "Chiudi clip", action: () => st.set({ source: { mediaId: null, t: 0, in: null, out: null, playing: false } }) }]}>
-            {panelFor(tl)}
-          </Panel>
+          {zone("TL", "shrink-0", { width: sizes.src * vw })}
           <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, src: Math.max(0.15, Math.min(0.5, s.src + d / vw)) }))} />
-          <Panel
-            tabs={[`Programma: ${seq?.name ?? "(nessuna sequenza)"}`]}
-            tab={`Programma: ${seq?.name ?? "(nessuna sequenza)"}`}
-            focused={st.focus === "program"}
-            onFocus={() => st.set({ focus: "program" })}
-            className="shrink-0"
-            style={{ width: sizes.prog * vw }}
-            menu={[{ label: "Ingrandisci", action: () => st.set({ maximized: "program" }) }]}
-          >
-            <ProgramMonitor />
-          </Panel>
+          {zone("TC", "shrink-0", { width: sizes.prog * vw })}
           <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, prog: Math.max(0.2, Math.min(0.6, s.prog + d / vw)) }))} />
-          <Panel tabs={TR} tab={tr} onTab={(t) => (setTr(t), st.set({ focus: PANEL_ID[t] }))} focused={focused(tr)} onFocus={() => st.set({ focus: PANEL_ID[tr] })} className="min-w-0 flex-1">
-            {panelFor(tr)}
-          </Panel>
+          {zone("TR", "min-w-0 flex-1")}
         </div>
         <Gutter dir="y" onDrag={(d) => setSizes((s) => ({ ...s, top: Math.max(0.25, Math.min(0.75, s.top + d / vh)) }))} />
         <div className="flex min-h-0 flex-1">
-          <Panel tabs={BL} tab={bl} onTab={(t) => (setBl(t), st.set({ focus: PANEL_ID[t] }))} focused={focused(bl)} onFocus={() => st.set({ focus: PANEL_ID[bl] })} className="shrink-0" style={{ width: sizes.proj * vw }} menu={[{ label: "Nuovo raccoglitore", action: A.newBin }, { label: "Importa…", action: openImport }]}>
-            {panelFor(bl)}
-          </Panel>
+          {zone("BL", "shrink-0", { width: sizes.proj * vw })}
           <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, proj: Math.max(0.15, Math.min(0.5, s.proj + d / vw)) }))} />
           <div className="w-[52px] shrink-0 rounded-[4px] bg-[#1e1e1e]" onPointerDownCapture={() => st.set({ focus: "tools" })}>
             <ToolsPanel />
           </div>
           <Gutter dir="x" onDrag={() => {}} />
-          <div className="min-w-0 flex-1">{timelinePanel}</div>
+          {zone("BR", "min-w-0 flex-1")}
           <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, meters: Math.max(60, Math.min(200, s.meters - d)) }))} />
           <div className="shrink-0 rounded-[4px] bg-[#1e1e1e]" style={{ width: sizes.meters }}>
             <Meters />
@@ -639,26 +673,29 @@ function PremiereInner() {
       </div>
     );
   } else {
+    // telefono: due zone compatte con gli strumenti in mezzo
     body = (
       <div className="flex min-h-0 flex-1 flex-col gap-1 p-1">
-        <Panel tabs={["Programma", "Sorgente", "Controlli effetti", "Proprietà", "Progetto", "Effetti"] as const} tab={mob} onTab={(t) => (setMob(t), st.set({ focus: t === "Programma" ? "program" : PANEL_ID[t] }))} className="h-[44%] shrink-0">
-          {mob === "Programma" ? <ProgramMonitor /> : panelFor(mob)}
-        </Panel>
-        <div className="flex shrink-0 items-center overflow-x-auto rounded-[4px] bg-[#1e1e1e]">
+        {zone("A", "shrink-0", { height: `${Math.round(sizes.top * 80)}%` })}
+        <Gutter dir="y" onDrag={(d) => setSizes((s) => ({ ...s, top: Math.max(0.3, Math.min(0.9, s.top + d / vh)) }))} />
+        <div className="flex shrink-0 items-center overflow-x-auto rounded-[4px] bg-[#1e1e1e] [scrollbar-width:none]">
           <ToolsPanel horizontal />
-          <div className="ml-auto flex shrink-0 gap-1 pr-2 text-[11px] font-semibold text-[#d0d0d0]">
-            <button type="button" onClick={() => A.addEdit(true)} className="rounded px-2 py-1 hover:bg-white/10">
-              Taglia qui
+          <div className="ml-auto flex shrink-0 gap-0.5 pr-1 text-[11px] font-semibold text-[#d0d0d0]">
+            <button type="button" onClick={() => A.togglePlay()} className="rounded px-2 py-1.5 hover:bg-white/10">
+              {st.playing ? "Pausa" : "Play"}
             </button>
-            <button type="button" onClick={() => A.deleteSelection(true)} className="rounded px-2 py-1 hover:bg-white/10">
+            <button type="button" onClick={() => A.addEdit(true)} className="rounded px-2 py-1.5 hover:bg-white/10">
+              Taglia
+            </button>
+            <button type="button" onClick={() => A.deleteSelection(true)} className="rounded px-2 py-1.5 hover:bg-white/10">
               Elimina
             </button>
-            <button type="button" onClick={st.undo} className="rounded px-2 py-1 hover:bg-white/10">
+            <button type="button" onClick={st.undo} className="rounded px-2 py-1.5 hover:bg-white/10">
               Annulla
             </button>
           </div>
         </div>
-        <div className="min-h-0 flex-1">{timelinePanel}</div>
+        {zone("B", "min-h-0 flex-1")}
       </div>
     );
   }
@@ -676,7 +713,8 @@ function PremiereInner() {
       <MenuBar app="Premiere Pro" menus={menus} right={<span className="hidden md:inline">Simulatore SqueakEdit</span>} />
       {header}
       {body}
-      <div className="flex h-6 shrink-0 items-center truncate px-3 text-[11.5px] text-[#bdbdbd]">{TOOL_HINT[st.tool]}</div>
+      {wide && <div className="flex h-6 shrink-0 items-center truncate px-3 text-[11.5px] text-[#bdbdbd]">{TOOL_HINT[st.tool]}</div>}
+      <DragGhost />
       <input
         id="pr-import-input"
         type="file"

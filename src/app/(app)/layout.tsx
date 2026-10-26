@@ -3,6 +3,7 @@ import { Crown } from "lucide-react";
 import { AccountMenu } from "@/components/app/AccountMenu";
 import { Dock } from "@/components/app/Dock";
 import { Splash } from "@/components/app/Splash";
+import { AnnouncementBar, BanGate } from "@/components/app/SiteNotices";
 import { StatsBar } from "@/components/app/StatsBar";
 import { Logo } from "@/components/brand/Logo";
 import { features } from "@/config/features";
@@ -11,6 +12,8 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
   return (
     <div className="min-h-dvh">
       <Splash />
+      <BanGate />
+      <AnnouncementBar />
       <header className="sticky top-0 z-30 border-b border-white/5 bg-app/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
           <Logo href="/learn" size={30} compact />
