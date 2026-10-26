@@ -3,7 +3,7 @@
 import { useRef, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { ChevronDown, ChevronRight, Eye, EyeOff, Lock, LockOpen, Volume2, Type, Square, Film, Layers, CircleDot, Search, Box, LineChart } from "lucide-react";
-import { keyKind, mapKeys, setAt, toggleStopwatch, valueAt, withKind, type Key, type Prop } from "@/lib/studio/anim";
+import { evaluate, inHandle, keyKind, mapKeys, outHandle, setAt, toggleStopwatch, valueAt, withKind, type Key, type Prop } from "@/lib/studio/anim";
 import { BLEND_MODES, getEffect, hexToRgb, rgbToHex } from "@/lib/studio/effects";
 import { AE_LABELS, compOf, getProp, layerProps, shiftLayer, timeOf, useAe, withProp, type Comp, type Layer, type Mask } from "@/lib/studio/ae";
 import type { MenuItemLike } from "@/lib/studio/premiere";
@@ -687,12 +687,16 @@ function TimelineBody({ comp }: { comp: Comp }) {
             }
             if (r.kind === "expr") {
               const p = getProp(r.l, r.path);
-              const res = p?.expr ? valueAt(p, t) : null;
-              void res;
+              const res = p?.expr ? evaluate(p, t, { fps, width: comp.width, height: comp.height, host: { project: st.project, comp, layerId: r.l.id, path: r.path } }) : null;
               return (
                 <div key={r.l.id + r.path + "x"} className="flex border-b border-[#1b1b1b] bg-[#202020]" style={{ minHeight: ROW * 2 }}>
                   <div className="sticky left-0 z-10 flex shrink-0 items-start gap-2 bg-[#202020] py-1 pr-2" style={{ width: LEFT, paddingLeft: INDENT + 3 * 14 }}>
                     <span className="pt-0.5 text-[11px] text-[#e8d43a]">Espressione:</span>
+                    {res?.error && (
+                      <span className="rounded bg-[#e8d43a] px-1.5 py-0.5 text-[10.5px] font-semibold text-black" title={res.error}>
+                        ⚠ {res.error}
+                      </span>
+                    )}
                   </div>
                   <textarea
                     defaultValue={p?.expr}
@@ -708,7 +712,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
             // proprietà
             const l = r.l;
             const p = r.path.includes(".") && !r.path.startsWith("text") && !["s.fill", "s.stroke"].includes(r.path) ? getProp(l, r.path) : undefined;
-            const v = p ? valueAt(p, t, { index: comp.layers.indexOf(l) + 1, fps, width: comp.width, height: comp.height }) : [];
+            const v = p ? valueAt(p, t, { index: comp.layers.indexOf(l) + 1, fps, width: comp.width, height: comp.height, host: { project: st.project, comp, layerId: l.id, path: r.path } }) : [];
             const keys = p?.keys ?? [];
             const onKey = keys.find((k) => Math.abs(k.t - t) < 0.5 / fps);
             const pid = `${l.id}|${r.path}`;
@@ -880,6 +884,7 @@ function mapLayerKeys(l: Layer, ids: Set<string>, dt: number, max: number): Part
 function GraphEditor({ comp, props, pps, top, left: LEFT }: { comp: Comp; props: { l: Layer; path: string; name: string; prop: Prop }[]; pps: number; top: number; left: number }) {
   const st = useAe();
   const [speed, setSpeed] = useState(false);
+  const svg = useRef<SVGSVGElement>(null);
   const H = 260;
   const dt = 1 / comp.fps;
   const curves = props.map(({ l, path, prop }) => {
@@ -895,9 +900,91 @@ function GraphEditor({ comp, props, pps, top, left: LEFT }: { comp: Comp; props:
   });
   const all = speed ? curves.flatMap((c) => c.sp) : curves.flatMap((c) => c.vals.flat());
   const min = speed ? 0 : Math.min(0, ...all);
-  const max = Math.max(1, ...all);
+  const max = Math.max(1, ...all) * (speed ? 1.25 : 1.08);
   const y = (v: number) => H - 20 - ((v - min) / (max - min || 1)) * (H - 40);
+  const yInv = (py: number) => min + ((H - 20 - py) / (H - 40)) * (max - min || 1);
   const colors = ["#ff6b6b", "#5fd38a", "#5aa9ff", "#e8d43a", "#d966d6"];
+
+  // levette di velocità dei fotogrammi chiave selezionati: in orizzontale
+  // l'influenza, in verticale la velocità (come nell'editor grafico di AE)
+  const handles = curves.flatMap((c) => {
+    const ks = c.prop.keys ?? [];
+    const out: ReactNode[] = [];
+    for (let i = 0; i < ks.length - 1; i++) {
+      const a = ks[i];
+      const b = ks[i + 1];
+      if (a.hold) continue;
+      const span = b.t - a.t || 1e-6;
+      const dv = (b.v[0] ?? 0) - (a.v[0] ?? 0);
+      const avgSpeed = Math.hypot(...b.v.map((x, d) => x - (a.v[d] ?? 0))) / span;
+      for (const side of ["out", "in"] as const) {
+        const k = side === "out" ? a : b;
+        if (!st.selectedKeys.includes(k.id)) continue;
+        const h = side === "out" ? outHandle(a) : inHandle(b);
+        const kx = side === "out" ? a.t : b.t;
+        const hx = side === "out" ? a.t + h.inf * span : b.t - h.inf * span;
+        const hy = speed ? y(h.spd * avgSpeed) : side === "out" ? y((a.v[0] ?? 0) + h.inf * h.spd * dv) : y((b.v[0] ?? 0) - h.inf * h.spd * dv);
+        const ky = speed ? hy : y(k.v[0] ?? 0);
+        out.push(
+          <g key={`${k.id}-${side}`}>
+            <line x1={kx * pps} y1={ky} x2={hx * pps} y2={hy} stroke="#e8d43a" strokeWidth="1.2" />
+            <circle
+              cx={hx * pps}
+              cy={hy}
+              r="5"
+              fill="#e8d43a"
+              stroke="#000"
+              className="cursor-move touch-none"
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                const el = e.currentTarget;
+                try {
+                  el.setPointerCapture(e.pointerId);
+                } catch {
+                  /* niente */
+                }
+                st.beginGesture();
+                const move = (ev: PointerEvent) => {
+                  const r = svg.current!.getBoundingClientRect();
+                  const tx = (ev.clientX - r.left) / pps;
+                  const val = yInv(ev.clientY - r.top);
+                  const inf = Math.max(0.01, Math.min(1, side === "out" ? (tx - a.t) / span : (b.t - tx) / span));
+                  let spd: number;
+                  if (speed) spd = avgSpeed ? Math.max(0, Math.min(6, val / avgSpeed)) : 0;
+                  else spd = dv ? Math.max(-3, Math.min(6, (side === "out" ? (val - (a.v[0] ?? 0)) / dv : ((b.v[0] ?? 0) - val) / dv) / inf)) : 0;
+                  st.updateGesture((cmp) => ({
+                    ...cmp,
+                    layers: cmp.layers.map((ly) => {
+                      if (ly.id !== c.l.id) return ly;
+                      const p = getProp(ly, c.path);
+                      if (!p?.keys) return ly;
+                      return withProp(ly, c.path, {
+                        ...p,
+                        keys: p.keys.map((kk) =>
+                          kk.id !== k.id ? kk : side === "out" ? { ...kk, outInf: inf, outSpd: spd, easeOut: spd < 0.05, hold: false } : { ...kk, inInf: inf, inSpd: spd, easeIn: spd < 0.05 },
+                        ),
+                      });
+                    }),
+                  }));
+                };
+                const up = () => {
+                  el.removeEventListener("pointermove", move);
+                  el.removeEventListener("pointerup", up);
+                  el.removeEventListener("pointercancel", up);
+                  st.endGesture("Leva di velocità");
+                };
+                el.addEventListener("pointermove", move);
+                el.addEventListener("pointerup", up);
+                el.addEventListener("pointercancel", up);
+              }}
+            />
+          </g>,
+        );
+      }
+    }
+    return out;
+  });
+
   return (
     <div className="absolute z-20 border-t border-black bg-[#1b1b1b]" style={{ left: LEFT, top, width: comp.duration * pps + 40, height: H + 34 }}>
       <div className="flex items-center gap-3 px-2 py-1 text-[11px] text-[#9a9a9a]">
@@ -907,8 +994,10 @@ function GraphEditor({ comp, props, pps, top, left: LEFT }: { comp: Comp; props:
         <button type="button" onClick={() => setSpeed(true)} className={speed ? "text-white underline" : ""}>
           Grafico velocità
         </button>
-        <span>{props.length ? props.map((p) => `${p.l.name} › ${p.name}`).join(", ") : "Seleziona una proprietà animata (clic sul nome) per vederne la curva"}</span>
-        <span className="ml-auto flex gap-1">
+        <span className="truncate">
+          {props.length ? `${props.map((p) => `${p.l.name} › ${p.name}`).join(", ")} · seleziona un fotogramma chiave e trascina le levette gialle` : "Seleziona una proprietà animata (clic sul nome) per vederne la curva"}
+        </span>
+        <span className="ml-auto flex shrink-0 gap-1">
           {(
             [
               ["Easy Ease", "ease"],
@@ -924,7 +1013,7 @@ function GraphEditor({ comp, props, pps, top, left: LEFT }: { comp: Comp; props:
           ))}
         </span>
       </div>
-      <svg width={comp.duration * pps + 40} height={H} className="block">
+      <svg ref={svg} width={comp.duration * pps + 40} height={H} className="block" onPointerDown={(e) => e.target === e.currentTarget && st.set({ selectedKeys: [] })}>
         {[0.25, 0.5, 0.75].map((f) => (
           <line key={f} x1={0} x2="100%" y1={H * f} y2={H * f} stroke="#2a2a2a" />
         ))}
@@ -935,6 +1024,7 @@ function GraphEditor({ comp, props, pps, top, left: LEFT }: { comp: Comp; props:
             c.vals[0].map((_, d) => <polyline key={ci + "-" + d} points={c.vals.map((v, i) => `${i * dt * pps},${y(v[d])}`).join(" ")} fill="none" stroke={colors[(ci + d) % 5]} strokeWidth="1.6" />)
           ),
         )}
+        {handles}
         {curves.flatMap((c) =>
           (c.prop.keys ?? []).map((k) => {
             const vy = speed ? y(c.sp[Math.min(c.sp.length - 1, Math.round(k.t / dt))]) : y(k.v[0]);
@@ -948,7 +1038,10 @@ function GraphEditor({ comp, props, pps, top, left: LEFT }: { comp: Comp; props:
                 fill={st.selectedKeys.includes(k.id) ? "#3d9cf0" : "#fff"}
                 stroke="#000"
                 className="cursor-pointer"
-                onPointerDown={(e) => st.set({ selectedKeys: e.shiftKey ? [...st.selectedKeys, k.id] : [k.id] })}
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                  st.set({ selectedKeys: e.shiftKey ? [...st.selectedKeys, k.id] : [k.id] });
+                }}
               />
             );
           }),

@@ -5,7 +5,8 @@ import { valueAt } from "@/lib/studio/anim";
 import { BLEND_MODES, getEffect, runEffects } from "@/lib/studio/effects";
 import { fileUrl } from "@/lib/studio/media";
 import { textCss } from "@/lib/studio/text";
-import type { AeProject, Comp, Layer, Mask } from "@/lib/studio/ae";
+import { useAe, type AeProject, type Comp, type Layer, type Mask } from "@/lib/studio/ae";
+import "@/lib/studio/expressions";
 import { FxWrap, MediaContent, SyncedAudio } from "../render";
 import { timecode } from "../chrome";
 
@@ -14,17 +15,19 @@ import { timecode } from "../chrome";
 // composizioni nidificate.
 
 export function layerTransform(l: Layer, t: number, comp: Comp, index: number): { css: CSSProperties; opacity: number; pos: number[]; scale: number[]; rot: number; anchor: number[] } {
-  const ctx = { index, fps: comp.fps, width: comp.width, height: comp.height };
+  const project = useAe.getState().project;
+  // ogni proprietà sa chi è (per thisProperty, value, key()… nelle espressioni)
+  const ctx = (path: string) => ({ index, fps: comp.fps, width: comp.width, height: comp.height, host: { project, comp, layerId: l.id, path } });
   const T = l.transform;
-  const anchor = valueAt(T.anchor, t, ctx);
-  const pos = valueAt(T.position, t, ctx);
-  const scale = valueAt(T.scale, t, ctx);
-  const rot = valueAt(T.rotation, t, ctx)[0];
-  const opacity = valueAt(T.opacity, t, ctx)[0] / 100;
+  const anchor = valueAt(T.anchor, t, ctx("t.anchor"));
+  const pos = valueAt(T.position, t, ctx("t.position"));
+  const scale = valueAt(T.scale, t, ctx("t.scale"));
+  const rot = valueAt(T.rotation, t, ctx("t.rotation"))[0];
+  const opacity = valueAt(T.opacity, t, ctx("t.opacity"))[0] / 100;
   let tr = `translate(${pos[0] - anchor[0]}px, ${pos[1] - anchor[1]}px)`;
   if (l.threeD) {
     const z = pos[2] ?? 0;
-    tr = `translate3d(${pos[0] - anchor[0]}px, ${pos[1] - anchor[1]}px, ${-z}px) rotateX(${valueAt(T.rotX, t, ctx)[0]}deg) rotateY(${valueAt(T.rotY, t, ctx)[0]}deg)`;
+    tr = `translate3d(${pos[0] - anchor[0]}px, ${pos[1] - anchor[1]}px, ${-z}px) rotateX(${valueAt(T.rotX, t, ctx("t.rotX"))[0]}deg) rotateY(${valueAt(T.rotY, t, ctx("t.rotY"))[0]}deg)`;
   }
   tr += ` rotate(${rot}deg) scale(${(scale[0] ?? 100) / 100}, ${(scale[1] ?? scale[0] ?? 100) / 100})`;
   return { css: { transformOrigin: `${anchor[0]}px ${anchor[1]}px`, transform: tr, transformStyle: l.threeD ? "preserve-3d" : undefined }, opacity, pos, scale, rot, anchor };
@@ -133,7 +136,7 @@ export function CompFrame({ comp, project, t, playing = false, depth = 0, transp
     if (l.type === "footage" && l.source && project.media[l.source]?.kind === "audio") continue;
     const tf = layerTransform(l, t, comp, index);
     const fxList = l.fxOn ? l.effects.filter((e) => !getEffect(e.defId)?.audio) : [];
-    const out = runEffects(fxList, { w: l.w || comp.width, h: l.h || comp.height, t, fps: comp.fps, id: `${comp.id}-${l.id}`, name: l.name, timecode: timecode(t, comp.fps) });
+    const out = runEffects(fxList, { w: l.w || comp.width, h: l.h || comp.height, t, fps: comp.fps, id: `${comp.id}-${l.id}`, name: l.name, timecode: timecode(t, comp.fps), host: { project, comp, layerId: l.id } });
     const mask = maskImage(l.masks, l.w, l.h, t);
     if (l.type === "adjustment") {
       const content = below;

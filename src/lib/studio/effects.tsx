@@ -20,6 +20,8 @@ export interface ParamDef {
   options?: string[];
   /** non animabile (es. un menu) */
   static?: boolean;
+  /** nomi inglesi usati nelle espressioni, es. effect("Slider Control")("Slider") */
+  aliases?: string[];
 }
 
 export interface FxCtx {
@@ -30,6 +32,8 @@ export interface FxCtx {
   id: string;
   name: string;
   timecode: string;
+  /** contesto per le espressioni sui parametri (After Effects) */
+  host?: { project: unknown; comp: unknown; layerId: string; effectIndex?: number };
 }
 
 export interface FxOut {
@@ -63,7 +67,8 @@ export type Category =
   | "Trasforma"
   | "Transizione"
   | "Utilità"
-  | "Video";
+  | "Video"
+  | "Controlli per espressioni";
 
 export interface EffectDef {
   id: string;
@@ -75,6 +80,7 @@ export interface EffectDef {
   only?: "pr" | "ae";
   params: ParamDef[];
   render?: (p: Record<string, number[]>, c: FxCtx, out: FxOut) => void;
+  aliases?: string[];
 }
 
 export interface EffectInstance {
@@ -143,7 +149,16 @@ function cornerPin(w: number, h: number, p: number[][]) {
 
 // ---- catalogo degli effetti -------------------------------------------------------
 
+const withAlias = (p: ParamDef, ...aliases: string[]): ParamDef => ({ ...p, aliases });
+
 export const EFFECTS: EffectDef[] = [
+  // Controlli per espressioni (solo After Effects): servono a collegare valori con effect("…")("…")
+  { id: "x-slider", name: "Controllo cursore", aliases: ["Slider Control"], category: "Controlli per espressioni", only: "ae", params: [withAlias(num("slider", "Cursore", 0, -1000000, 1000000, 0.1), "Slider")] },
+  { id: "x-angle", name: "Controllo angolo", aliases: ["Angle Control"], category: "Controlli per espressioni", only: "ae", params: [withAlias(ang("angle", "Angolo", 0), "Angle")] },
+  { id: "x-check", name: "Controllo casella di controllo", aliases: ["Checkbox Control"], category: "Controlli per espressioni", only: "ae", params: [withAlias({ ...chk("check", "Casella di controllo"), static: false }, "Checkbox")] },
+  { id: "x-color", name: "Controllo colore", aliases: ["Color Control"], category: "Controlli per espressioni", only: "ae", params: [withAlias(col("color", "Colore", "#ff0000"), "Color")] },
+  { id: "x-point", name: "Controllo punto", aliases: ["Point Control"], category: "Controlli per espressioni", only: "ae", params: [withAlias(pt("point", "Punto", 0.5, 0.5), "Point")] },
+
   // Regolazione / Correzione colore
   {
     id: "lumetri",
@@ -300,8 +315,9 @@ export const EFFECTS: EffectDef[] = [
   {
     id: "gaussian",
     name: "Sfocatura gaussiana",
+    aliases: ["Gaussian Blur"],
     category: "Sfocatura e nitidezza",
-    params: [num("blur", "Sfocatura", 0, 0, 1000, 0.5), sel("dim", "Dimensioni sfocatura", ["Orizzontale e verticale", "Orizzontale", "Verticale"]), chk("repeat", "Ripeti pixel bordi")],
+    params: [withAlias(num("blur", "Sfocatura", 0, 0, 1000, 0.5), "Blurriness"), sel("dim", "Dimensioni sfocatura", ["Orizzontale e verticale", "Orizzontale", "Verticale"]), chk("repeat", "Ripeti pixel bordi")],
     render: (p, c, out) => {
       const b = p.blur[0] / 2;
       if (!b) return;
@@ -1003,7 +1019,13 @@ export function runEffects(list: EffectInstance[], c: FxCtx): FxOut {
     const def = getEffect(fx.defId);
     if (!fx.enabled || !def?.render) continue;
     const vals: Record<string, number[]> = {};
-    for (const p of def.params) vals[p.id] = fx.params[p.id] ? valueAt(fx.params[p.id], c.t) : typeof p.default === "function" ? p.default(c.w, c.h) : p.default;
+    const idx = list.indexOf(fx);
+    for (const p of def.params)
+      vals[p.id] = fx.params[p.id]
+        ? valueAt(fx.params[p.id], c.t, c.host ? { host: { project: c.host.project, comp: c.host.comp, layerId: c.host.layerId, path: `e.${c.host.effectIndex ?? idx}.${p.id}` } } : undefined)
+        : typeof p.default === "function"
+          ? p.default(c.w, c.h)
+          : p.default;
     def.render(vals, { ...c, id: `${c.id}-${fx.id}` }, out);
   }
   return out;
@@ -1069,7 +1091,8 @@ export const TRANSITIONS: TransitionDef[] = [
 
 export const getTransition = (id: string) => TRANSITIONS.find((t) => t.id === id);
 
-export const EFFECT_CATEGORIES: Category[] = ["Canale", "Correzione colore", "Distorsione", "Disturbo e granulosità", "Genera", "Keying", "Prospettiva", "Regolazione", "Sfocatura e nitidezza", "Stilizza", "Tempo", "Trasforma", "Transizione", "Utilità", "Video"];
+export const EFFECT_CATEGORIES: Category[] = [
+  "Controlli per espressioni","Canale", "Correzione colore", "Distorsione", "Disturbo e granulosità", "Genera", "Keying", "Prospettiva", "Regolazione", "Sfocatura e nitidezza", "Stilizza", "Tempo", "Trasforma", "Transizione", "Utilità", "Video"];
 export const TRANSITION_CATEGORIES: TransitionCategory[] = ["Dissolvenza", "Diapositiva", "Iris", "Movimento 3D", "Pagina", "Tendina", "Zoom"];
 
 export const BLEND_MODES: [string, CSSProperties["mixBlendMode"]][] = [

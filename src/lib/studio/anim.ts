@@ -11,6 +11,15 @@ export interface Key {
   easeIn: boolean;
   easeOut: boolean;
   hold: boolean;
+  /**
+   * Maniglie di velocità (come nell'Editor grafico di After Effects):
+   * influenza 0–1 della maniglia e velocità normalizzata (0 = si ferma sul
+   * keyframe, 1 = velocità costante). Se mancano si ricavano da easeIn/easeOut.
+   */
+  inInf?: number;
+  outInf?: number;
+  inSpd?: number;
+  outSpd?: number;
 }
 
 export interface Prop {
@@ -33,13 +42,13 @@ export function withKind(k: Key, kind: KeyKind): Key {
     case "hold":
       return { ...k, hold: true };
     case "ease":
-      return { ...k, hold: false, easeIn: true, easeOut: true };
+      return { ...k, hold: false, easeIn: true, easeOut: true, inInf: undefined, outInf: undefined, inSpd: undefined, outSpd: undefined };
     case "easeIn":
-      return { ...k, hold: false, easeIn: true };
+      return { ...k, hold: false, easeIn: true, inInf: undefined, inSpd: undefined };
     case "easeOut":
-      return { ...k, hold: false, easeOut: true };
+      return { ...k, hold: false, easeOut: true, outInf: undefined, outSpd: undefined };
     default:
-      return { ...k, hold: false, easeIn: false, easeOut: false };
+      return { ...k, hold: false, easeIn: false, easeOut: false, inInf: undefined, outInf: undefined, inSpd: undefined, outSpd: undefined };
   }
 }
 
@@ -49,6 +58,31 @@ export function ease(p: number, out: boolean, inn: boolean) {
   if (out) return p * p;
   if (inn) return 1 - (1 - p) * (1 - p);
   return p;
+}
+
+/** Maniglie effettive di un keyframe (influenza e velocità normalizzata). */
+export const outHandle = (k: Key) => ({ inf: k.outInf ?? 1 / 3, spd: k.outSpd ?? (k.easeOut ? 0 : 1) });
+export const inHandle = (k: Key) => ({ inf: k.inInf ?? 1 / 3, spd: k.inSpd ?? (k.easeIn ? 0 : 1) });
+
+/** Bézier temporale tra due keyframe: dal tempo normalizzato p all'avanzamento del valore. */
+export function segmentProgress(a: Key, b: Key, p: number) {
+  const o = outHandle(a);
+  const i = inHandle(b);
+  const x1 = Math.min(1, Math.max(0.001, o.inf));
+  const y1 = x1 * o.spd;
+  const x2 = 1 - Math.min(1, Math.max(0.001, i.inf));
+  const y2 = 1 - (1 - x2) * i.spd;
+  const bx = (u: number) => 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u;
+  const by = (u: number) => 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+  // si cerca u tale che x(u) = p (bisezione: robusta anche con maniglie strane)
+  let lo = 0;
+  let hi = 1;
+  for (let k = 0; k < 28; k++) {
+    const mid = (lo + hi) / 2;
+    if (bx(mid) < p) lo = mid;
+    else hi = mid;
+  }
+  return by((lo + hi) / 2);
 }
 
 export function keyedValue(p: Prop, t: number): number[] {
@@ -62,7 +96,7 @@ export function keyedValue(p: Prop, t: number): number[] {
   const a = ks[i];
   const b = ks[i + 1];
   if (a.hold) return a.v;
-  const q = ease((t - a.t) / (b.t - a.t), a.easeOut, b.easeIn);
+  const q = segmentProgress(a, b, (t - a.t) / (b.t - a.t));
   return a.v.map((x, d) => x + ((b.v[d] ?? x) - x) * q);
 }
 
@@ -82,6 +116,8 @@ function noise1(x: number, seed: number) {
 
 export interface ExprCtx {
   time: number;
+  /** contesto della composizione (livello, proprietà) per il motore completo */
+  host?: unknown;
   index?: number;
   fps?: number;
   width?: number;
@@ -155,7 +191,20 @@ export function evalExpr(p: Prop, ctx: ExprCtx): { value: number[]; error: strin
   }
 }
 
-export const valueAt = (p: Prop, t: number, ctx?: Omit<ExprCtx, "time">) => (p.expr ? evalExpr(p, { ...ctx, time: t }).value : keyedValue(p, t));
+/** Motore completo delle espressioni (registrato da After Effects): riceve anche la composizione. */
+export type ExprEngine = (p: Prop, t: number, ctx: Omit<ExprCtx, "time">) => { value: number[]; error: string | null };
+let engine: ExprEngine | null = null;
+export const setExpressionEngine = (e: ExprEngine) => {
+  engine = e;
+};
+
+export function evaluate(p: Prop, t: number, ctx?: Omit<ExprCtx, "time">) {
+  if (!p.expr) return { value: keyedValue(p, t), error: null };
+  if (engine && ctx?.host) return engine(p, t, ctx);
+  return evalExpr(p, { ...ctx, time: t });
+}
+
+export const valueAt = (p: Prop, t: number, ctx?: Omit<ExprCtx, "time">) => (p.expr ? evaluate(p, t, ctx).value : keyedValue(p, t));
 
 // ---- modifiche --------------------------------------------------------------
 
