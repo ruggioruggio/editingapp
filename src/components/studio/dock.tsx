@@ -7,72 +7,108 @@ import { Menu as MenuIcon, X } from "lucide-react";
 import { ContextMenu } from "./chrome";
 import type { MenuItemLike } from "@/lib/studio/premiere";
 
-// Pannelli agganciabili come nei programmi Adobe: ogni zona ha le sue schede e
-// una scheda si sposta in un'altra zona trascinandola (col mouse) oppure
-// tenendola premuta e scegliendo dove metterla (dal telefono). La disposizione
-// resta salvata nel dispositivo.
+// Pannelli agganciabili come nei programmi Adobe: ogni zona ha le sue schede.
+// Una scheda si sposta trascinandola su un'altra zona (col mouse subito, col
+// dito dopo averla tenuta premuta un attimo). Col tasto destro (o tenendo
+// premuto senza muoversi) si chiude; si riapre dal menu Finestra.
+// La disposizione resta salvata nel dispositivo.
 
 export type Zones = Record<string, { tabs: string[]; active: string }>;
+interface Saved {
+  zones: Zones;
+  closed: string[];
+}
 
 export function useDockLayout(storageKey: string, defaults: Zones, available: string[]) {
   const sanitize = useCallback(
-    (z: Zones): Zones => {
+    (z: Zones, closed: string[]): Saved => {
       const out: Zones = {};
       const seen = new Set<string>();
+      const shut = closed.filter((t) => available.includes(t));
       for (const id of Object.keys(defaults)) {
-        const tabs = (z[id]?.tabs ?? []).filter((t) => available.includes(t) && !seen.has(t));
+        const tabs = (z[id]?.tabs ?? []).filter((t) => available.includes(t) && !seen.has(t) && !shut.includes(t));
         tabs.forEach((t) => seen.add(t));
         out[id] = { tabs, active: tabs.includes(z[id]?.active) ? z[id].active : tabs[0] ?? "" };
       }
-      // pannelli nuovi o persi tornano nella loro zona predefinita
+      // pannelli nuovi o persi (e non chiusi apposta) tornano nella loro zona
       for (const [id, d] of Object.entries(defaults))
         for (const t of d.tabs)
-          if (!seen.has(t) && available.includes(t)) {
+          if (!seen.has(t) && !shut.includes(t) && available.includes(t)) {
             out[id].tabs.push(t);
             seen.add(t);
             if (!out[id].active) out[id].active = t;
           }
-      return out;
+      return { zones: out, closed: shut };
     },
     [defaults, available],
   );
-  const [zones, setZones] = useState<Zones>(() => {
+  const [state, setState] = useState<Saved>(() => {
     try {
       const raw = localStorage.getItem(storageKey);
-      if (raw) return sanitize(JSON.parse(raw) as Zones);
+      if (raw) {
+        const s = JSON.parse(raw) as Saved;
+        return sanitize(s.zones ?? {}, s.closed ?? []);
+      }
     } catch {
       /* layout predefinito */
     }
-    return sanitize(defaults);
+    return sanitize(defaults, []);
   });
   useEffect(() => {
     try {
-      localStorage.setItem(storageKey, JSON.stringify(zones));
+      localStorage.setItem(storageKey, JSON.stringify(state));
     } catch {
       /* niente */
     }
-  }, [zones, storageKey]);
+  }, [state, storageKey]);
+
+  const zones = state.zones;
+  const setZones = (fn: (z: Zones) => Zones) => setState((s) => ({ ...s, zones: fn(s.zones) }));
+  const homeOf = (tab: string) => Object.keys(defaults).find((k) => defaults[k].tabs.includes(tab)) ?? Object.keys(defaults)[0];
 
   const move = useCallback((tab: string, to: string, index?: number) => {
-    setZones((z) => {
+    setState((s) => {
+      const z = s.zones;
       const from = Object.keys(z).find((k) => z[k].tabs.includes(tab));
-      if (!from || !z[to]) return z;
+      if (!from || !z[to]) return s;
       const next: Zones = Object.fromEntries(Object.entries(z).map(([k, v]) => [k, { ...v, tabs: v.tabs.filter((t) => t !== tab) }]));
       const tabs = [...next[to].tabs];
       tabs.splice(index ?? tabs.length, 0, tab);
       next[to] = { tabs, active: tab };
       if (from !== to && next[from].active === tab) next[from].active = next[from].tabs[0] ?? "";
-      return next;
+      return { ...s, zones: next };
     });
   }, []);
-  const activate = useCallback((zone: string, tab: string) => setZones((z) => ({ ...z, [zone]: { ...z[zone], active: tab } })), []);
-  /** porta in primo piano la scheda, ovunque sia */
-  const show = useCallback((tab: string) => setZones((z) => {
-    const k = Object.keys(z).find((id) => z[id].tabs.includes(tab));
-    return k ? { ...z, [k]: { ...z[k], active: tab } } : z;
-  }), []);
-  const reset = useCallback(() => setZones(sanitize(defaults)), [defaults, sanitize]);
-  return { zones, move, activate, show, reset };
+  const activate = useCallback((zone: string, tab: string) => setState((s) => ({ ...s, zones: { ...s.zones, [zone]: { ...s.zones[zone], active: tab } } })), []);
+  /** porta in primo piano la scheda (riaprendola se era chiusa) */
+  const show = useCallback(
+    (tab: string) =>
+      setState((s) => {
+        const k = Object.keys(s.zones).find((id) => s.zones[id].tabs.includes(tab));
+        if (k) return { ...s, zones: { ...s.zones, [k]: { ...s.zones[k], active: tab } } };
+        if (!available.includes(tab)) return s;
+        const home = homeOf(tab);
+        return { closed: s.closed.filter((t) => t !== tab), zones: { ...s.zones, [home]: { tabs: [...s.zones[home].tabs, tab], active: tab } } };
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [available, defaults],
+  );
+  const close = useCallback((tab: string) => {
+    setState((s) => {
+      const zones2: Zones = Object.fromEntries(
+        Object.entries(s.zones).map(([k, v]) => {
+          const tabs = v.tabs.filter((t) => t !== tab);
+          return [k, { tabs, active: v.active === tab ? tabs[0] ?? "" : v.active }];
+        }),
+      );
+      return { zones: zones2, closed: [...new Set([...s.closed, tab])] };
+    });
+  }, []);
+  const isOpen = (tab: string) => Object.values(zones).some((z) => z.tabs.includes(tab));
+  const toggle = (tab: string) => (isOpen(tab) ? close(tab) : show(tab));
+  const reset = useCallback(() => setState(sanitize(defaults, [])), [defaults, sanitize]);
+  void setZones;
+  return { zones, move, activate, show, close, isOpen, toggle, reset, available };
 }
 
 const useDrag = create<{ tab: string | null; label: string; x: number; y: number; over: string | null }>(() => ({ tab: null, label: "", x: 0, y: 0, over: null }));
@@ -85,6 +121,15 @@ export function DragGhost() {
       {d.label}
     </div>
   );
+}
+
+/** Voci del menu Finestra: un segno di spunta per ogni pannello aperto. */
+export function windowMenu(layout: ReturnType<typeof useDockLayout>, labels: Record<string, string>): MenuItemLike[] {
+  return [
+    ...layout.available.map((t) => ({ label: labels[t] ?? t, checked: layout.isOpen(t), action: () => layout.toggle(t) })),
+    "-",
+    { label: "Ripristina disposizione pannelli", action: layout.reset },
+  ];
 }
 
 export function DockZone({
@@ -115,44 +160,66 @@ export function DockZone({
   const [m, setM] = useState<{ x: number; y: number; tab: string; panel?: boolean } | null>(null);
   if (!zone) return null;
 
-  const moveMenu = (tab: string): MenuItemLike[] => [
+  const tabMenu = (tab: string): MenuItemLike[] => [
+    { label: "Chiudi pannello", action: () => layout.close(tab) },
     {
       label: "Sposta pannello in",
       sub: Object.keys(layout.zones)
         .filter((z) => z !== id)
         .map((z) => ({ label: zoneNames[z] ?? z, action: () => layout.move(tab, z) })),
     },
+    "-",
     { label: "Ripristina disposizione pannelli", action: layout.reset },
   ];
 
   const startDrag = (e: React.PointerEvent, tab: string) => {
     if (e.button !== 0) return;
+    const el = e.currentTarget as HTMLElement;
     const x0 = e.clientX;
     const y0 = e.clientY;
     const touch = e.pointerType !== "mouse";
+    let armed = !touch;
     let dragging = false;
-    // dal telefono: tieni premuto per scegliere dove spostare la scheda
-    const timer = touch ? setTimeout(() => setM({ x: x0, y: y0, tab }), 550) : undefined;
+    const block = (ev: TouchEvent) => ev.preventDefault();
+    // col dito: tenendo premuto la scheda "si stacca" e si può trascinare
+    const timer = touch
+      ? setTimeout(() => {
+          armed = true;
+          document.addEventListener("touchmove", block, { passive: false });
+          try {
+            el.setPointerCapture(e.pointerId);
+          } catch {
+            /* niente */
+          }
+          navigator.vibrate?.(15);
+          useDrag.setState({ tab, label: labels[tab] ?? tab, x: x0, y: y0, over: id });
+        }, 380)
+      : undefined;
     const move = (ev: PointerEvent) => {
-      if (touch) {
+      if (!armed) {
         if (Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) clearTimeout(timer);
         return;
       }
       if (!dragging && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 8) return;
       dragging = true;
-      const el = document.elementFromPoint(ev.clientX, ev.clientY)?.closest<HTMLElement>("[data-dock-zone]");
-      useDrag.setState({ tab, label: labels[tab] ?? tab, x: ev.clientX, y: ev.clientY, over: el?.dataset.dockZone ?? null });
+      const target = document.elementFromPoint(ev.clientX, ev.clientY)?.closest<HTMLElement>("[data-dock-zone]");
+      useDrag.setState({ tab, label: labels[tab] ?? tab, x: ev.clientX, y: ev.clientY, over: target?.dataset.dockZone ?? null });
     };
     const up = () => {
       clearTimeout(timer);
+      document.removeEventListener("touchmove", block);
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
       const target = useDrag.getState().over;
-      if (dragging && target) layout.move(tab, target);
       useDrag.setState({ tab: null, over: null });
+      if (dragging && target) layout.move(tab, target);
+      // tenuta premuta senza spostarsi: menu con Chiudi / Sposta
+      else if (touch && armed) setM({ x: x0, y: y0, tab });
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   };
 
   const active = zone.active;
@@ -172,10 +239,11 @@ export function DockZone({
               onClick={() => layout.activate(id, t)}
               onContextMenu={(e) => {
                 e.preventDefault();
+                if (e.nativeEvent instanceof PointerEvent && e.nativeEvent.pointerType === "touch") return;
                 setM({ x: e.clientX, y: e.clientY, tab: t });
               }}
-              title="Trascina la scheda in un altro pannello per spostarla"
-              className={clsx("select-none whitespace-nowrap", t === active ? "text-white underline decoration-1 underline-offset-[5px]" : "text-[#bdbdbd] hover:text-white")}
+              title="Trascina per spostare · tasto destro per chiudere"
+              className={clsx("touch-pan-x select-none whitespace-nowrap [-webkit-touch-callout:none]", t === active ? "text-white underline decoration-1 underline-offset-[5px]" : "text-[#bdbdbd] hover:text-white")}
             >
               {labels[t] ?? t}
             </button>
@@ -195,19 +263,12 @@ export function DockZone({
             <span>
               Pannello vuoto: trascina qui una scheda
               <br />
-              (dal telefono tieni premuta una scheda)
+              oppure riaprila dal menu Finestra
             </span>
           </div>
         )}
       </div>
-      {m && (
-        <ContextMenu
-          x={m.x}
-          y={m.y}
-          items={[...(m.panel && menu ? [...menu(m.tab), "-" as const] : []), ...moveMenu(m.tab)]}
-          onClose={() => setM(null)}
-        />
-      )}
+      {m && <ContextMenu x={m.x} y={m.y} items={[...(m.panel && menu ? [...menu(m.tab), "-" as const] : []), ...tabMenu(m.tab)]} onClose={() => setM(null)} />}
     </section>
   );
 }

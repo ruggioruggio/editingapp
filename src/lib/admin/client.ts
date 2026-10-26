@@ -59,6 +59,31 @@ async function verifyLocal(password: string): Promise<boolean> {
   return diff === 0;
 }
 
+// Dopo aver inserito la password, per 10 minuti il pannello si riapre senza chiederla.
+const GRACE_KEY = "squeak-admin-grace";
+const GRACE_MS = 10 * 60_000;
+export function markGrace() {
+  try {
+    localStorage.setItem(GRACE_KEY, String(Date.now() + GRACE_MS));
+  } catch {
+    /* niente */
+  }
+}
+export function graceActive() {
+  try {
+    return Number(localStorage.getItem(GRACE_KEY) ?? 0) > Date.now();
+  } catch {
+    return false;
+  }
+}
+function clearGrace() {
+  try {
+    localStorage.removeItem(GRACE_KEY);
+  } catch {
+    /* niente */
+  }
+}
+
 /** Chiede al server se la sessione admin è ancora valida. */
 export async function checkSession() {
   try {
@@ -79,6 +104,7 @@ export async function adminLogin(password: string): Promise<string | null> {
       const j = (await r.json()) as { ok?: boolean; error?: string; database?: boolean };
       if (j.ok) {
         useAdmin.setState({ unlocked: true, mode: "server", database: !!j.database });
+        markGrace();
         return null;
       }
       return j.error ?? "Accesso negato";
@@ -88,12 +114,14 @@ export async function adminLogin(password: string): Promise<string | null> {
   }
   if (await verifyLocal(password)) {
     useAdmin.setState({ unlocked: true, mode: "local", database: false });
+    markGrace();
     return null;
   }
   return PREVIEW_HASH ? "Password sbagliata" : "Server non raggiungibile";
 }
 
 export async function adminLogout() {
+  clearGrace();
   try {
     await fetch("/api/admin/login", { method: "DELETE" });
   } catch {

@@ -3,14 +3,19 @@
 import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Gavel, X } from "lucide-react";
-import { adminAction, adminLogout, useAdmin } from "@/lib/admin/client";
+import { adminAction, checkSession, graceActive, useAdmin } from "@/lib/admin/client";
 import { AdminPanel } from "./AdminPanel";
 
-// Apre il pannello admin con AltGr + Maiusc + ù + à (tastiera italiana) o
-// toccando 7 volte il logo dal telefono. Gestisce anche il ban rapido.
+// Apre il pannello admin con Alt + L (il tasto Fn non arriva al browser, quindi
+// funziona anche Alt + Fn + L) o toccando 7 volte il logo. Gestisce anche il ban rapido.
 
-// ogni apertura chiede di nuovo la password (la sessione precedente viene chiusa)
-const openPanel = () => {
+// nei 10 minuti dopo l'ultimo uso non chiede la password; poi sì
+export const openPanel = () => {
+  if (graceActive()) {
+    useAdmin.setState({ open: true });
+    if (!useAdmin.getState().unlocked) void checkSession();
+    return;
+  }
   useAdmin.setState({ open: true, unlocked: false, mode: null });
   void fetch("/api/admin/login", { method: "DELETE" }).catch(() => {});
 };
@@ -19,22 +24,10 @@ export function AdminGate() {
   const { open, quickBan } = useAdmin();
 
   useEffect(() => {
-    const down = new Set<string>();
-    // ultimo momento in cui sono stati premuti ù e à (non serve tenerli giù insieme:
-    // molte tastiere non registrano 4 tasti vicini nello stesso istante)
-    const last = { u: 0, a: 0 };
     const onKey = (e: KeyboardEvent) => {
-      down.add(e.code);
-      const now = Date.now();
-      // sulla tastiera italiana "ù" è il tasto Backslash e "à" il tasto Quote
-      const isU = e.code === "Backslash" || ["ù", "§", "`", "Dead"].includes(e.key) && e.code !== "Quote";
-      const isA = e.code === "Quote" || ["à", "°", "#"].includes(e.key);
-      if (isU) last.u = now;
-      if (isA) last.a = now;
-      const altGr = e.getModifierState?.("AltGraph") || e.altKey || down.has("AltRight");
-      if ((isU || isA) && altGr && e.shiftKey && Math.abs(last.u - last.a) < 1500) {
+      // Alt + L (su Mac Opzione + L): si guarda il tasto fisico, non la lettera prodotta
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === "KeyL") {
         e.preventDefault();
-        last.u = last.a = 0;
         openPanel();
         return;
       }
@@ -45,29 +38,26 @@ export function AdminGate() {
         else openPanel();
       }
     };
-    const onUp = (e: KeyboardEvent) => down.delete(e.code);
-    const clear = () => down.clear();
-    // 7 tocchi veloci sul logo
+    // 7 tocchi sul logo entro 4 secondi (contati alla pressione: i doppi tocchi
+    // veloci su telefono non generano tutti i "click")
     let taps: number[] = [];
-    const onClick = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement | null)?.closest?.("[data-admin-tap]")) return;
+    const onTap = (e: PointerEvent) => {
+      if (!(e.target as HTMLElement | null)?.closest?.("[data-admin-tap]")) {
+        taps = [];
+        return;
+      }
       const now = Date.now();
-      taps = [...taps.filter((t) => now - t < 3000), now];
+      taps = [...taps.filter((t) => now - t < 4000), now];
       if (taps.length >= 7) {
         taps = [];
-        e.preventDefault();
         openPanel();
       }
     };
     window.addEventListener("keydown", onKey, true);
-    window.addEventListener("keyup", onUp, true);
-    window.addEventListener("blur", clear);
-    document.addEventListener("click", onClick, true);
+    document.addEventListener("pointerdown", onTap, true);
     return () => {
       window.removeEventListener("keydown", onKey, true);
-      window.removeEventListener("keyup", onUp, true);
-      window.removeEventListener("blur", clear);
-      document.removeEventListener("click", onClick, true);
+      document.removeEventListener("pointerdown", onTap, true);
     };
   }, []);
 

@@ -9,7 +9,7 @@ import { EFFECTS, EFFECT_CATEGORIES } from "@/lib/studio/effects";
 import { restoreFiles } from "@/lib/studio/media";
 import { compOf, useAe, type AeTool } from "@/lib/studio/ae";
 import { ContextMenu, Gutter, MenuBar, Toast, useWide, type Menu } from "../chrome";
-import { CloseX, DockZone, DragGhost, useDockLayout, type Zones } from "../dock";
+import { CloseX, DockZone, DragGhost, useDockLayout, windowMenu, type Zones } from "../dock";
 import { AeTimeline } from "./AeTimeline";
 import { Viewer } from "./Viewer";
 import { AeAlign, AeCharacter, AeEffectControls, AeEffectsPresets, AeProjectPanel, AeProperties, AeTracker, applyAePreset, openAeImport } from "./Panels";
@@ -34,9 +34,9 @@ const PANEL_LABEL: Record<string, string> = {
   timeline: "Timeline",
 };
 const DESK_ZONES: Zones = {
-  LEFT: { tabs: ["project", "effectControls", "effects", "properties", "character", "align", "tracker"], active: "project" },
+  LEFT: { tabs: ["project", "effectControls", "effects", "properties", "character", "align"], active: "project" },
   RIGHT: { tabs: ["composition"], active: "composition" },
-  BOTTOM: { tabs: ["queue", "timeline"], active: "timeline" },
+  BOTTOM: { tabs: ["timeline"], active: "timeline" },
 };
 const DESK_PANELS = Object.values(DESK_ZONES).flatMap((z) => z.tabs);
 const DESK_ZONE_NAMES = { LEFT: "In alto a sinistra", RIGHT: "In alto a destra", BOTTOM: "In basso" };
@@ -165,8 +165,8 @@ function AeInner() {
   const st = useAe();
   const wide = useWide();
   const comp = compOf(st);
-  const desk = useDockLayout("ae-dock-desktop-v1", DESK_ZONES, DESK_PANELS);
-  const phone = useDockLayout("ae-dock-phone-v1", PHONE_ZONES, PHONE_PANELS);
+  const desk = useDockLayout("ae-dock-desktop-v2", DESK_ZONES, DESK_PANELS);
+  const phone = useDockLayout("ae-dock-phone-v2", PHONE_ZONES, PHONE_PANELS);
   const layout = wide ? desk : phone;
   const [sizes, setSizes] = useState({ top: 0.6, left: 0.48 });
   const [vw, setVw] = useState(1400);
@@ -342,7 +342,7 @@ function AeInner() {
         { label: "Mostra modalità", keys: "F4", checked: st.modes, action: () => st.set({ modes: !st.modes }) },
       ],
     },
-    { label: "Finestra", items: [...Object.entries(PANEL_LABEL).map(([id, n]) => ({ label: n, action: () => layout.show(id) })), "-", { label: "Ripristina disposizione pannelli", action: layout.reset }] },
+    { label: "Finestra", items: windowMenu(layout, PANEL_LABEL) },
     { label: "Aiuto", items: [{ label: "Scelte rapide da tastiera", action: () => st.set({ dialog: { type: "keys" } }) }, { label: "Torna alle lezioni di SqueakEdit", action: () => (window.location.href = "/learn") }] },
   ];
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import {
@@ -51,6 +51,16 @@ export function LearnPath() {
   const [open, setOpen] = useState<string>(currentSection.id);
   const [selected, setSelected] = useState<string | null>(null);
 
+  // un tocco in un punto qualsiasi fuori dalla lezione aperta la chiude
+  useEffect(() => {
+    if (!selected) return;
+    const close = (e: PointerEvent) => {
+      if (!(e.target as Element | null)?.closest?.("[data-lesson-node]")) setSelected(null);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [selected]);
+
   return (
     <div className="space-y-4">
       {sections.map((section, i) => (
@@ -100,7 +110,8 @@ function SectionBlock({
 
   return (
     // la cornice serve solo sul telefono; su web e desktop la sezione resta "aperta"
-    <section className="overflow-hidden rounded-3xl border border-line bg-panel/60 md:border-0 md:bg-transparent">
+    // niente overflow-hidden: il riquadro dell'ultima lezione non deve essere tagliato
+    <section className="rounded-3xl border border-line bg-panel/60 md:border-0 md:bg-transparent">
       <button type="button" onClick={onToggle} className="flex w-full items-center gap-4 p-5 text-left">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-black uppercase tracking-widest" style={{ color: section.color }}>
@@ -185,7 +196,7 @@ function LessonNode({
   const Icon = locked ? Lock : done ? Check : KIND_ICON[lesson.kind];
 
   return (
-    <div className="flex flex-col items-center">
+    <div data-lesson-node className="flex flex-col items-center">
       {current && !selected && (
         <div className="animate-pop mb-2 flex items-center gap-1 rounded-xl border border-line bg-panel-2 px-3 py-1 text-xs font-black">
           <Mascot size={30} idle /> INIZIA

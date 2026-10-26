@@ -8,7 +8,7 @@ import { useHydrated } from "@/lib/hooks/useHydrated";
 import { restoreFiles } from "@/lib/studio/media";
 import { playheadOf, seqOf, usePremiere, type PanelId, type PrTool } from "@/lib/studio/premiere";
 import { ContextMenu, Gutter, MenuBar, Panel, Toast, useWide, type Menu } from "../chrome";
-import { CloseX, DockZone, DragGhost, useDockLayout, type Zones } from "../dock";
+import { CloseX, DockZone, DragGhost, useDockLayout, windowMenu, type Zones } from "../dock";
 import type { MenuItemLike } from "@/lib/studio/premiere";
 import { ProgramMonitor, SourceMonitor } from "./Monitors";
 import { AudioMixer, EffectControls, EssentialGraphics, Metadata, PropertiesPanel, TextPanel } from "./Inspectors";
@@ -41,16 +41,17 @@ const PANEL_LABEL: Record<string, string> = {
   history: "Cronologia",
   timeline: "Timeline",
 };
+// solo i pannelli che servono davvero (niente browser multimediale, librerie,
+// metadati, mixer e indicatori audio): gli altri si chiudono e riaprono da Finestra
 const DESK_ZONES: Zones = {
-  TL: { tabs: ["source", "effectControls", "mixer", "metadata"], active: "source" },
+  TL: { tabs: ["source", "effectControls"], active: "source" },
   TC: { tabs: ["program"], active: "program" },
-  TR: { tabs: ["properties", "graphics", "text"], active: "properties" },
-  BL: { tabs: ["project", "media", "libraries", "info", "effects", "history"], active: "project" },
+  TR: { tabs: ["properties", "graphics"], active: "properties" },
+  BL: { tabs: ["project", "effects", "history"], active: "project" },
   BR: { tabs: ["timeline"], active: "timeline" },
 };
 const DESK_PANELS = Object.values(DESK_ZONES).flatMap((z) => z.tabs);
 const DESK_ZONE_NAMES = { TL: "In alto a sinistra", TC: "In alto al centro", TR: "In alto a destra", BL: "In basso a sinistra", BR: "In basso (timeline)" };
-// dal telefono niente browser multimediale, librerie, metadati né mixer audio
 const PHONE_ZONES: Zones = {
   A: { tabs: ["program", "project", "effectControls", "source", "effects", "properties", "graphics", "history"], active: "program" },
   B: { tabs: ["timeline"], active: "timeline" },
@@ -286,8 +287,8 @@ export function PremiereStudio() {
 function PremiereInner() {
   const st = usePremiere();
   const wide = useWide();
-  const desk = useDockLayout("pr-dock-desktop-v1", DESK_ZONES, DESK_PANELS);
-  const phone = useDockLayout("pr-dock-phone-v1", PHONE_ZONES, PHONE_PANELS);
+  const desk = useDockLayout("pr-dock-desktop-v2", DESK_ZONES, DESK_PANELS);
+  const phone = useDockLayout("pr-dock-phone-v2", PHONE_ZONES, PHONE_PANELS);
   const layout = wide ? desk : phone;
   const [sizes, setSizes] = useState({ top: 0.57, src: 0.36, prog: 0.36, proj: 0.27, meters: 110 });
   const [vw, setVw] = useState(1400);
@@ -342,7 +343,6 @@ function PremiereInner() {
         { label: "Ripristina progetto di esempio", action: () => st.set({ dialog: { type: "confirm", title: "Ripristina", text: "Tornare al progetto di esempio? Le modifiche andranno perse.", onOk: st.reset } }) },
         "-",
         { label: "Importa…", keys: "Ctrl+I", action: openImport },
-        { label: "Importa dal browser multimediale", action: () => focusPanel("media") },
         "-",
         { label: "Esporta", sub: [{ label: "Media…", keys: "Ctrl+M", disabled: !has, action: () => st.set({ dialog: { type: "export" } }) }] },
         "-",
@@ -444,11 +444,8 @@ function PremiereInner() {
     {
       label: "Finestra",
       items: [
-        ...(Object.entries(PANEL_ID).map(([name, id]) => ({ label: name, action: () => focusPanel(id) })) as Menu["items"]),
-        "-",
-        { label: "Strumenti", action: () => st.set({ focus: "tools" }) },
-        { label: "Timeline", action: () => st.set({ focus: "timeline" }) },
-        { label: "Programma", action: () => st.set({ focus: "program" }) },
+        // ogni pannello si apre/chiude da qui (con la spunta se è aperto)
+        ...windowMenu(layout, { ...PANEL_LABEL, timeline: "Timeline", program: "Programma" }),
       ],
     },
     {
@@ -665,10 +662,6 @@ function PremiereInner() {
           </div>
           <Gutter dir="x" onDrag={() => {}} />
           {zone("BR", "min-w-0 flex-1")}
-          <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, meters: Math.max(60, Math.min(200, s.meters - d)) }))} />
-          <div className="shrink-0 rounded-[4px] bg-[#1e1e1e]" style={{ width: sizes.meters }}>
-            <Meters />
-          </div>
         </div>
       </div>
     );

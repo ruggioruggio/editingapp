@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { Ban, Crown, Gavel, Handshake, KeyRound, LogOut, Megaphone, RefreshCw, ScrollText, Search, Shield, UserCog, Wrench, X } from "lucide-react";
 import { allLessons } from "@/content/course";
 import { todayKey } from "@/lib/date";
-import { adminAction, adminLogin, adminLogout, useAdmin, type Announcement } from "@/lib/admin/client";
+import { adminAction, adminLogin, adminLogout, markGrace, useAdmin, type Announcement } from "@/lib/admin/client";
 import { useProgress } from "@/lib/progress/store";
 import { useAuth } from "@/lib/supabase/auth";
 import { ModSqueakScene } from "@/components/three/lazy";
@@ -414,8 +414,11 @@ function Log() {
   );
 }
 
-/** Chiudere il pannello chiude anche la sessione: alla prossima apertura serve la password. */
-const closePanel = () => void adminLogout();
+/** Chiudere il pannello non esce: per 10 minuti si riapre senza password (il pulsante Esci invece esce subito). */
+const closePanel = () => {
+  markGrace();
+  useAdmin.setState({ open: false });
+};
 
 export function AdminPanel() {
   const st = useAdmin();
