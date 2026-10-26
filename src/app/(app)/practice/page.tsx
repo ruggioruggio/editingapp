@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Clapperboard, Monitor, Sparkles } from "lucide-react";
 import { Mascot } from "@/components/brand/Mascot";
+import { PhoneNotice } from "@/components/studio/PhoneNotice";
 
 export const metadata: Metadata = { title: "Pratica" };
 
@@ -34,6 +35,7 @@ export default function PracticePage() {
         Un simulatore che funziona come i programmi veri: stessi pannelli, stessi strumenti, stesse scorciatoie. Esercitati
         liberamente, senza rischi.
       </p>
+      <PhoneNotice />
       <div className="grid gap-4 sm:grid-cols-2">
         {STUDIOS.map(({ href, name, short, color, bg, icon: Icon, text }) => (
           <Link key={href} href={href} className="duo-card group flex flex-col gap-4 p-5 hover:bg-panel-2">

@@ -123,6 +123,19 @@ export async function POST(req: NextRequest) {
         await log(null, { text, tone });
         return NextResponse.json({ ok: true });
       }
+      case "maintenance": {
+        const on = body.on === true;
+        const message = str(body.message, 280);
+        const res = await sb.from("app_settings").upsert({ key: "maintenance", value: { on, message }, updated_at: new Date().toISOString() });
+        if (res.error) throw res.error;
+        await log(null, { on, message });
+        return NextResponse.json({ ok: true });
+      }
+      case "getSettings": {
+        const { data, error } = await sb.from("app_settings").select("key, value");
+        if (error) throw error;
+        return NextResponse.json({ settings: Object.fromEntries((data ?? []).map((r) => [r.key, r.value])) });
+      }
       case "log": {
         const { data, error } = await sb.from("admin_log").select("id, action, target, details, created_at").order("created_at", { ascending: false }).limit(60);
         if (error) throw error;

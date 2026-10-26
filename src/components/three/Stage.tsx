@@ -38,21 +38,24 @@ export function Stage({
   fade?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(eager);
+  // la scena si monta subito (così è già pronta quando ci arrivi scorrendo);
+  // fuori dallo schermo si mette solo in pausa, senza smontarla
+  const [visible, setVisible] = useState(true);
+  void eager;
 
   useEffect(() => {
-    if (eager) return;
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { rootMargin: "200px 0px" });
+    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { rootMargin: "300px 0px" });
     io.observe(el);
     return () => io.disconnect();
-  }, [eager]);
+  }, []);
 
   return (
     <div ref={ref} className={clsx("relative", className)} style={fade ? FADE_EDGES : undefined}>
-      {visible && (
+      {(
         <Canvas
+          frameloop={visible ? "always" : "never"}
           dpr={[1, 2]}
           camera={{ position: camera, fov }}
           gl={{ alpha: true, antialias: true }}

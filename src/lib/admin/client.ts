@@ -23,6 +23,7 @@ interface AdminState {
   quickBan: boolean;
   quickBanUser: string | null;
   localAnnouncement: Announcement | null;
+  localMaintenance: { on: boolean; message?: string } | null;
   set: (p: Partial<AdminState>) => void;
 }
 
@@ -38,9 +39,10 @@ export const useAdmin = create<AdminState>()(
       quickBan: false,
       quickBanUser: null,
       localAnnouncement: null,
+      localMaintenance: null,
       set: (p) => set(p),
     }),
-    { name: "squeak-admin", partialize: (s) => ({ modShortcuts: s.modShortcuts, unlockAll: s.unlockAll, localAnnouncement: s.localAnnouncement }) },
+    { name: "squeak-admin", partialize: (s) => ({ modShortcuts: s.modShortcuts, unlockAll: s.unlockAll, localAnnouncement: s.localAnnouncement, localMaintenance: s.localMaintenance }) },
   ),
 );
 

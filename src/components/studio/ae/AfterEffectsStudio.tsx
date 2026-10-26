@@ -5,6 +5,8 @@ import Link from "next/link";
 import clsx from "clsx";
 import { Anchor, Brush, Circle, Eraser, Hand, Home, MousePointer2, PenTool, Pin, RotateCw, Search, Square, Stamp, Star, Type, ZoomIn, Hexagon, ChevronsRight, Orbit } from "lucide-react";
 import { useHydrated } from "@/lib/hooks/useHydrated";
+import { useIsPhone } from "@/lib/hooks/useIsPhone";
+import { DesktopOnly } from "../DesktopOnly";
 import { EFFECTS, EFFECT_CATEGORIES } from "@/lib/studio/effects";
 import { restoreFiles } from "@/lib/studio/media";
 import { compOf, useAe, type AeTool } from "@/lib/studio/ae";
@@ -156,7 +158,10 @@ function Toolbar() {
 
 export function AfterEffectsStudio() {
   const hydrated = useHydrated();
-  return hydrated ? <AeInner /> : <div className="fixed inset-0 bg-[#121212]" />;
+  const phone = useIsPhone();
+  if (!hydrated) return <div className="fixed inset-0 bg-[#121212]" />;
+  // dal telefono i simulatori completi sono inutilizzabili: restano negli esercizi delle lezioni
+  return phone ? <DesktopOnly app="After Effects" /> : <AeInner />;
 }
 
 const keyEv = (key: string) => handleAeKey(new KeyboardEvent("keydown", { key }));

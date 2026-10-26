@@ -7,6 +7,7 @@ import { authErrorMessage } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { FormMessage, NotConfigured, SubmitButton, fieldClass } from "./AuthShell";
 import { OAuthButtons } from "./OAuthButtons";
+import { ResendEmail } from "./ResendEmail";
 
 export const USERNAME_RE = /^[a-z0-9_.]{3,20}$/;
 
@@ -45,6 +46,7 @@ function ConfirmCode({ email }: { email: string }) {
         <SubmitButton busy={busy}>Conferma</SubmitButton>
       </form>
       {error && <FormMessage tone="error">{error}</FormMessage>}
+      <ResendEmail email={email} />
     </div>
   );
 }

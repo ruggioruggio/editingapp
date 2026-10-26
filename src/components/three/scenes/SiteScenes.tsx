@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, type ReactNode } from "react";
+import { forwardRef, useMemo, useRef, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { Stage } from "../Stage";
@@ -15,7 +15,6 @@ import {
   HardHat,
   KeyframeDiamond,
   SafetyVest,
-  SwimTrunks,
   TrafficCone,
   WorkSign,
 } from "../props";
@@ -35,129 +34,209 @@ function Diorama({ children, tilt = -0.22 }: { children: ReactNode; tilt?: numbe
   return <group ref={ref}>{children}</group>;
 }
 
-// 1. Lo scivolo d'acqua: Squeak scende lungo una curva del Graph Editor di After Effects
+// 1. Braccio di gomma: Squeak col cappello di paglia e il mantello rosso allunga
+// il braccio, che diventa la curva del grafico di velocità di After Effects, e
+// ci sfreccia sopra come su uno scivolo.
+
+/** Cappello di paglia con la fascia rossa (coordinate della testa). */
+function StrawHat() {
+  const straw = "#f0cf6a";
+  return (
+    <group position={[0, 0.5, -0.05]} rotation={[-0.12, 0, 0.06]}>
+      <mesh position={[0, 0, 0]}>
+        <cylinderGeometry args={[1.02, 1.08, 0.06, 40]} />
+        <meshStandardMaterial color={straw} roughness={0.85} />
+      </mesh>
+      <mesh position={[0, 0.2, 0]}>
+        <cylinderGeometry args={[0.5, 0.58, 0.4, 32]} />
+        <meshStandardMaterial color={straw} roughness={0.85} />
+      </mesh>
+      <mesh position={[0, 0.41, 0]} scale={[1, 0.35, 1]}>
+        <sphereGeometry args={[0.5, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color={straw} roughness={0.85} />
+      </mesh>
+      <mesh position={[0, 0.09, 0]}>
+        <cylinderGeometry args={[0.59, 0.6, 0.14, 32]} />
+        <meshStandardMaterial color="#c7262f" roughness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+/** Mantello rosso sulle spalle, che sventola (coordinate del corpo). */
+const Cape = forwardRef<THREE.Group>(function Cape(_props, ref) {
+  return (
+    <group ref={ref} position={[0, 1.55, -0.1]}>
+      <mesh position={[0, -0.7, -0.12]} rotation={[0.08, 0, 0]}>
+        <cylinderGeometry args={[0.72, 1.0, 1.4, 36, 1, true, Math.PI * 0.55, Math.PI * 0.9]} />
+        <meshStandardMaterial color="#9e1b25" roughness={0.7} side={THREE.DoubleSide} />
+      </mesh>
+      {/* bordo dorato e colletto */}
+      <mesh position={[0, -1.4, -0.13]} rotation={[0.08, 0, 0]}>
+        <cylinderGeometry args={[1.005, 1.005, 0.08, 36, 1, true, Math.PI * 0.55, Math.PI * 0.9]} />
+        <meshStandardMaterial color="#f2c14e" roughness={0.5} side={THREE.DoubleSide} />
+      </mesh>
+      <mesh position={[0, 0.02, -0.05]} rotation={[-Math.PI / 2, 0, 0.05 * Math.PI]}>
+        <torusGeometry args={[0.74, 0.06, 10, 36, Math.PI * 0.9]} />
+        <meshStandardMaterial color="#7a121b" roughness={0.6} />
+      </mesh>
+    </group>
+  );
+});
+
 function SlideScene() {
+  // il "grafico di velocità": sale piano, picco, ridiscende (come un easy ease)
   const curve = useMemo(
     () =>
-      new THREE.CubicBezierCurve3(
-        new THREE.Vector3(-3, 3.1, 0),
-        new THREE.Vector3(-1.1, 3.1, 0),
-        new THREE.Vector3(0.3, 0.45, 0),
-        new THREE.Vector3(2.1, 0.45, 0),
-      ),
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-2.55, 2.05, 0),
+        new THREE.Vector3(-1.6, 2.5, 0),
+        new THREE.Vector3(-0.6, 3.55, 0),
+        new THREE.Vector3(0.3, 3.75, 0),
+        new THREE.Vector3(1.2, 3.1, 0),
+        new THREE.Vector3(2.0, 1.4, 0),
+        new THREE.Vector3(2.7, 0.75, 0),
+        new THREE.Vector3(3.3, 0.62, 0),
+      ]),
     [],
   );
-  const rail = useMemo(() => new THREE.TubeGeometry(curve, 96, 0.12, 12), [curve]);
-  const water = useMemo(() => new THREE.TubeGeometry(curve, 96, 0.22, 20), [curve]);
-  // maniglie di Bézier come nel Graph Editor
-  const handles = useMemo(() => {
-    const geometry = new THREE.BufferGeometry().setFromPoints([curve.v0, curve.v1, curve.v3, curve.v2]);
-    const line = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: "#ffc93c" }));
-    return line;
-  }, [curve]);
-
-  const POOL = new THREE.Vector3(2.95, 0.12, 0);
-  const slider = useRef<THREE.Group>(null);
+  const SEG = 160;
+  const RAD = 10;
+  const arm = useMemo(() => new THREE.TubeGeometry(curve, SEG, 0.11, RAD), [curve]);
+  const fist = useRef<THREE.Group>(null);
+  const body = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
-  const drops = useRef<(THREE.Mesh | null)[]>([]);
+  const cape = useRef<THREE.Group>(null);
+  const hatBounce = useRef<THREE.Group>(null);
+  const lines = useRef<(THREE.Mesh | null)[]>([]);
   const rig = useRef(createRig());
+  const START = curve.getPointAt(0);
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 5.4;
-    const s = slider.current;
-    const y = turn.current;
+    const t = state.clock.elapsedTime % 6.2;
     const r = rig.current;
-    if (!s || !y) return;
+    const b = body.current;
+    const y = turn.current;
+    if (!b || !y) return;
     resetRig(r);
+    const show = (from: number, to: number) => {
+      const per = RAD * 6;
+      const a = Math.floor(from * SEG) * per;
+      const z = Math.floor(to * SEG) * per;
+      arm.setDrawRange(a, Math.max(0, z - a));
+    };
+    let fistAt = 0;
+    let flap = 0.15;
 
-    if (t < 2.7) {
-      // in cima saluta, poi si gira e scivola sempre più veloce (ease-in, come la curva)
-      const u = t < 0.9 ? 0 : phase(t, 0.9, 2.7) ** 2;
-      const pos = curve.getPointAt(u);
-      const tan = curve.getTangentAt(u);
-      s.position.set(pos.x, pos.y + 0.2, pos.z);
-      s.rotation.z = Math.atan2(tan.y, tan.x);
-      y.rotation.y = t < 0.9 ? lerp(0.3, PROFILE_RIGHT, easeInOut(phase(t, 0.5, 0.9))) : PROFILE_RIGHT;
-      if (t < 0.6 && r.armR) r.armR.rotation.set(-2.6, 0, 0.3 + Math.sin(t * 14) * 0.35);
-      if (t > 0.9 && r.armL && r.armR) {
-        r.armL.rotation.set(-2.7, 0, -0.3);
-        r.armR.rotation.set(-2.7, 0, 0.3);
-      }
+    if (t < 1.1) {
+      // in posa: si gira di profilo e carica il pugno all'indietro
+      b.position.set(START.x - 0.35, 0.2, 0);
+      b.rotation.z = 0;
+      y.rotation.y = lerp(0.25, PROFILE_RIGHT, easeInOut(phase(t, 0.2, 0.8)));
+      if (r.armR) r.armR.rotation.set(0.9 * easeOut(phase(t, 0.5, 1.1)), 0, 0.3);
+      if (r.armL) r.armL.rotation.set(-0.4, 0, -0.4);
+      show(0, 0);
+    } else if (t < 2.3) {
+      // GOMU GOMU: il braccio si allunga disegnando la curva
+      const p = easeOut(phase(t, 1.1, 2.0));
+      b.position.set(START.x - 0.35, 0.2, 0);
+      y.rotation.y = PROFILE_RIGHT;
+      if (r.armR) r.armR.scale.setScalar(0.001);
+      if (r.armL) r.armL.rotation.set(-0.6, 0, -0.6);
+      show(0, p);
+      fistAt = p;
+      flap = 0.5;
+    } else if (t < 4.0) {
+      // il braccio si accorcia e lo tira lungo la curva: scivola come sull'acqua
+      const p = phase(t, 2.3, 3.8) ** 1.6;
+      const pos = curve.getPointAt(Math.min(1, p));
+      const tan = curve.getTangentAt(Math.min(1, p));
+      b.position.set(pos.x - 0.1, pos.y - 1.15, 0);
+      b.rotation.z = Math.atan2(tan.y, tan.x) * 0.8;
+      y.rotation.y = PROFILE_RIGHT;
+      if (r.armR) r.armR.scale.setScalar(0.001);
+      if (r.armL) r.armL.rotation.set(-2.7, 0, -0.3);
+      show(Math.min(1, p + 0.02), 1);
+      fistAt = 1;
+      flap = 1.1;
     } else {
-      // splash nella piscina, poi si gira e ci saluta
-      const p = easeOut(phase(t, 2.7, 3.1));
+      // atterra, si gira verso di noi e fa il segno di vittoria col pugno
       const end = curve.getPointAt(1);
-      s.position.set(lerp(end.x, POOL.x, p), lerp(end.y + 0.2, POOL.y, p) + Math.sin(t * 3) * 0.04, 0);
-      s.rotation.z = lerp(s.rotation.z, 0, 0.2);
-      y.rotation.y = lerp(PROFILE_RIGHT, 0.15, easeInOut(phase(t, 3.3, 3.8)));
-      if (t > 3.8 && r.armR) r.armR.rotation.set(-2.6, 0, 0.3 + Math.sin(t * 14) * 0.35);
+      const p = easeOut(phase(t, 4.0, 4.35));
+      b.position.set(end.x + 0.15 * p, lerp(end.y - 1.15, 0.2, p) + Math.abs(Math.sin(t * 6)) * 0.05 * (1 - phase(t, 4.3, 5)), 0);
+      b.rotation.z = lerp(b.rotation.z, 0, 0.2);
+      y.rotation.y = lerp(PROFILE_RIGHT, 0.2, easeInOut(phase(t, 4.4, 4.9)));
+      if (t > 4.8 && r.armR) r.armR.rotation.set(-2.9, 0, 0.15);
+      if (r.armL) r.armL.rotation.set(-0.3, 0, -0.5);
+      show(0, 0);
+      flap = 0.3;
     }
 
-    drops.current.forEach((d, i) => {
-      if (!d) return;
-      const k = t - 2.8;
-      if (k < 0 || k > 0.75) {
-        d.scale.setScalar(0.001);
-        return;
+    if (fist.current) {
+      const fp = curve.getPointAt(Math.max(0.001, fistAt));
+      fist.current.position.copy(fp);
+      fist.current.visible = fistAt > 0.01;
+    }
+    // il mantello sventola di più quando vola
+    if (cape.current) cape.current.rotation.x = -0.1 - flap * (0.25 + Math.sin(state.clock.elapsedTime * 14) * 0.06);
+    if (hatBounce.current) hatBounce.current.position.y = t > 2.3 && t < 4 ? Math.abs(Math.sin(t * 10)) * 0.06 : 0;
+    // linee di velocità dietro di lui mentre sfreccia
+    lines.current.forEach((l, i) => {
+      if (!l) return;
+      const on = t > 2.5 && t < 3.9;
+      l.visible = on;
+      if (on) {
+        l.position.set(b.position.x - 0.9 - i * 0.25, b.position.y + 0.6 + (i - 1.5) * 0.35, 0.3);
+        l.rotation.z = b.rotation.z;
       }
-      const a = (i / drops.current.length) * Math.PI * 2;
-      d.position.set(POOL.x + Math.cos(a) * k * 1.6, 0.3 + 2.4 * k - 4.8 * k * k, Math.sin(a) * k * 1.1);
-      d.scale.setScalar(1);
     });
   });
 
   return (
-    <Diorama tilt={-0.18}>
-      {/* tutto un po' più piccolo e spostato a sinistra, così la piscina resta in quadro */}
-      <group scale={0.78} position={[-0.45, 0.35, 0]}>
-      {/* il grafico sta ben dietro la piscina, così non la taglia */}
-      <group position={[0, 1.75, -1.8]}>
-        <GraphPanel />
-      </group>
-      <mesh geometry={rail}>
-        <meshStandardMaterial color="#ffc93c" roughness={0.35} />
-      </mesh>
-      <mesh geometry={water}>
-        <meshStandardMaterial color="#5ccfff" transparent opacity={0.45} roughness={0.1} />
-      </mesh>
-      <primitive object={handles} />
-      {[curve.v0, curve.v3].map((v, i) => (
-        <mesh key={`k${i}`} position={v} rotation={[0, 0, Math.PI / 4]}>
-          <boxGeometry args={[0.2, 0.2, 0.2]} />
-          <meshStandardMaterial color="#ffc93c" emissive="#ffc93c" emissiveIntensity={0.4} />
-        </mesh>
-      ))}
-      {[curve.v1, curve.v2].map((v, i) => (
-        <mesh key={`h${i}`} position={v}>
-          <sphereGeometry args={[0.07, 12, 10]} />
-          <meshBasicMaterial color="#ffc93c" />
-        </mesh>
-      ))}
-      {/* piscina d'arrivo */}
-      <mesh position={[POOL.x, 0.1, 0]}>
-        <cylinderGeometry args={[0.85, 0.85, 0.2, 40]} />
-        <meshStandardMaterial color="#5ccfff" transparent opacity={0.75} roughness={0.1} />
-      </mesh>
-      <mesh position={[POOL.x, 0.2, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[0.85, 0.07, 10, 40]} />
-        <meshStandardMaterial color="#f5f5f5" roughness={0.4} />
-      </mesh>
-      {Array.from({ length: 8 }, (_, i) => (
-        <mesh
-          key={`d${i}`}
-          ref={(el) => {
-            drops.current[i] = el;
-          }}
-        >
-          <sphereGeometry args={[0.07, 10, 8]} />
-          <meshStandardMaterial color="#9be3ff" transparent opacity={0.85} />
-        </mesh>
-      ))}
-      <group ref={slider}>
-        <group ref={turn} scale={0.52}>
-          <SqueakModel rig={rig} sitting outfit={<SwimTrunks />} />
+    <Diorama tilt={-0.16}>
+      <group scale={0.7} position={[-0.25, 0.3, 0]}>
+        <group position={[0.4, 1.75, -1.8]}>
+          <GraphPanel />
         </group>
-      </group>
+        {/* il braccio di gomma */}
+        <mesh geometry={arm}>
+          <meshStandardMaterial color="#c3cad8" roughness={0.6} />
+        </mesh>
+        <group ref={fist}>
+          <mesh>
+            <sphereGeometry args={[0.22, 20, 16]} />
+            <meshStandardMaterial color="#ff9fbb" roughness={0.55} />
+          </mesh>
+        </group>
+        {/* punto di partenza e d'arrivo come keyframe */}
+        {[curve.getPointAt(0), curve.getPointAt(1)].map((v, i) => (
+          <mesh key={`k${i}`} position={[v.x, v.y - 0.25 - (i ? 0 : 0.2), -0.3]} rotation={[0, 0, Math.PI / 4]}>
+            <boxGeometry args={[0.2, 0.2, 0.2]} />
+            <meshStandardMaterial color="#ffc93c" emissive="#ffc93c" emissiveIntensity={0.4} />
+          </mesh>
+        ))}
+        {[0, 1, 2, 3].map((i) => (
+          <mesh key={i} ref={(m) => void (lines.current[i] = m)} visible={false}>
+            <boxGeometry args={[0.7, 0.04, 0.04]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.6} />
+          </mesh>
+        ))}
+        <group ref={body}>
+          <group ref={turn}>
+            <SqueakModel
+              rig={rig}
+              outfit={<Cape ref={cape} />}
+              hat={
+                <group ref={hatBounce}>
+                  <StrawHat />
+                </group>
+              }
+            />
+          </group>
+        </group>
+        <group position={[0.4, 0, 0]}>
+          <Shadow radius={1.2} opacity={0.25} />
+        </group>
       </group>
     </Diorama>
   );
@@ -386,7 +465,7 @@ function RunScene() {
 }
 
 // 6. Pro in arrivo: Squeak al cantiere, col caschetto, martella il cartello
-function ConstructionScene() {
+function ConstructionScene({ lines = ["SQUEAKEDIT PRO", "IN ARRIVO"] }: { lines?: [string, string] }) {
   const mouse = useRef<THREE.Group>(null);
   const rig = useRef(createRig());
   const hits = [0.55, 1.25, 1.95];
@@ -423,7 +502,7 @@ function ConstructionScene() {
         <Barrier width={3.4} />
       </group>
       <group position={[1.7, 0, -0.2]} rotation={[0, -0.45, 0]}>
-        <WorkSign lines={["SQUEAKEDIT PRO", "IN ARRIVO"]} />
+        <WorkSign lines={lines} />
       </group>
       <group position={[-2.3, 0, 0.4]}>
         <TrafficCone />
@@ -499,11 +578,12 @@ const SCENES: Record<string, { Component: () => ReactNode; camera: V3; target: V
   cheese: { Component: CheeseScene, camera: [0, 2.4, 8.6], target: [0, 1.3, 0] },
   keyframe: { Component: KeyframeScene, camera: [0, 2.3, 8.4], target: [0, 1.2, 0] },
   run: { Component: RunScene, camera: [0, 3, 9.5], target: [0, 0.9, 0.6] },
-  construction: { Component: ConstructionScene, camera: [0, 2.4, 9], target: [0, 1.25, 0] },
+  construction: { Component: () => <ConstructionScene />, camera: [0, 2.4, 9], target: [0, 1.25, 0] },
+  maintenance: { Component: () => <ConstructionScene lines={["SQUEAKEDIT", "IN MANUTENZIONE"]} />, camera: [0, 2.4, 9], target: [0, 1.25, 0] },
   discord: { Component: DiscordScene, camera: [0, 2.0, 7.4], target: [0, 1.5, 0] },
 };
 
-export type SiteSceneName = "slide" | "clap" | "cheese" | "keyframe" | "run" | "construction" | "discord";
+export type SiteSceneName = "slide" | "clap" | "cheese" | "keyframe" | "run" | "construction" | "maintenance" | "discord";
 
 export default function SiteScene({ name, className }: { name: SiteSceneName; className?: string }) {
   const { Component, camera, target } = SCENES[name];

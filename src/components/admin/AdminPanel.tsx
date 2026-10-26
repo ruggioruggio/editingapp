@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import clsx from "clsx";
-import { Ban, Crown, Gavel, Handshake, KeyRound, LogOut, Megaphone, RefreshCw, ScrollText, Search, Shield, UserCog, Wrench, X } from "lucide-react";
+import { Ban, Crown, HardHat, Gavel, Handshake, KeyRound, LogOut, Megaphone, RefreshCw, ScrollText, Search, Shield, UserCog, Wrench, X } from "lucide-react";
 import { allLessons } from "@/content/course";
 import { todayKey } from "@/lib/date";
 import { adminAction, adminLogin, adminLogout, markGrace, useAdmin, type Announcement } from "@/lib/admin/client";
@@ -30,6 +30,7 @@ const TABS = [
   ["users", "Utenti", UserCog],
   ["friends", "Amicizie", Handshake],
   ["announce", "Annuncio", Megaphone],
+  ["maintenance", "Manutenzione", HardHat],
   ["me", "Il mio account", Crown],
   ["tools", "Strumenti", Wrench],
   ["log", "Registro", ScrollText],
@@ -294,6 +295,46 @@ function AnnounceTab() {
   );
 }
 
+function MaintenanceTab() {
+  const st = useAdmin();
+  const [on, setOn] = useState(!!st.localMaintenance?.on);
+  const [message, setMessage] = useState(st.localMaintenance?.message ?? "");
+  const { msg, busy, run } = useAsync();
+  useEffect(() => {
+    if (st.mode === "server" && st.database)
+      void adminAction<{ settings: Record<string, { on?: boolean; message?: string }> }>("getSettings")
+        .then((r) => {
+          const m = r.settings.maintenance;
+          if (m) {
+            setOn(!!m.on);
+            setMessage(m.message ?? "");
+          }
+        })
+        .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const apply = (next: boolean) =>
+    run(async () => {
+      if (st.mode === "server" && st.database) await adminAction("maintenance", { on: next, message });
+      st.set({ localMaintenance: { on: next, message } });
+      setOn(next);
+    }, next ? "Manutenzione attivata: gli utenti vedono il cantiere" : "Manutenzione disattivata: l'app è di nuovo aperta");
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-[#b5bac1]">Spegne l&apos;app per tutti con la schermata del cantiere di Squeak. Tu, con il pannello sbloccato, continui a vederla normalmente.</p>
+      <textarea value={message} onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => e.stopPropagation()} rows={2} maxLength={280} placeholder="Messaggio (facoltativo), es. Torniamo alle 18 con le nuove lezioni!" className={clsx(input, "h-auto w-full py-2")} />
+      <div className="flex items-center gap-3 rounded-xl bg-black/30 p-4">
+        <span className={clsx("h-3 w-3 rounded-full", on ? "bg-[#ed4245]" : "bg-[#3ba55d]")} />
+        <span className="flex-1 font-black">{on ? "App in manutenzione" : "App aperta"}</span>
+        <button type="button" disabled={busy} onClick={() => apply(!on)} className={clsx(btn, on ? "bg-[#3ba55d] text-white" : "bg-[#ed4245] text-white")}>
+          {on ? "Riapri l'app" : "Metti in manutenzione"}
+        </button>
+      </div>
+      <Note msg={msg} />
+    </div>
+  );
+}
+
 function Me() {
   const adminPro = useProgress((s) => s.adminPro);
   const auth = useAuth();
@@ -460,6 +501,7 @@ export function AdminPanel() {
               {tab === "users" && <Users />}
               {tab === "friends" && <Friends />}
               {tab === "announce" && <AnnounceTab />}
+              {tab === "maintenance" && <MaintenanceTab />}
               {tab === "me" && <Me />}
               {tab === "tools" && <Tools />}
               {tab === "log" && <Log />}

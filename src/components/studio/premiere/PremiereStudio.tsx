@@ -5,6 +5,8 @@ import Link from "next/link";
 import clsx from "clsx";
 import { Bell, Expand, Hand, Home, LayoutPanelLeft, MousePointer2, PenTool, Scissors, Search, Share, Type, Volume2, ZoomIn, Square, Circle, Moon } from "lucide-react";
 import { useHydrated } from "@/lib/hooks/useHydrated";
+import { useIsPhone } from "@/lib/hooks/useIsPhone";
+import { DesktopOnly } from "../DesktopOnly";
 import { restoreFiles } from "@/lib/studio/media";
 import { playheadOf, seqOf, usePremiere, type PanelId, type PrTool } from "@/lib/studio/premiere";
 import { ContextMenu, Gutter, MenuBar, Panel, Toast, useWide, type Menu } from "../chrome";
@@ -281,7 +283,10 @@ function Meters() {
 
 export function PremiereStudio() {
   const hydrated = useHydrated();
-  return hydrated ? <PremiereInner /> : <div className="fixed inset-0 bg-[#121212]" />;
+  const phone = useIsPhone();
+  if (!hydrated) return <div className="fixed inset-0 bg-[#121212]" />;
+  // dal telefono i simulatori completi sono inutilizzabili: restano negli esercizi delle lezioni
+  return phone ? <DesktopOnly app="Premiere Pro" /> : <PremiereInner />;
 }
 
 function PremiereInner() {

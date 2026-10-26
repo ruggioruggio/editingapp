@@ -11,6 +11,7 @@ import { Shadow, SqueakModel, createRig, easeInOut, phase, type SqueakRig } from
 // Ogni tanto si mette a rotolare avanti e indietro.
 
 const CYCLE = 10;
+const IDENTITY = new THREE.Quaternion();
 
 function useShirtTexture() {
   return useMemo(() => {
@@ -151,9 +152,12 @@ function ModSqueak() {
   const pos = useRef<THREE.Group>(null);
   const roll = useRef<THREE.Group>(null);
   const shadow = useRef<THREE.Group>(null);
+  const walk = useRef({ mode: "rest" as "rest" | "roll", wait: 1.5, pos: new THREE.Vector3(1, 0, 0), target: new THREE.Vector3(), q: new THREE.Quaternion() });
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     const t = state.clock.elapsedTime % CYCLE;
+    void easeInOut;
+    void phase;
     const r = rig.current;
     // respiro profondo da dormiglione
     const breath = Math.sin(state.clock.elapsedTime * 1.6);
@@ -166,23 +170,36 @@ function ModSqueak() {
     if (r.armL) r.armL.rotation.set(-0.7, 0, -0.55);
     if (r.armR) r.armR.rotation.set(-0.85 + Math.max(0, Math.sin(state.clock.elapsedTime * 6)) * 0.25 * (t > 3 && t < 5 ? 1 : 0), 0, 0.5);
 
-    // rotolata: avanti e indietro
-    let x = 0;
-    let angle = 0;
-    if (t >= 6 && t < 7.6) {
-      const p = easeInOut(phase(t, 6, 7.6));
-      x = 2.6 * p;
-      angle = -Math.PI * 2 * p;
-    } else if (t >= 7.6 && t < 8.2) x = 2.6;
-    else if (t >= 8.2 && t < 9.8) {
-      const p = easeInOut(phase(t, 8.2, 9.8));
-      x = 2.6 * (1 - p);
-      angle = -Math.PI * 2 * (1 - p);
+    // rotola in giro a caso: sceglie un punto, ci arriva rotolando, si riassesta e riposa
+    const w = walk.current;
+    const dt = Math.min(0.05, delta || 1 / 60);
+    if (w.mode === "rest") {
+      w.wait -= dt;
+      w.q.slerp(IDENTITY, Math.min(1, dt * 4));
+      if (w.wait <= 0) {
+        w.target.set(-2.2 + Math.random() * 6.6, 0, -1.6 + Math.random() * 2.8);
+        w.mode = "roll";
+      }
+    } else {
+      const to = w.target.clone().sub(w.pos);
+      const dist = to.length();
+      if (dist < 0.05) {
+        w.mode = "rest";
+        w.wait = 1.2 + Math.random() * 2.5;
+      } else {
+        const step = Math.min(dist, (1.2 + Math.min(dist, 2) * 0.6) * dt);
+        to.normalize();
+        w.pos.addScaledVector(to, step);
+        // asse di rotolamento: perpendicolare alla direzione, sul pavimento
+        const axis = new THREE.Vector3(to.z, 0, -to.x).normalize();
+        w.q.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, step / 1.05));
+      }
     }
-    const bounce = angle ? Math.abs(Math.sin(angle * 2)) * 0.12 : 0;
-    if (pos.current) pos.current.position.set(x, 1.05 + bounce, 0);
-    if (roll.current) roll.current.rotation.z = angle;
-    if (shadow.current) shadow.current.position.x = x;
+    const rolling = w.mode === "roll";
+    const bounce = rolling ? Math.abs(Math.sin(state.clock.elapsedTime * 9)) * 0.08 : 0;
+    if (pos.current) pos.current.position.set(w.pos.x, 1.05 + bounce, w.pos.z);
+    if (roll.current) roll.current.quaternion.copy(w.q);
+    if (shadow.current) shadow.current.position.set(w.pos.x, 0, w.pos.z);
   });
 
   return (
