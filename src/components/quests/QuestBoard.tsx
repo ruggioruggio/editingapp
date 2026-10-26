@@ -7,6 +7,7 @@ import { Mascot } from "@/components/brand/Mascot";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { todayState, useProgress } from "@/lib/progress/store";
+import { sfx } from "@/lib/settings/sfx";
 
 function useTimeToMidnight() {
   const [label, setLabel] = useState("");
@@ -84,7 +85,10 @@ export function QuestBoard() {
               <button
                 type="button"
                 disabled={!complete || claimed}
-                onClick={() => claimQuest(q.id, q.xp)}
+                onClick={() => {
+                  sfx("quest");
+                  claimQuest(q.id, q.xp);
+                }}
                 className={clsx(
                   "btn-3d flex shrink-0 items-center gap-1 rounded-xl px-3 py-2 text-sm font-black",
                   complete && !claimed ? "bg-cheese text-[#4a3500]" : "bg-panel-3 text-ink-mute",

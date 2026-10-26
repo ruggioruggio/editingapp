@@ -15,13 +15,21 @@ import { todayKey } from "@/lib/date";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { buildUnitTest, isLessonUnlocked, skippedLessons, UNIT_TEST_HEARTS } from "@/lib/lessons/progression";
 import { useAdmin } from "@/lib/admin/client";
+import { sections } from "@/content/course";
+import { useT } from "@/lib/settings/i18n";
+import { sfx } from "@/lib/settings/sfx";
 import type { EditorTaskResult, Lesson } from "@/lib/lessons/types";
 import { PremiereTaskView } from "./PremiereTaskView";
 import { currentStreak, useProgress } from "@/lib/progress/store";
 import { EditorTaskView, MatchView, QuizView, TheoryView } from "./StepViews";
 
-const PRAISE = ["Fantastico!", "Ottimo lavoro!", "Perfetto!", "Grande!", "Da montatore vero!"];
 const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
+
+/** Ultima lezione mancante della sua unità: si "sale di livello". */
+function finishesUnit(lessonId: string, completed: Record<string, unknown>) {
+  const unit = sections.flatMap((s) => s.units).find((u) => u.lessons.some((l) => l.id === lessonId));
+  return !!unit && unit.lessons.every((l) => l.id === lessonId || completed[l.id]);
+}
 
 type Feedback = { outcome: "win" | "lose"; title: string; text?: string; id: number } | null;
 
@@ -33,6 +41,8 @@ type Access = "ok" | "limit" | "locked" | "missing" | null;
  */
 export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unitTestId?: string }) {
   const hydrated = useHydrated();
+  const t = useT();
+  const PRAISE = t("praise").split("|");
   const completeLesson = useProgress((s) => s.completeLesson);
   const completeLessons = useProgress((s) => s.completeLessons);
 
@@ -73,14 +83,21 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
 
   /** Un errore: conta per la precisione e, nei test, costa una vita. */
   const miss = useCallback(() => {
+    sfx("wrong");
     setMistakes((m) => m + 1);
     setHearts((h) => (h === null ? null : Math.max(0, h - 1)));
   }, []);
 
   const next = useCallback(() => {
     if (!lesson) return;
-    if (hearts === 0) return setOutOfHearts(true);
+    if (hearts === 0) {
+      sfx("defeat");
+      return setOutOfHearts(true);
+    }
     if (isLast) {
+      const levelUp = !test && finishesUnit(lesson.id, useProgress.getState().completed);
+      sfx("victory");
+      if (levelUp) setTimeout(() => sfx("levelUp"), 1100);
       const accuracy = answered ? Math.max(0, Math.round((100 * (answered - mistakes)) / answered)) : 100;
       const streakBefore = currentStreak(useProgress.getState().streak);
       if (test) completeLessons(test.skipped, lesson.xp);
@@ -100,27 +117,31 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
     const right = selected === step.correctIndex;
     setAnswered((n) => n + 1);
     if (!right) miss();
+    else sfx("correct");
     setFeedback(
       right
         ? { outcome: "win", title: pick(PRAISE), text: step.explanation, id: Date.now() }
-        : { outcome: "lose", title: "Soluzione corretta:", text: `${step.options[step.correctIndex]} — ${step.explanation}`, id: Date.now() },
+        : { outcome: "lose", title: t("correctAnswer"), text: `${step.options[step.correctIndex]} — ${step.explanation}`, id: Date.now() },
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, selected, miss]);
 
   const skip = () => {
     if (!step || step.kind !== "quiz") return;
     setAnswered((n) => n + 1);
     miss();
-    setFeedback({ outcome: "lose", title: "Soluzione corretta:", text: step.options[step.correctIndex], id: Date.now() });
+    setFeedback({ outcome: "lose", title: t("correctAnswer"), text: step.options[step.correctIndex], id: Date.now() });
   };
 
   // esercizio nell'editor, finestra di Premiere o coppie completate: festeggia
   const practical = step?.kind === "editor" || step?.kind === "premiere";
   useEffect(() => {
-    if ((practical && editorResult.done) || (step?.kind === "match" && matchDone)) {
-      setFeedback((f) => f ?? { outcome: "win", title: pick(PRAISE), text: practical ? "Esattamente come lo faresti in Premiere." : undefined, id: Date.now() });
+    if (!feedback && ((practical && editorResult.done) || (step?.kind === "match" && matchDone))) {
+      sfx("correct");
+      setFeedback({ outcome: "win", title: pick(PRAISE), text: practical ? "Esattamente come lo faresti in Premiere." : undefined, id: Date.now() });
     }
-  }, [step, practical, editorResult.done, matchDone]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, practical, editorResult.done, matchDone, feedback]);
 
   // Invio = verifica / continua, come in Duolingo
   const primary = feedback ? next : step?.kind === "quiz" ? check : step?.kind === "theory" ? next : undefined;
@@ -144,14 +165,14 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
   if (finished) return <LessonComplete {...finished} />;
 
   const primaryLabel = feedback
-    ? "Continua"
+    ? t("continue")
     : step.kind === "quiz"
-      ? "Controlla"
+      ? t("check")
       : step.kind === "theory"
-        ? "Continua"
+        ? t("continue")
         : step.kind === "match"
-          ? "Abbina tutte le coppie"
-          : "Completa l'esercizio";
+          ? t("matchAll")
+          : t("doExercise");
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -215,7 +236,7 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
             </div>
           ) : step.kind === "quiz" ? (
             <button type="button" onClick={skip} className="duo-btn duo-ghost hidden sm:inline-flex">
-              Salta
+              {t("skip")}
             </button>
           ) : (
             <span className="hidden sm:block" />
@@ -237,6 +258,7 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
 /** Schermata finale: reazione di vittoria a caso e le statistiche a schede. */
 function LessonComplete({ xp, accuracy, seconds, streakBefore }: { xp: number; accuracy: number; seconds: number; streakBefore: number }) {
   const router = useRouter();
+  const t = useT();
   const streak = useProgress((s) => currentStreak(s.streak));
   const [showStreak, setShowStreak] = useState(false);
   const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -253,7 +275,7 @@ function LessonComplete({ xp, accuracy, seconds, streakBefore }: { xp: number; a
     <div className="flex min-h-dvh flex-col">
       <main className="animate-pop mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-8 px-4 text-center">
         <SqueakReaction outcome="win" size={240} />
-        <h1 className="text-3xl font-black text-cheese sm:text-4xl">Lezione completata!</h1>
+        <h1 className="text-3xl font-black text-cheese sm:text-4xl">{t("lessonComplete")}</h1>
         <div className="grid w-full grid-cols-3 gap-3">
           {stats.map(({ label, value, icon: Icon, color }) => (
             <div key={label} className="overflow-hidden rounded-2xl border-2" style={{ borderColor: color, background: color }}>
@@ -272,7 +294,7 @@ function LessonComplete({ xp, accuracy, seconds, streakBefore }: { xp: number; a
             onClick={() => (streak > streakBefore ? setShowStreak(true) : router.push("/learn"))}
             className="duo-btn w-full sm:w-auto sm:min-w-40"
           >
-            Continua
+            {t("continue")}
           </button>
         </div>
       </footer>
@@ -292,12 +314,16 @@ function StreakScreen({ streak, onContinue }: { streak: number; onContinue: () =
     return d;
   });
   const todayStr = todayKey();
+  const t = useT();
+  useEffect(() => {
+    sfx("streak");
+  }, []);
   return (
     <div className="flex min-h-dvh flex-col">
       <main className="animate-pop mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center px-4 text-center">
         <Flame size={130} className="text-[#ff9600] drop-shadow-[0_10px_0_rgb(120_60_0/0.35)]" fill="#ff9600" strokeWidth={1.5} />
         <p className="mt-2 text-8xl font-black leading-none text-[#ff9600]">{streak}</p>
-        <p className="mt-1 text-2xl font-black text-[#ff9600]">{streak === 1 ? "giorno di serie!" : "giorni di serie!"}</p>
+        <p className="mt-1 text-2xl font-black text-[#ff9600]">{streak === 1 ? t("dayStreak") : t("daysStreak")}</p>
         <div className="duo-card mt-8 w-full overflow-hidden">
           <div className="flex justify-center gap-3 p-5">
             {days.map((d) => {

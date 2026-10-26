@@ -444,7 +444,7 @@ function AeInner() {
 
   return (
     <div
-      className="fixed inset-0 flex select-none flex-col bg-[#121212] text-[#d0d0d0]"
+      className="force-dark fixed inset-0 flex select-none flex-col bg-[#121212] text-[#d0d0d0]"
       onDragOver={(e) => e.dataTransfer.types.includes("Files") && e.preventDefault()}
       onDrop={(e) => {
         if (!e.dataTransfer.files.length) return;

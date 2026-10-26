@@ -22,6 +22,7 @@ import { getLegalDoc, LEGAL_UPDATED } from "@/content/legal";
 import { PreviewRouter } from "./router";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { MaintenanceGate } from "@/components/app/Maintenance";
+import { ThemeSync } from "@/components/app/ThemeSync";
 
 // Anteprima a file unico di SqueakEdit: le stesse pagine e componenti
 // dell'app, con un router in memoria al posto delle rotte di Next.js.
@@ -86,6 +87,7 @@ createRoot(document.getElementById("root")!).render(
     {(path) => (
       <>
         <SupabaseSync />
+        <ThemeSync />
         <MaintenanceGate />
         <AdminGate />
         <div key={APP_PAGES[path.split("?")[0]] ? "app" : path}>{render(path)}</div>

@@ -3,6 +3,8 @@ import { JetBrains_Mono, Nunito } from "next/font/google";
 import { SupabaseSync } from "@/components/app/SupabaseSync";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { MaintenanceGate } from "@/components/app/Maintenance";
+import { ThemeSync } from "@/components/app/ThemeSync";
+import { THEME_BOOT } from "@/lib/settings/store";
 import { brand } from "@/config/brand";
 import "./globals.css";
 
@@ -23,9 +25,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="it" className={`${nunito.variable} ${mono.variable}`}>
+    <html lang="it" data-theme="dark" className={`${nunito.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        {/* tema salvato applicato prima del primo disegno (niente lampo) */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+      </head>
       <body className="min-h-dvh bg-app text-ink">
         <SupabaseSync />
+        <ThemeSync />
         {children}
         <MaintenanceGate />
         <AdminGate />

@@ -9,17 +9,18 @@ import { features } from "@/config/features";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { todayState, useProgress } from "@/lib/progress/store";
+import { useT, type TKey } from "@/lib/settings/i18n";
 
-type Item = { href: string; label: string; icon: LucideIcon; color: string };
+type Item = { href: string; label: TKey; icon: LucideIcon; color: string };
 
 const LEFT: Item[] = [
-  { href: "/learn", label: "Impara", icon: BookOpen, color: "#9999ff" },
-  { href: "/practice", label: "Pratica", icon: Clapperboard, color: "#2d8ceb" },
+  { href: "/learn", label: "learn", icon: BookOpen, color: "#9999ff" },
+  { href: "/practice", label: "practice", icon: Clapperboard, color: "#2d8ceb" },
 ];
 const RIGHT: Item[] = [
   // quest e obiettivi stanno nella stessa pagina
-  { href: "/quests", label: "Quest", icon: ScrollText, color: "#d291ff" },
-  { href: "/friends", label: "Amici", icon: Users, color: "#5ce1e6" },
+  { href: "/quests", label: "quests", icon: ScrollText, color: "#d291ff" },
+  { href: "/friends", label: "friends", icon: Users, color: "#5ce1e6" },
 ];
 
 /** Quante quest di oggi sono completate ma non ancora riscattate. */
@@ -32,6 +33,7 @@ function useClaimableQuests() {
 }
 
 function DockItem({ item, active, badge }: { item: Item; active: boolean; badge?: number }) {
+  const t = useT();
   const Icon = item.icon;
   return (
     <Link
@@ -53,7 +55,7 @@ function DockItem({ item, active, badge }: { item: Item; active: boolean; badge?
         )}
       </span>
       <span className={clsx("text-[11px] font-extrabold leading-none", active ? "text-white" : "text-zinc-300")}>
-        {item.label}
+        {t(item.label)}
       </span>
     </Link>
   );

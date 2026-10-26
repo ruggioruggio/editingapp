@@ -287,3 +287,40 @@ body {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .reveal { opacity: 1; transform: none; }
 }
+
+/* Tema bianco (Impostazioni → Tema). I simulatori di Premiere e After Effects
+   restano scuri come i programmi veri, grazie a .force-dark. */
+html[data-theme="light"] {
+  --color-app: #ffffff;
+  --color-panel: #f4f5f7;
+  --color-panel-2: #eceef2;
+  --color-panel-3: #e1e4ea;
+  --color-line: #d9dce3;
+  --color-line-soft: #e8eaef;
+  --color-ink: #1f2330;
+  --color-ink-dim: #4f5566;
+  --color-ink-mute: #8a90a0;
+  --color-pr: #6b5cff;
+  color-scheme: light;
+}
+html[data-theme="light"] * {
+  scrollbar-color: #c4c8d2 transparent;
+}
+html[data-theme="light"] .duo-card[data-state="selected"] { color: #1f64aa; }
+html[data-theme="light"] .duo-card[data-state="correct"] { color: #1d8a5a; }
+html[data-theme="light"] .duo-card[data-state="wrong"] { color: #c24242; }
+html[data-theme="light"] .force-dark,
+.force-dark {
+  --color-app: #121212;
+  --color-panel: #1d1d1d;
+  --color-panel-2: #252525;
+  --color-panel-3: #2f2f2f;
+  --color-line: #383838;
+  --color-line-soft: #2a2a2a;
+  --color-ink: #e8e8e8;
+  --color-ink-dim: #a6a6a6;
+  --color-ink-mute: #6f6f6f;
+  --color-pr: #9999ff;
+  color-scheme: dark;
+  color: var(--color-ink);
+}
