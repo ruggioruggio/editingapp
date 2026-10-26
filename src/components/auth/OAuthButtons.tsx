@@ -8,10 +8,10 @@ import { FormMessage } from "./AuthShell";
 
 const PROVIDERS: { id: Provider; label: string }[] = [
   { id: "google", label: "Google" },
-  { id: "apple", label: "Apple" },
+  { id: "discord", label: "Discord" },
 ];
 
-/** Accesso con Google/Apple: vanno attivati in Supabase → Authentication → Providers. */
+/** Accesso con Google/Discord: vanno attivati in Supabase → Authentication → Providers. */
 export function OAuthButtons({ next }: { next: string }) {
   const [error, setError] = useState<string | null>(null);
 
