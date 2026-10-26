@@ -20,14 +20,21 @@ export function AdminGate() {
 
   useEffect(() => {
     const down = new Set<string>();
+    // ultimo momento in cui sono stati premuti ù e à (non serve tenerli giù insieme:
+    // molte tastiere non registrano 4 tasti vicini nello stesso istante)
+    const last = { u: 0, a: 0 };
     const onKey = (e: KeyboardEvent) => {
       down.add(e.code);
-      const altGr = e.getModifierState?.("AltGraph") || (e.ctrlKey && e.altKey) || e.altKey;
+      const now = Date.now();
       // sulla tastiera italiana "ù" è il tasto Backslash e "à" il tasto Quote
-      const u = down.has("Backslash") || e.key === "ù" || e.key === "§";
-      const a = down.has("Quote") || e.key === "à" || e.key === "°" || e.key === "#";
-      if (altGr && e.shiftKey && u && a) {
+      const isU = e.code === "Backslash" || ["ù", "§", "`", "Dead"].includes(e.key) && e.code !== "Quote";
+      const isA = e.code === "Quote" || ["à", "°", "#"].includes(e.key);
+      if (isU) last.u = now;
+      if (isA) last.a = now;
+      const altGr = e.getModifierState?.("AltGraph") || e.altKey || down.has("AltRight");
+      if ((isU || isA) && altGr && e.shiftKey && Math.abs(last.u - last.a) < 1500) {
         e.preventDefault();
+        last.u = last.a = 0;
         openPanel();
         return;
       }

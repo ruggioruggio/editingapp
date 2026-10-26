@@ -108,69 +108,35 @@ export function Mascot({
  */
 export function AppIcon({ size = 32, className }: { size?: number; className?: string }) {
   return (
-    <svg
-      viewBox="0 0 100 100"
-      width={size}
-      height={size}
-      className={clsx("shrink-0", className)}
-      style={{ borderRadius: size * 0.24 }}
-      aria-hidden
-    >
+    <svg viewBox="0 0 100 100" width={size} height={size} className={clsx("shrink-0", className)} style={{ borderRadius: size * 0.24 }} aria-hidden>
       <defs>
-        <linearGradient id="sq-icon-bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#3b3b42" />
-          <stop offset="0.5" stopColor="#1a1a1e" />
-          <stop offset="1" stopColor="#050506" />
-        </linearGradient>
-        {/* una sola sfumatura per testa e muso, così non si vede la giuntura */}
-        <radialGradient id="sq-icon-head" gradientUnits="userSpaceOnUse" cx="48" cy="52" r="62">
-          <stop offset="0" stopColor="#ffffff" />
-          <stop offset="0.7" stopColor="#e6e8ef" />
-          <stop offset="1" stopColor="#bfc3d0" />
-        </radialGradient>
-        <clipPath id="sq-icon-clip">
-          <rect width="100" height="100" rx="24" />
-        </clipPath>
+        <linearGradient id="sq-icon-BG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3d3d45"/><stop offset="0.45" stopColor="#18181c"/><stop offset="1" stopColor="#030304"/></linearGradient>
+        <radialGradient id="sq-icon-GLOW"><stop offset="0" stopColor="#ffffff" stopOpacity="0.16"/><stop offset="1" stopColor="#ffffff" stopOpacity="0"/></radialGradient>
+        <radialGradient id="sq-icon-HEAD" gradientUnits="userSpaceOnUse" cx="38" cy="42" r="62"><stop offset="0" stopColor="#ffffff"/><stop offset="0.55" stopColor="#e4e6ee"/><stop offset="1" stopColor="#a9aebd"/></radialGradient>
+        <clipPath id="sq-icon-CLIP"><rect width="100" height="100" rx="24"/></clipPath>
       </defs>
-      <g clipPath="url(#sq-icon-clip)">
-        <rect width="100" height="100" fill="url(#sq-icon-bg)" />
-        {/* ciak */}
-        <g transform="rotate(-10 24 30)">
-          <rect x="10" y="24" width="28" height="18" rx="2.5" fill="#1d1d22" stroke="#f2f2f2" strokeWidth="1.6" />
-          <path d="M14 31 H34 M14 36 H28" stroke="#9999ff" strokeWidth="1.8" strokeLinecap="round" />
-          <g transform="rotate(-16 10 23)">
-            <rect x="9.5" y="17" width="29" height="6" rx="1.5" fill="#f2f2f2" />
-            <path d="M14 17 L18 23 M21 17 L25 23 M28 17 L32 23" stroke="#1d1d22" strokeWidth="2.4" />
-          </g>
-        </g>
-        {/* orecchie */}
-        <circle cx="54" cy="38" r="15" fill="#cdd1dc" />
-        <circle cx="54.5" cy="39" r="9.5" fill="#ffadc5" />
-        <circle cx="82" cy="34" r="15" fill="#cdd1dc" />
-        <circle cx="82" cy="35" r="9.5" fill="#ffadc5" />
-        {/* testa e muso sporgente */}
-        <circle cx="68" cy="74" r="34" fill="url(#sq-icon-head)" />
-        <path d="M52 56 C41 57 28 61 20 67 C12 73 14 85 25 87 C37 89 50 88 64 85 Z" fill="url(#sq-icon-head)" />
-        <ellipse cx="57" cy="76" rx="5" ry="3.4" fill="#ffadc5" opacity="0.75" />
-        {/* occhioni */}
-        <g transform="rotate(-12 46 63)">
-          <ellipse cx="46" cy="63" rx="5.6" ry="7" fill="#15151b" />
-          <circle cx="44.2" cy="60.4" r="2.3" fill="#fff" />
-          <circle cx="47.8" cy="65.8" r="1" fill="#fff" />
-        </g>
-        <g transform="rotate(-12 63 60)">
-          <ellipse cx="63" cy="60" rx="4.8" ry="6.2" fill="#15151b" />
-          <circle cx="61.4" cy="57.6" r="2" fill="#fff" />
-        </g>
-        {/* naso, bocca e baffi */}
-        <circle cx="17.5" cy="74.5" r="5.4" fill="#ff6f9a" />
-        <circle cx="16" cy="73" r="1.4" fill="#fff" opacity="0.8" />
-        <path d="M27 81 q3 3 6 0 q3 3 6 0" stroke="#5a5d6e" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-        <g stroke="#9ca0ad" strokeWidth="1.3" strokeLinecap="round">
-          <path d="M25 72 L9 64" />
-          <path d="M25 76 L7 76" />
-          <path d="M26 79 L10 87" />
-        </g>
+      {/* topolino tondo su fondo scuro sfumato */}
+      <g clipPath="url(#sq-icon-CLIP)">
+        <rect width={100} height={100} fill="url(#sq-icon-BG)" />
+        <circle cx={22} cy={18} r={40} fill="url(#sq-icon-GLOW)" />
+        <circle cx={27} cy={34} r={15.5} fill="url(#sq-icon-HEAD)" />
+        <circle cx={27.5} cy={35} r={9.5} fill="#ffb3c9" />
+        <circle cx={75} cy={31} r={15.5} fill="url(#sq-icon-HEAD)" />
+        <circle cx={75} cy={32} r={9.5} fill="#ffb3c9" />
+        <circle cx={53} cy={61} r={29} fill="url(#sq-icon-HEAD)" />
+        <ellipse cx={36} cy={69} rx={14} ry={11} fill="url(#sq-icon-HEAD)" />
+        <ellipse cx={63} cy={71} rx={6} ry={3.8} fill="#ffb3c9" opacity={0.7} />
+        <ellipse cx={40} cy={74} rx={4.5} ry={3} fill="#ffb3c9" opacity={0.55} />
+        <ellipse cx={44} cy={56} rx={5.6} ry={6.8} fill="#15151b" />
+        <circle cx={42.2} cy={53.4} r={2.4} fill="#fff" />
+        <circle cx={46} cy={59} r={1.1} fill="#fff" />
+        <ellipse cx={62} cy={54} rx={5} ry={6.2} fill="#15151b" />
+        <circle cx={60.4} cy={51.6} r={2.1} fill="#fff" />
+        <circle cx={63.8} cy={56.8} r={0.9} fill="#fff" />
+        <circle cx={24.5} cy={67} r={4.3} fill="#ff6f9a" />
+        <circle cx={23.2} cy={65.7} r={1.2} fill="#fff" opacity={0.85} />
+        <path d="M29 75 q2.5 2.6 5 0 q2.5 2.6 5 0" stroke="#5a5d6e" strokeWidth={1.4} fill="none" strokeLinecap="round" />
+        <path d="M27 69 L12 64 M27 72 L11 73 M28 75 L13 81" stroke="#a7abb8" strokeWidth={1.1} strokeLinecap="round" />
       </g>
     </svg>
   );
