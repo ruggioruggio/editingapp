@@ -85,6 +85,7 @@ export function SqueakModel({
   sitting = false,
   wow = false,
   sleepy = false,
+  angry = false,
   leftHand,
   rightHand,
   hat,
@@ -95,6 +96,8 @@ export function SqueakModel({
   wow?: boolean;
   /** occhi chiusi (dorme) */
   sleepy?: boolean;
+  /** sopracciglia aggrottate e guance rosse */
+  angry?: boolean;
   leftHand?: ReactNode;
   rightHand?: ReactNode;
   /** accessorio in testa (coordinate della testa, centro a y=0) */
@@ -109,7 +112,7 @@ export function SqueakModel({
 
   // battito di ciglia ogni ~3.5 s
   useFrame((state) => {
-    if (eyes.current) eyes.current.scale.y = sleepy ? 0.12 : state.clock.elapsedTime % 3.5 > 3.38 ? 0.15 : 1;
+    if (eyes.current) eyes.current.scale.y = sleepy ? 0.12 : angry ? 0.72 : state.clock.elapsedTime % 3.5 > 3.38 ? 0.15 : 1;
   });
 
   const eyeScale = wow ? 1.25 : 1;
@@ -165,11 +168,19 @@ export function SqueakModel({
           <meshStandardMaterial color={C.nose} roughness={0.35} />
         </mesh>
         {([-1, 1] as const).map((s) => (
-          <mesh key={`c${s}`} position={[0.42 * s, -0.18, 0.68]}>
+          <mesh key={`c${s}`} position={[0.42 * s, -0.18, 0.68]} scale={angry ? 1.6 : 1}>
             <sphereGeometry args={[0.1, 16, 12]} />
-            <meshStandardMaterial color={C.pink} transparent opacity={0.6} />
+            <meshStandardMaterial color={angry ? "#ff4d5e" : C.pink} transparent opacity={angry ? 0.75 : 0.6} />
           </mesh>
         ))}
+        {/* sopracciglia arrabbiate */}
+        {angry &&
+          ([-1, 1] as const).map((s) => (
+            <mesh key={`b${s}`} position={[0.27 * s, 0.36, 0.7]} rotation={[0.2, 0, 0.55 * s]}>
+              <boxGeometry args={[0.3, 0.07, 0.06]} />
+              <meshStandardMaterial color={C.eye} roughness={0.4} />
+            </mesh>
+          ))}
         <group ref={eyes} position={[0, 0.13, 0]}>
           {([-1, 1] as const).map((s) => (
             <group key={`e${s}`} position={[0.29 * s, 0, 0.63]} scale={eyeScale}>

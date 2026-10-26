@@ -12,7 +12,7 @@ import { recoverSandbox } from "@/lib/lessons/sandbox";
 import { restoreFiles } from "@/lib/studio/media";
 import { playheadOf, seqOf, usePremiere, type PanelId, type PrTool } from "@/lib/studio/premiere";
 import { ContextMenu, Gutter, MenuBar, Panel, Toast, useWide, type Menu } from "../chrome";
-import { CloseX, DockZone, DragGhost, useDockLayout, windowMenu, type Zones } from "../dock";
+import { CloseX, DockRows, DockZone, DragGhost, useDockLayout, windowMenu, type Zones } from "../dock";
 import type { MenuItemLike } from "@/lib/studio/premiere";
 import { ProgramMonitor, SourceMonitor } from "./Monitors";
 import { AudioMixer, EffectControls, EssentialGraphics, Metadata, PropertiesPanel, TextPanel } from "./Inspectors";
@@ -53,9 +53,23 @@ const DESK_ZONES: Zones = {
   TR: { tabs: ["properties", "graphics"], active: "properties" },
   BL: { tabs: ["project", "effects", "history"], active: "project" },
   BR: { tabs: ["timeline"], active: "timeline" },
+  // zone libere: compaiono solo mentre si trascina una scheda
+  T0: { tabs: [], active: "" },
+  TX: { tabs: [], active: "" },
+  BC: { tabs: [], active: "" },
+  BX: { tabs: [], active: "" },
 };
 const DESK_PANELS = Object.values(DESK_ZONES).flatMap((z) => z.tabs);
-const DESK_ZONE_NAMES = { TL: "In alto a sinistra", TC: "In alto al centro", TR: "In alto a destra", BL: "In basso a sinistra", BR: "In basso (timeline)" };
+const DESK_ZONE_NAMES = { T0: "Nuova colonna in alto a sinistra", TL: "In alto a sinistra", TC: "In alto al centro", TR: "In alto a destra", TX: "Nuova colonna in alto a destra", BL: "In basso a sinistra", BC: "Nuova colonna in basso", BR: "In basso (timeline)", BX: "Nuova colonna in basso a destra" };
+const DESK_ROWS = [
+  { id: "top", zones: ["T0", "TL", "TC", "TR", "TX"] },
+  { id: "bottom", zones: ["BL", "BC", "BR", "BX"] },
+];
+const DESK_WEIGHTS = { top: 0.57, bottom: 0.43, T0: 0.25, TL: 0.36, TC: 0.36, TR: 0.28, TX: 0.25, BL: 0.27, BC: 0.3, BR: 0.73, BX: 0.3 };
+const PHONE_ROWS = [
+  { id: "a", zones: ["A"] },
+  { id: "b", zones: ["B"] },
+];
 const PHONE_ZONES: Zones = {
   A: { tabs: ["program", "project", "effectControls", "source", "effects", "properties", "graphics", "history"], active: "program" },
   B: { tabs: ["timeline"], active: "timeline" },
@@ -656,35 +670,37 @@ function PremiereInner() {
       </div>
     );
   } else if (wide) {
-    const topH = Math.round((vh - 26 - 44 - 24) * sizes.top);
+    // disposizione libera: le zone vuote spariscono, le schede vanno ovunque
     body = (
-      <div className="flex min-h-0 flex-1 flex-col p-1">
-        <div className="flex shrink-0" style={{ height: topH }}>
-          {zone("TL", "shrink-0", { width: sizes.src * vw })}
-          <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, src: Math.max(0.15, Math.min(0.5, s.src + d / vw)) }))} />
-          {zone("TC", "shrink-0", { width: sizes.prog * vw })}
-          <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, prog: Math.max(0.2, Math.min(0.6, s.prog + d / vw)) }))} />
-          {zone("TR", "min-w-0 flex-1")}
-        </div>
-        <Gutter dir="y" onDrag={(d) => setSizes((s) => ({ ...s, top: Math.max(0.25, Math.min(0.75, s.top + d / vh)) }))} />
-        <div className="flex min-h-0 flex-1">
-          {zone("BL", "shrink-0", { width: sizes.proj * vw })}
-          <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, proj: Math.max(0.15, Math.min(0.5, s.proj + d / vw)) }))} />
-          <div className="w-[52px] shrink-0 rounded-[4px] bg-[#1e1e1e]" onPointerDownCapture={() => st.set({ focus: "tools" })}>
-            <ToolsPanel />
-          </div>
-          <Gutter dir="x" onDrag={() => {}} />
-          {zone("BR", "min-w-0 flex-1")}
-        </div>
-      </div>
+      <DockRows
+        layout={layout}
+        rows={DESK_ROWS}
+        storageKey="pr-dock-sizes-v3"
+        defaults={DESK_WEIGHTS}
+        zone={zone}
+        extras={{
+          bottom: {
+            after: "BL",
+            node: (
+              <div className="mx-[2px] h-full w-[52px] shrink-0 rounded-[4px] bg-[#1e1e1e]" onPointerDownCapture={() => st.set({ focus: "tools" })}>
+                <ToolsPanel />
+              </div>
+            ),
+          },
+        }}
+      />
     );
   } else {
     // telefono: due zone compatte con gli strumenti in mezzo
     body = (
-      <div className="flex min-h-0 flex-1 flex-col gap-1 p-1">
-        {zone("A", "shrink-0", { height: `${Math.round(sizes.top * 80)}%` })}
-        <Gutter dir="y" onDrag={(d) => setSizes((s) => ({ ...s, top: Math.max(0.3, Math.min(0.9, s.top + d / vh)) }))} />
-        <div className="flex shrink-0 items-center overflow-x-auto rounded-[4px] bg-[#1e1e1e] [scrollbar-width:none]">
+      <DockRows
+        layout={layout}
+        rows={PHONE_ROWS}
+        storageKey="pr-dock-phone-sizes-v3"
+        defaults={{ a: 0.55, b: 0.45 }}
+        zone={zone}
+        between={
+          <div className="flex shrink-0 items-center overflow-x-auto rounded-[4px] bg-[#1e1e1e] [scrollbar-width:none]">
           <ToolsPanel horizontal />
           <div className="ml-auto flex shrink-0 gap-0.5 pr-1 text-[11px] font-semibold text-[#d0d0d0]">
             <button type="button" onClick={() => A.togglePlay()} className="rounded px-2 py-1.5 hover:bg-white/10">
@@ -701,8 +717,8 @@ function PremiereInner() {
             </button>
           </div>
         </div>
-        {zone("B", "min-h-0 flex-1")}
-      </div>
+        }
+      />
     );
   }
 

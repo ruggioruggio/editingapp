@@ -171,11 +171,13 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             </Grid>
           )}
           {part === "bg" && (
-            <div className="grid grid-cols-5 gap-2">
-              {BACKGROUNDS.map(([a, b], i) => (
-                <Swatch key={a} big on={avatar.bg === i} style={{ background: `linear-gradient(135deg, ${a}, ${b})` }} onClick={() => change({ bg: i })} />
+            <Grid>
+              {BACKGROUNDS.map((b, i) => (
+                <Choice key={b.name} label={b.name} on={avatar.bg === i} onClick={() => change({ bg: i })}>
+                  <AvatarArt avatar={{ ...avatar, bg: i }} size={76} />
+                </Choice>
               ))}
-            </div>
+            </Grid>
           )}
         </div>
       </div>

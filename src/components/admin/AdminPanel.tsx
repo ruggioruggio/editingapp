@@ -43,6 +43,44 @@ const fmtUntil = (d: string) => (d.startsWith("9999") ? "per sempre" : `fino al 
 const btn = "rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors disabled:opacity-40";
 const input = "h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-sm text-white outline-none focus:border-[#5865f2]";
 
+type StatValues = { xp: number; streak: number; best?: number };
+
+/** Valori esatti da scrivere a mano: XP, serie e (se c'è) serie migliore. */
+function StatsEditor({ initial, onSave, busy, label = "Salva valori" }: { initial: StatValues; onSave: (v: StatValues) => void; busy?: boolean; label?: string }) {
+  const [v, setV] = useState({ xp: String(initial.xp), streak: String(initial.streak), best: initial.best === undefined ? "" : String(initial.best) });
+  const field = (k: "xp" | "streak" | "best", name: string) => (
+    <label className="flex flex-col gap-1 text-[11px] font-bold uppercase tracking-wide text-[#b5bac1]">
+      {name}
+      <input
+        type="number"
+        min={0}
+        inputMode="numeric"
+        value={v[k]}
+        onChange={(e) => setV((x) => ({ ...x, [k]: e.target.value }))}
+        onKeyDown={(e) => e.stopPropagation()}
+        className={clsx(input, "w-28")}
+      />
+    </label>
+  );
+  const n = (s: string) => Math.max(0, Math.round(Number(s) || 0));
+  return (
+    <form
+      className="flex flex-wrap items-end gap-2"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave({ xp: n(v.xp), streak: n(v.streak), ...(initial.best !== undefined ? { best: Math.max(n(v.best), n(v.streak)) } : {}) });
+      }}
+    >
+      {field("xp", "XP")}
+      {field("streak", "Serie (giorni)")}
+      {initial.best !== undefined && field("best", "Serie migliore")}
+      <button type="submit" disabled={busy} className={clsx(btn, "h-9 bg-[#5865f2] text-white")}>
+        {label}
+      </button>
+    </form>
+  );
+}
+
 function Login() {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -136,6 +174,7 @@ function Stats() {
 function Users() {
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<UserRow[]>([]);
+  const [editing, setEditing] = useState<string | null>(null);
   const { msg, busy, run } = useAsync();
   const search = () => run(async () => setRows((await adminAction<{ users: UserRow[] }>("search", { q })).users), "Ricerca completata");
   useEffect(() => {
@@ -206,16 +245,7 @@ function Users() {
                     </button>
                   ))
                 )}
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => {
-                    const xp = window.prompt("Nuovi XP:", String(u.xp));
-                    const streak = window.prompt("Nuova serie (giorni):", String(u.streak_count));
-                    if (xp !== null && streak !== null) void act("setStats", { userId: u.id, xp: Number(xp), streak: Number(streak) }, "Statistiche aggiornate");
-                  }}
-                  className={clsx(btn, "bg-white/10 text-white hover:bg-white/20")}
-                >
+                <button type="button" onClick={() => setEditing(editing === u.id ? null : u.id)} className={clsx(btn, editing === u.id ? "bg-[#5865f2] text-white" : "bg-white/10 text-white hover:bg-white/20")}>
                   XP / serie
                 </button>
                 <button
@@ -227,6 +257,16 @@ function Users() {
                   Cancella messaggi
                 </button>
               </div>
+              {editing === u.id && (
+                <div className="mt-3 rounded-lg bg-black/30 p-3">
+                  <StatsEditor
+                    key={u.id + u.xp + u.streak_count}
+                    initial={{ xp: u.xp, streak: u.streak_count }}
+                    busy={busy}
+                    onSave={(v) => void act("setStats", { userId: u.id, xp: v.xp, streak: v.streak }, `Valori di @${u.username}: ${v.xp} XP, serie ${v.streak}`)}
+                  />
+                </div>
+              )}
             </div>
           ))}
           {!rows.length && !busy && <p className="text-sm text-[#80848e]">Nessun utente trovato.</p>}
@@ -337,6 +377,9 @@ function MaintenanceTab() {
 
 function Me() {
   const adminPro = useProgress((s) => s.adminPro);
+  const xp = useProgress((s) => s.xp);
+  const streak = useProgress((s) => s.streak.count);
+  const best = useProgress((s) => s.bestStreak);
   const auth = useAuth();
   const { mode, database } = useAdmin();
   const { msg, busy, run } = useAsync();
@@ -363,6 +406,21 @@ function Me() {
           </div>
         </div>
       )}
+      <div className="rounded-xl bg-black/30 p-4">
+        <p className="font-black text-white">I miei valori esatti</p>
+        <p className="mb-3 text-sm text-[#b5bac1]">
+          Scrivi XP e serie precisi (es. 60 giorni di serie).{mode === "server" && database && auth.userId ? " Si salvano anche sul tuo account online." : " Valgono su questo dispositivo."}
+        </p>
+        <StatsEditor
+          key={`${xp}-${streak}-${best}`}
+          initial={{ xp, streak, best }}
+          busy={busy}
+          onSave={(v) => {
+            useProgress.setState({ xp: v.xp, streak: { count: v.streak, lastDay: v.streak ? todayKey() : null }, bestStreak: Math.max(v.best ?? 0, v.streak) });
+            if (mode === "server" && database && auth.userId) void run(() => adminAction("setStats", { userId: auth.userId, xp: v.xp, streak: v.streak }), `Salvato: ${v.xp} XP, serie ${v.streak}`);
+          }}
+        />
+      </div>
       <Note msg={msg} />
     </div>
   );

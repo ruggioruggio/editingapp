@@ -26,11 +26,11 @@
       "target": ["portable", "nsis"],
       "icon": "build/icon.png"
     },
-    "portable": { "artifactName": "SqueakEdit-${version}-Windows-portable.${ext}" },
+    "portable": { "artifactName": "SqueakEdit-Windows-portable.${ext}" },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "SqueakEdit-${version}-Windows-setup.${ext}"
+      "artifactName": "SqueakEdit-Windows-setup.${ext}"
     },
     "mac": {
       "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
@@ -38,12 +38,12 @@
       "icon": "build/icon.png",
       "identity": "-"
     },
-    "dmg": { "artifactName": "SqueakEdit-${version}-Mac-${arch}.${ext}" },
+    "dmg": { "artifactName": "SqueakEdit-Mac-${arch}.${ext}" },
     "linux": {
       "target": ["AppImage"],
       "category": "Education",
       "icon": "build/icon.png"
     },
-    "appImage": { "artifactName": "SqueakEdit-${version}-Linux.${ext}" }
+    "appImage": { "artifactName": "SqueakEdit-Linux.${ext}" }
   }
 }

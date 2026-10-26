@@ -13,7 +13,7 @@ import { EFFECTS, EFFECT_CATEGORIES } from "@/lib/studio/effects";
 import { restoreFiles } from "@/lib/studio/media";
 import { compOf, useAe, type AeTool } from "@/lib/studio/ae";
 import { ContextMenu, Gutter, MenuBar, Toast, useWide, type Menu } from "../chrome";
-import { CloseX, DockZone, DragGhost, useDockLayout, windowMenu, type Zones } from "../dock";
+import { CloseX, DockRows, DockZone, DragGhost, useDockLayout, windowMenu, type Zones } from "../dock";
 import { AeTimeline } from "./AeTimeline";
 import { Viewer } from "./Viewer";
 import { AeAlign, AeCharacter, AeEffectControls, AeEffectsPresets, AeProjectPanel, AeProperties, AeTracker, applyAePreset, openAeImport } from "./Panels";
@@ -41,9 +41,24 @@ const DESK_ZONES: Zones = {
   LEFT: { tabs: ["project", "effectControls", "effects", "properties", "character", "align"], active: "project" },
   RIGHT: { tabs: ["composition"], active: "composition" },
   BOTTOM: { tabs: ["timeline"], active: "timeline" },
+  // zone libere: compaiono solo mentre si trascina una scheda
+  L0: { tabs: [], active: "" },
+  MID: { tabs: [], active: "" },
+  R2: { tabs: [], active: "" },
+  B0: { tabs: [], active: "" },
+  B2: { tabs: [], active: "" },
 };
 const DESK_PANELS = Object.values(DESK_ZONES).flatMap((z) => z.tabs);
-const DESK_ZONE_NAMES = { LEFT: "In alto a sinistra", RIGHT: "In alto a destra", BOTTOM: "In basso" };
+const DESK_ZONE_NAMES = { L0: "Nuova colonna a sinistra", LEFT: "In alto a sinistra", MID: "Nuova colonna in mezzo", RIGHT: "In alto a destra", R2: "Nuova colonna a destra", B0: "In basso a sinistra", BOTTOM: "In basso", B2: "In basso a destra" };
+const DESK_ROWS = [
+  { id: "top", zones: ["L0", "LEFT", "MID", "RIGHT", "R2"] },
+  { id: "bottom", zones: ["B0", "BOTTOM", "B2"] },
+];
+const DESK_WEIGHTS = { top: 0.6, bottom: 0.4, L0: 0.25, LEFT: 0.48, MID: 0.3, RIGHT: 0.52, R2: 0.25, B0: 0.3, BOTTOM: 1, B2: 0.3 };
+const PHONE_ROWS = [
+  { id: "a", zones: ["A"] },
+  { id: "b", zones: ["B"] },
+];
 const PHONE_ZONES: Zones = {
   A: { tabs: ["composition", "project", "effectControls", "effects", "properties", "character"], active: "composition" },
   B: { tabs: ["timeline"], active: "timeline" },
@@ -409,24 +424,18 @@ function AeInner() {
 
   let body: ReactNode;
   if (wide) {
-    const topH = Math.round((vh - 26 - 22 - 46 - 8) * sizes.top);
-    body = (
-      <div className="flex min-h-0 flex-1 flex-col p-1">
-        <div className="flex shrink-0" style={{ height: topH }}>
-          {zone("LEFT", "shrink-0", { width: sizes.left * vw })}
-          <Gutter dir="x" onDrag={(d) => setSizes((s) => ({ ...s, left: Math.max(0.2, Math.min(0.7, s.left + d / vw)) }))} />
-          {zone("RIGHT", "min-w-0 flex-1")}
-        </div>
-        <Gutter dir="y" onDrag={(d) => setSizes((s) => ({ ...s, top: Math.max(0.25, Math.min(0.8, s.top + d / vh)) }))} />
-        {zone("BOTTOM", "min-h-0 flex-1")}
-      </div>
-    );
+    // disposizione libera: le zone vuote spariscono, le schede vanno ovunque
+    body = <DockRows layout={layout} rows={DESK_ROWS} storageKey="ae-dock-sizes-v3" defaults={DESK_WEIGHTS} zone={zone} />;
   } else {
     body = (
-      <div className="flex min-h-0 flex-1 flex-col gap-1 p-1">
-        {zone("A", "shrink-0", { height: `${Math.round(sizes.top * 70)}%` })}
-        <Gutter dir="y" onDrag={(d) => setSizes((s) => ({ ...s, top: Math.max(0.3, Math.min(1.1, s.top + d / vh)) }))} />
-        <div className="flex shrink-0 gap-0.5 overflow-x-auto rounded-[4px] bg-[#1e1e1e] p-0.5 text-[11px] font-semibold text-[#d0d0d0] [scrollbar-width:none]">
+      <DockRows
+        layout={layout}
+        rows={PHONE_ROWS}
+        storageKey="ae-dock-phone-sizes-v3"
+        defaults={{ a: 0.6, b: 0.4 }}
+        zone={zone}
+        between={
+          <div className="flex shrink-0 gap-0.5 overflow-x-auto rounded-[4px] bg-[#1e1e1e] p-0.5 text-[11px] font-semibold text-[#d0d0d0] [scrollbar-width:none]">
           {(
             [
               [st.playing ? "Pausa" : "Play", () => st.set({ playing: !st.playing })],
@@ -445,8 +454,8 @@ function AeInner() {
             </button>
           ))}
         </div>
-        {zone("B", "min-h-0 flex-1")}
-      </div>
+        }
+      />
     );
   }
 

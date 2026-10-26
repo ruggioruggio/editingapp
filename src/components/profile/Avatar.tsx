@@ -1,40 +1,66 @@
 "use client";
 
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { DEFAULT_AVATAR, useSettings, type Avatar } from "@/lib/settings/store";
 
-// Avatar del giocatore: Squeak in versione umanoide, personalizzabile con
-// pelo, occhi, maglietta, muscoli, accessori e sfondo sfumato.
+// Avatar del giocatore: Squeak in versione chibi (testone come l'icona
+// dell'app, corpo piccolo), con occhi in stile anime/kaomoji, magliette,
+// muscoli, accessori (anche anime) e sfondi sfumati come l'icona.
 
 export const FURS = [
-  { name: "Grigio", main: "#b9bfcc", dark: "#8d93a3", light: "#e4e7ee" },
-  { name: "Nocciola", main: "#b98a5e", dark: "#8f6640", light: "#e8cfb3" },
-  { name: "Neve", main: "#f3f3f5", dark: "#cfd0d8", light: "#ffffff" },
-  { name: "Notte", main: "#4a4c58", dark: "#30323c", light: "#8a8c99" },
-  { name: "Oro", main: "#e6b65a", dark: "#bf8d34", light: "#f7dfa8" },
-  { name: "Caramella", main: "#f2a7c3", dark: "#d27c9e", light: "#fbd6e4" },
+  { name: "Grigio", light: "#ffffff", main: "#e4e6ee", dark: "#a9aebd" },
+  { name: "Nocciola", light: "#f3dcc4", main: "#c99a6e", dark: "#8f6640" },
+  { name: "Neve", light: "#ffffff", main: "#f7f7fa", dark: "#d4d6df" },
+  { name: "Notte", light: "#8a8c99", main: "#55576a", dark: "#2c2d38" },
+  { name: "Oro", light: "#fff2c4", main: "#f0c35e", dark: "#bf8d34" },
+  { name: "Caramella", light: "#ffe3ee", main: "#f7b4cd", dark: "#d27c9e" },
 ];
 
-export const SHIRT_COLORS = ["#2d8ceb", "#ff5f5f", "#3ecf8e", "#ffc93c", "#9999ff", "#1d1d1d", "#f5f5f5", "#ff8a3d"];
+export const SHIRT_COLORS = ["#5aa9ff", "#ff6b7a", "#3ecf8e", "#ffc93c", "#9999ff", "#2b2b36", "#f5f5f5", "#ff8a3d"];
 
-export const SHIRTS = ["T-shirt", "Felpa", "Canotta", "Maglia a righe", "Giacca", "Niente"];
-export const EYES = ["Normali", "Felici", "Cool", "Stelle", "Occhiolino"];
+export const SHIRTS = ["T-shirt", "Felpa", "Canotta", "Maglia a righe", "Giacca", "Niente", "Divisa da esploratore", "Tuta da combattimento"];
+export const EYES = ["Anime", "Felici ^ ^", "> <", "Tondi O O", "Bersaglio ◉", "Spirale @ @", "Chiusi", "Pianto T T", "Occhiolino", "Decisi", "Puntini"];
 export const MUSCLES = ["Magro", "Normale", "Atletico", "Palestrato"];
-export const ACCESSORIES = ["Nessuno", "Occhiali", "Occhiali da sole", "Cappellino", "Cuffie", "Corona", "Catena d'oro", "Bandana", "Cappello di paglia", "Berretto"];
-
-export const BACKGROUNDS: [string, string][] = [
-  ["#9999ff", "#5b3fd1"],
-  ["#ffc93c", "#ff7a3d"],
-  ["#3ecf8e", "#1f7fa8"],
-  ["#ff6fa8", "#7b3fe4"],
-  ["#5ce1e6", "#2d5beb"],
-  ["#ff5f5f", "#ffb43c"],
-  ["#2b2d42", "#8d99ae"],
-  ["#a8ff78", "#22b07d"],
-  ["#fbc2eb", "#a6c1ee"],
-  ["#0f2027", "#2c5364"],
+export const ACCESSORIES = [
+  "Nessuno",
+  "Fiocco",
+  "Occhiali tondi",
+  "Occhiali da sole",
+  "Cuffie",
+  "Corona",
+  "Aureola",
+  "Cerchietto da gatto",
+  "Berretto",
+  "Bandana",
+  "Cappello di paglia",
+  "Capelli alla Goku",
+  "Capelli di Ryuk",
+  "Death Note",
+  "Movimento tridimensionale",
+  "Sciarpa rossa",
+  "Coprifronte ninja",
 ];
+
+/** Sfondi: sfumatura in diagonale come l'icona, con macchie di luce sfocate. */
+export const BACKGROUNDS: { name: string; stops: [string, string, string]; blob: string }[] = [
+  { name: "Notte", stops: ["#4a4a58", "#18181c", "#030304"], blob: "#9999ff" },
+  { name: "Viola", stops: ["#b9a8ff", "#6b4fe0", "#2a1460"], blob: "#ff8ad8" },
+  { name: "Tramonto", stops: ["#ffd36e", "#ff7a59", "#a3245e"], blob: "#fff1a8" },
+  { name: "Oceano", stops: ["#8ef0ff", "#2d8ceb", "#0b2a6b"], blob: "#a8fff0" },
+  { name: "Menta", stops: ["#b6ffd9", "#3ecf8e", "#0d5b4a"], blob: "#fff6a8" },
+  { name: "Fragola", stops: ["#ffc2d8", "#ff6fa8", "#8a1f5c"], blob: "#ffe0f0" },
+  { name: "Formaggio", stops: ["#fff1a0", "#ffc93c", "#c46a00"], blob: "#ffffff" },
+  { name: "Aurora", stops: ["#a8ff78", "#4facfe", "#5b2a86"], blob: "#f9f871" },
+  { name: "Fuoco", stops: ["#ffe08a", "#ff5f5f", "#4a0d1f"], blob: "#ffb36b" },
+  { name: "Ghiaccio", stops: ["#ffffff", "#a6c1ee", "#3b4a7a"], blob: "#fbc2eb" },
+];
+
+/** Lo stesso sfondo in CSS (per i campioni da scegliere). */
+export const bgCss = (i: number) => {
+  const b = BACKGROUNDS[i % BACKGROUNDS.length];
+  return `radial-gradient(circle at 22% 20%, ${b.blob}aa 0, transparent 45%), radial-gradient(circle at 85% 90%, ${b.stops[0]}88 0, transparent 40%), linear-gradient(135deg, ${b.stops.join(", ")})`;
+};
 
 const darker = (hex: string, k = 0.75) => {
   const n = parseInt(hex.slice(1), 16);
@@ -42,259 +68,441 @@ const darker = (hex: string, k = 0.75) => {
   return `#${c((n >> 16) & 255)}${c((n >> 8) & 255)}${c(n & 255)}`;
 };
 
+const INK = "#1b1b24";
+const EYE_L = 76;
+const EYE_R = 124;
+const EYE_Y = 94;
+
 /** Il disegno dell'avatar (SVG quadrato, si adatta al contenitore). */
 export function AvatarArt({ avatar, size = 96, round = true }: { avatar: Avatar; size?: number; round?: boolean }) {
   const uid = useId().replace(/:/g, "");
   const a = { ...DEFAULT_AVATAR, ...avatar };
   const fur = FURS[a.fur % FURS.length];
-  const shirtC = SHIRT_COLORS[a.shirtColor % SHIRT_COLORS.length];
-  const shirtD = darker(shirtC);
-  const [g1, g2] = BACKGROUNDS[a.bg % BACKGROUNDS.length];
-  const m = Math.max(0, Math.min(3, a.muscles));
-  const sw = [32, 39, 47, 57][m]; // mezza larghezza delle spalle
-  const arm = [9, 12, 16, 21][m]; // spessore delle braccia
+  const bg = BACKGROUNDS[a.bg % BACKGROUNDS.length];
   const shirt = a.shirt % SHIRTS.length;
-  // più muscoli = spalle larghe e vita stretta (a V)
-  const bw = [sw + 3, sw, sw * 0.82, sw * 0.72][m];
-  const torso = `M${100 - bw} 250 L${100 - sw} 156 Q${100 - sw} 138 ${100 - sw + 16} 136 L${100 + sw - 16} 136 Q${100 + sw} 138 ${100 + sw} 156 L${100 + bw} 250 Z`;
+  const acc = a.accessory % ACCESSORIES.length;
+  const m = Math.max(0, Math.min(3, a.muscles));
+  const shirtC = shirt === 6 ? "#8a5a3c" : shirt === 7 ? "#ff8a1f" : SHIRT_COLORS[a.shirtColor % SHIRT_COLORS.length];
+  const shirtD = darker(shirtC);
+  const sw = [30, 36, 44, 54][m]; // mezza larghezza delle spalle
+  const bw = [sw + 4, sw + 2, sw * 0.85, sw * 0.74][m]; // più muscoli = busto a V
+  const arm = [9, 11, 15, 20][m];
+  const torso = `M${100 - bw} 215 L${100 - sw} 158 Q${100 - sw} 136 ${100 - sw + 18} 134 L${100 + sw - 18} 134 Q${100 + sw} 136 ${100 + sw} 158 L${100 + bw} 215 Z`;
   const bareArms = shirt === 2 || shirt === 5;
-  const armFill = shirt === 1 || shirt === 4 ? shirtC : fur.main;
-  const torsoFill = shirt === 5 ? fur.main : shirt === 4 ? shirtC : shirtC;
-  const line = "#1b1b24";
+  const fullSleeves = shirt === 1 || shirt === 4 || shirt === 6;
+  const id = (k: string) => `${k}${uid}`;
+  const furFill = `url(#${id("fur")})`;
 
   return (
-    <svg viewBox="0 0 200 200" width={size} height={size} className="block" style={{ borderRadius: round ? "50%" : 24 }} aria-hidden>
+    <svg viewBox="0 0 200 200" width={size} height={size} className="block" style={{ borderRadius: round ? "50%" : 28 }} aria-hidden>
       <defs>
-        <linearGradient id={`bg${uid}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={g1} />
-          <stop offset="1" stopColor={g2} />
+        <linearGradient id={id("bg")} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={bg.stops[0]} />
+          <stop offset="0.5" stopColor={bg.stops[1]} />
+          <stop offset="1" stopColor={bg.stops[2]} />
         </linearGradient>
-        <clipPath id={`t${uid}`}>
+        <radialGradient id={id("glow")}>
+          <stop offset="0" stopColor="#fff" stopOpacity="0.28" />
+          <stop offset="1" stopColor="#fff" stopOpacity="0" />
+        </radialGradient>
+        <filter id={id("blur")} x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="18" />
+        </filter>
+        <radialGradient id={id("fur")} gradientUnits="userSpaceOnUse" cx="80" cy="70" r="110">
+          <stop offset="0" stopColor={fur.light} />
+          <stop offset="0.55" stopColor={fur.main} />
+          <stop offset="1" stopColor={fur.dark} />
+        </radialGradient>
+        <clipPath id={id("t")}>
           <path d={torso} />
         </clipPath>
+        {[-1, 1].map((s) => (
+          <clipPath key={s} id={id(`a${s}`)}>
+            <ellipse cx={100 + s * (sw + arm * 0.3)} cy={174} rx={arm} ry={28} />
+          </clipPath>
+        ))}
       </defs>
-      <rect width="200" height="200" fill={`url(#bg${uid})`} />
-      <circle cx="160" cy="40" r="46" fill="#fff" opacity="0.12" />
-      <circle cx="30" cy="170" r="40" fill="#fff" opacity="0.08" />
-      {/* figura rimpicciolita: si vede anche il busto, non solo la testa */}
-      <g transform="translate(0 8) translate(100 100) scale(0.74) translate(-100 -100)">
 
-      {/* braccia */}
+      {/* sfondo sfocato come l'icona */}
+      <rect width="200" height="200" fill={`url(#${id("bg")})`} />
+      <circle cx="40" cy="36" r="52" fill={bg.blob} opacity="0.55" filter={`url(#${id("blur")})`} />
+      <circle cx="176" cy="178" r="56" fill={bg.stops[0]} opacity="0.45" filter={`url(#${id("blur")})`} />
+      <circle cx="44" cy="36" r="80" fill={`url(#${id("glow")})`} />
+      {/* il personaggio un po' rimpicciolito: si vedono anche le manine */}
+      <g transform="translate(12 14) scale(0.88)">
+
+      {/* capelli di Ryuk: dietro la testa per spuntare tutto intorno */}
+      {acc === 12 && <RyukHair />}
+
+      {/* orecchie */}
       {[-1, 1].map((s) => (
         <g key={s}>
-          <clipPath id={`a${uid}${s}`}>
-            <ellipse cx={100 + s * (sw + arm * 0.35)} cy={190} rx={arm} ry={48} />
-          </clipPath>
-          <ellipse cx={100 + s * (sw + arm * 0.35)} cy={190} rx={arm} ry={48} fill={armFill} stroke={line} strokeWidth="2.5" />
-          {/* manica corta della t-shirt e della maglia a righe */}
-          {(shirt === 0 || shirt === 3) && (
-            <g>
-              <rect x={100 + s * (sw + arm * 0.35) - arm - 2} y={136} width={arm * 2 + 4} height={38} fill={shirtC} clipPath={`url(#a${uid}${s})`} />
-              <path d={`M${100 + s * (sw + arm * 0.35) - arm} 174 H${100 + s * (sw + arm * 0.35) + arm}`} stroke={line} strokeWidth="2.5" />
-            </g>
-          )}
-          {/* bicipite marcato */}
-          {bareArms && m >= 2 && <path d={`M${100 + s * (sw + arm * 0.35 - arm * 0.6)} 166 q${s * arm * 0.6} -10 ${s * arm * 1.1} 0`} fill="none" stroke={fur.dark} strokeWidth="2.5" strokeLinecap="round" />}
+          <circle cx={100 + s * 54} cy={46} r={29} fill={furFill} />
+          <circle cx={100 + s * 52} cy={48} r={18} fill="#ffb3c9" />
         </g>
       ))}
 
-      {/* busto */}
-      <path d={torso} fill={torsoFill} stroke={line} strokeWidth="2.5" />
-      <g clipPath={`url(#t${uid})`}>
+      {/* cappuccio della felpa dietro la testa */}
+      {shirt === 1 && <path d={`M${100 - sw - 6} 150 Q100 112 ${100 + sw + 6} 150 L${100 + sw - 4} 160 Q100 132 ${100 - sw + 4} 160 Z`} fill={shirtD} />}
+
+      {/* braccia con le manine */}
+      {[-1, 1].map((s) => (
+        <g key={s}>
+          <ellipse cx={100 + s * (sw + arm * 0.3)} cy={174} rx={arm} ry={28} fill={fullSleeves ? shirtC : shirt === 7 ? "#2a5bd7" : furFill} />
+          {(shirt === 0 || shirt === 3 || shirt === 7) && <rect x={100 + s * (sw + arm * 0.3) - arm - 1} y={140} width={arm * 2 + 2} height={30} fill={shirtC} clipPath={`url(#${id(`a${s}`)})`} />}
+          {bareArms && m >= 2 && <path d={`M${100 + s * (sw + arm * 0.3) - arm * 0.55} 172 q${arm * 0.55} -9 ${arm * 1.1} 0`} fill="none" stroke={fur.dark} strokeWidth="2.5" strokeLinecap="round" />}
+          <circle cx={100 + s * (sw + arm * 0.3)} cy={198} r={arm * 0.8} fill="#ffc9d6" />
+        </g>
+      ))}
+
+      {/* busto e maglietta */}
+      <path d={torso} fill={shirt === 5 ? furFill : shirtC} />
+      <g clipPath={`url(#${id("t")})`}>
         {shirt === 2 && (
           <>
-            <path d={`M${100 - sw - 6} 250 L${100 - sw * 0.55} 140 L${100 - sw * 0.25} 140 Q100 168 ${100 + sw * 0.25} 140 L${100 + sw * 0.55} 140 L${100 + sw + 6} 250 Z`} fill={shirtC} stroke={line} strokeWidth="2.5" />
-            <path d={`M${100 - sw - 6} 250 L${100 - sw} 150 L${100 - sw * 0.55} 140 L${100 - sw * 0.75} 250 Z`} fill={fur.main} />
-            <path d={`M${100 + sw + 6} 250 L${100 + sw} 150 L${100 + sw * 0.55} 140 L${100 + sw * 0.75} 250 Z`} fill={fur.main} />
+            <path d={`M${100 - sw - 8} 215 L${100 - sw} 150 L${100 - sw * 0.55} 134 L${100 - sw * 0.72} 215 Z`} fill={furFill} />
+            <path d={`M${100 + sw + 8} 215 L${100 + sw} 150 L${100 + sw * 0.55} 134 L${100 + sw * 0.72} 215 Z`} fill={furFill} />
+            <path d={`M${100 - sw * 0.3} 134 Q100 158 ${100 + sw * 0.3} 134 Z`} fill={furFill} />
           </>
         )}
-        {shirt === 3 && [150, 166, 182, 198, 214, 230].map((y) => <rect key={y} x="0" y={y} width="200" height="7" fill="#fff" opacity="0.85" />)}
-        {shirt === 5 && <ellipse cx="100" cy="205" rx={bw * 0.7} ry="48" fill={fur.light} />}
+        {shirt === 3 && [146, 162, 178, 194, 210].map((y) => <rect key={y} x="0" y={y} width="200" height="7" fill="#fff" opacity="0.85" />)}
+        {shirt === 5 && <ellipse cx="100" cy="200" rx={bw * 0.68} ry="40" fill="#fff" opacity="0.55" />}
         {shirt === 4 && (
           <>
-            <path d="M100 136 L84 136 L100 215 L116 136 Z" fill="#f4f4f4" />
-            <path d="M100 142 l-5 6 l5 40 l5 -40 Z" fill="#d6283b" stroke={line} strokeWidth="1.5" />
-            <path d={`M84 136 L100 205 M116 136 L100 205`} stroke={line} strokeWidth="2.5" fill="none" />
+            <path d="M100 134 L86 134 L100 215 L114 134 Z" fill="#f4f4f4" />
+            <path d="M100 140 l-5 6 l5 34 l5 -34 Z" fill="#e0353f" />
+            <path d="M86 134 L100 196 M114 134 L100 196" stroke={shirtD} strokeWidth="3" fill="none" />
           </>
         )}
         {shirt === 1 && (
           <>
-            <path d={`M76 230 L76 196 Q100 190 124 196 L124 230`} fill={shirtD} stroke={line} strokeWidth="2" />
-            <path d="M93 142 L91 168 M107 142 L109 168" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M74 215 L74 190 Q100 184 126 190 L126 215" fill={shirtD} />
+            <path d="M93 140 L91 166 M107 140 L109 166" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" />
           </>
         )}
-        {/* pettorali e addominali */}
-        {m >= 2 && (
-          <g stroke={shirt === 5 ? fur.dark : shirtD} strokeWidth="2.5" fill="none" strokeLinecap="round" opacity={shirt === 4 ? 0 : 1}>
-            <path d={`M${100 - sw * 0.75} 160 Q${100 - sw * 0.4} ${m === 3 ? 176 : 170} 98 162`} />
-            <path d={`M${100 + sw * 0.75} 160 Q${100 + sw * 0.4} ${m === 3 ? 176 : 170} 102 162`} />
-            {shirt === 5 && m === 3 && (
-              <>
-                <path d="M100 174 V222" />
-                <path d="M90 186 H110 M90 199 H110 M91 211 H109" />
-              </>
-            )}
+        {shirt === 6 && (
+          <>
+            {/* giacchetta corta aperta sulla camicia bianca, con lo stemma delle ali */}
+            <path d="M84 134 L100 215 L116 134 Z" fill="#f2efe6" />
+            <rect x={100 - bw} y="182" width={bw * 2} height="40" fill="#efe9dc" />
+            <g transform={`translate(${100 - sw * 0.55} 152)`}>
+              <path d="M0 0 q-9 -5 -13 4 q7 0 9 7 Z" fill="#fff" />
+              <path d="M2 0 q9 -5 13 4 q-7 0 -9 7 Z" fill="#3d6fd8" />
+            </g>
+          </>
+        )}
+        {shirt === 7 && (
+          <>
+            {/* tuta arancione con maglia blu sotto e cintura */}
+            <path d="M86 134 L100 160 L114 134 Z" fill="#2a5bd7" />
+            <rect x="0" y="188" width="200" height="9" fill="#2a5bd7" />
+            <circle cx={100 + sw * 0.45} cy="154" r="7" fill="#fff" />
+          </>
+        )}
+        {m >= 2 && shirt !== 4 && shirt !== 7 && (
+          <g stroke={shirt === 5 ? fur.dark : shirtD} strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.8">
+            <path d={`M${100 - sw * 0.75} 162 Q${100 - sw * 0.4} ${m === 3 ? 176 : 170} 98 164`} />
+            <path d={`M${100 + sw * 0.75} 162 Q${100 + sw * 0.4} ${m === 3 ? 176 : 170} 102 164`} />
+          </g>
+        )}
+        {m === 3 && shirt === 5 && (
+          <g stroke={fur.dark} strokeWidth="2.5" fill="none" strokeLinecap="round">
+            <path d="M100 176 V212" />
+            <path d="M90 186 H110 M90 198 H110" />
           </g>
         )}
       </g>
-      {/* cappuccio della felpa e colletto della t-shirt */}
-      {shirt === 1 && <path d="M70 140 Q100 118 130 140 Q100 150 70 140 Z" fill={shirtD} stroke={line} strokeWidth="2.5" />}
-      {(shirt === 0 || shirt === 3) && <path d="M86 137 Q100 150 114 137" fill="none" stroke={line} strokeWidth="2.5" />}
-      {a.accessory === 6 && (
-        <g>
-          <path d="M78 140 Q100 176 122 140" fill="none" stroke="#e8b53a" strokeWidth="4" strokeDasharray="5 2" />
-          <circle cx="100" cy="160" r="7" fill="#ffd25e" stroke="#9b6d10" strokeWidth="2" />
-        </g>
-      )}
+      {(shirt === 0 || shirt === 3) && <path d="M86 135 Q100 148 114 135" fill="none" stroke={shirtD} strokeWidth="3" />}
 
-      {/* collo e testa */}
-      <rect x="90" y="122" width="20" height="18" fill={fur.main} stroke={line} strokeWidth="2.5" />
-      <g>
-        {a.accessory === 4 && <path d="M54 92 Q56 30 100 30 Q144 30 146 92" fill="none" stroke="#2a2a35" strokeWidth="7" />}
-        {[-1, 1].map((s) => (
-          <g key={s}>
-            <circle cx={100 + s * 38} cy={56} r={24} fill={fur.main} stroke={line} strokeWidth="2.5" />
-            <circle cx={100 + s * 38} cy={57} r={14} fill="#ffb3c8" />
-          </g>
-        ))}
-        <ellipse cx="100" cy="94" rx="44" ry="39" fill={fur.main} stroke={line} strokeWidth="2.5" />
-        <ellipse cx="100" cy="113" rx="24" ry="16" fill={fur.light} />
-        <circle cx="74" cy="106" r="7" fill="#ff9ab8" opacity="0.6" />
-        <circle cx="126" cy="106" r="7" fill="#ff9ab8" opacity="0.6" />
-        <Eyes kind={a.eyes % EYES.length} line={line} fur={fur.main} />
-        <ellipse cx="100" cy="104" rx="7.5" ry="5.5" fill="#ff7aa2" stroke={line} strokeWidth="2" />
-        <path d="M92 116 Q100 123 108 116" fill="none" stroke={line} strokeWidth="2.5" strokeLinecap="round" />
-        <path d="M100 109.5 V116" stroke={line} strokeWidth="2" />
-        <g stroke={line} strokeWidth="1.6" strokeLinecap="round" opacity="0.7">
-          <path d="M76 108 L56 104 M76 112 L56 114" />
-          <path d="M124 108 L144 104 M124 112 L144 114" />
+      {/* accessori sul corpo (sotto la testa) */}
+      {acc === 14 && <OdmGear sw={sw} bw={bw} />}
+      {acc === 15 && <Scarf />}
+
+      {/* testone stile icona */}
+      <ellipse cx="100" cy="90" rx="58" ry="52" fill={furFill} />
+      {/* guance con i trattini ///, come nei kaomoji */}
+      {[-1, 1].map((s) => (
+        <g key={s}>
+          <ellipse cx={100 + s * 34} cy={110} rx={10} ry={6} fill="#ffb3c9" opacity="0.8" />
+          <path d={`M${100 + s * 34 - 6} 113 l3 -6 M${100 + s * 34 - 1} 113 l3 -6 M${100 + s * 34 + 4} 113 l3 -6`} stroke="#ff7fa5" strokeWidth="1.4" strokeLinecap="round" opacity="0.8" />
         </g>
+      ))}
+      <Eyes kind={a.eyes % EYES.length} />
+      {/* nasino e bocca a ω */}
+      <ellipse cx="100" cy="106" rx="6.5" ry="4.8" fill="#ff6f9a" />
+      <ellipse cx="98.4" cy="104.6" rx="1.8" ry="1.2" fill="#fff" opacity="0.85" />
+      <path d="M91 113 q4.5 5 9 0 q4.5 5 9 0" fill="none" stroke="#5a5d6e" strokeWidth="2.2" strokeLinecap="round" />
+      <g stroke="#a7abb8" strokeWidth="1.4" strokeLinecap="round">
+        <path d="M58 104 L40 100 M58 109 L39 110" />
+        <path d="M142 104 L160 100 M142 109 L161 110" />
       </g>
-      <Accessory kind={a.accessory % ACCESSORIES.length} line={line} />
+
+      <Accessory kind={acc} />
       </g>
     </svg>
   );
 }
 
-function Eyes({ kind, line, fur }: { kind: number; line: string; fur: string }) {
-  if (kind === 1)
-    return (
-      <g fill="none" stroke={line} strokeWidth="3.5" strokeLinecap="round">
-        <path d="M76 92 Q84 82 92 92" />
-        <path d="M108 92 Q116 82 124 92" />
-      </g>
-    );
-  if (kind === 2)
-    return (
-      <g>
-        {[84, 116].map((x) => (
-          <g key={x}>
-            <ellipse cx={x} cy={90} rx="7" ry="8" fill={line} />
-            <rect x={x - 9} y="79" width="18" height="8" fill={fur} />
-            <path d={`M${x - 9} 87 H${x + 9}`} stroke={line} strokeWidth="3.5" strokeLinecap="round" />
-          </g>
-        ))}
-        <path d="M74 80 L92 84 M126 80 L108 84" stroke={line} strokeWidth="3" strokeLinecap="round" />
-      </g>
-    );
-  if (kind === 3)
-    return (
-      <g>
-        {[84, 116].map((x) => (
-          <g key={x}>
-            <ellipse cx={x} cy={90} rx="9" ry="10" fill={line} />
-            <path d={`M${x} 83 l2 5 l5 0.5 l-4 3.5 l1.5 5 l-4.5 -3 l-4.5 3 l1.5 -5 l-4 -3.5 l5 -0.5 Z`} fill="#ffd84a" />
-          </g>
-        ))}
-      </g>
-    );
-  if (kind === 4)
-    return (
-      <g>
-        <ellipse cx="84" cy="90" rx="7" ry="9" fill={line} />
-        <circle cx="86.5" cy="86.5" r="2.6" fill="#fff" />
-        <path d="M108 91 Q116 85 124 91" fill="none" stroke={line} strokeWidth="3.5" strokeLinecap="round" />
-      </g>
-    );
+/** Occhi in stile anime / kaomoji (vedi la lista EYES). */
+function Eyes({ kind }: { kind: number }) {
+  const both = (f: (x: number, s: number) => ReactNode) => (
+    <>
+      {f(EYE_L, -1)}
+      {f(EYE_R, 1)}
+    </>
+  );
+  const line = { fill: "none", stroke: INK, strokeWidth: 4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  switch (kind) {
+    case 1: // ^ ^
+      return both((x) => <path key={x} d={`M${x - 9} ${EYE_Y + 3} L${x} ${EYE_Y - 7} L${x + 9} ${EYE_Y + 3}`} {...line} />);
+    case 2: // > <
+      return (
+        <>
+          <path d={`M${EYE_L - 8} ${EYE_Y - 8} L${EYE_L + 8} ${EYE_Y} L${EYE_L - 8} ${EYE_Y + 8}`} {...line} />
+          <path d={`M${EYE_R + 8} ${EYE_Y - 8} L${EYE_R - 8} ${EYE_Y} L${EYE_R + 8} ${EYE_Y + 8}`} {...line} />
+        </>
+      );
+    case 3: // O O
+      return both((x) => <circle key={x} cx={x} cy={EYE_Y} r="8" fill="#fff" stroke={INK} strokeWidth="4" />);
+    case 4: // ◉ ◉
+      return both((x) => (
+        <g key={x}>
+          <circle cx={x} cy={EYE_Y} r="10" fill="#fff" stroke={INK} strokeWidth="3.5" />
+          <circle cx={x} cy={EYE_Y} r="5" fill={INK} />
+        </g>
+      ));
+    case 5: // @ @
+      return both((x) => <path key={x} d={`M${x} ${EYE_Y} m-1 0 a1.5 1.5 0 1 1 3 0 a4 4 0 1 1 -7 -1 a6.5 6.5 0 1 1 12 2 a9 9 0 1 1 -17 -3`} fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />);
+    case 6: // chiusi, con le ciglia
+      return both((x, s) => (
+        <g key={x}>
+          <path d={`M${x - 10} ${EYE_Y - 1} Q${x} ${EYE_Y + 7} ${x + 10} ${EYE_Y - 1}`} {...line} />
+          <path d={`M${x + 10 * s} ${EYE_Y - 1} l${4 * s} -4`} {...line} strokeWidth={3} />
+        </g>
+      ));
+    case 7: // T T
+      return both((x) => (
+        <g key={x}>
+          <path d={`M${x - 9} ${EYE_Y - 6} H${x + 9} M${x} ${EYE_Y - 6} V${EYE_Y + 6}`} {...line} />
+          <path d={`M${x - 3} ${EYE_Y + 9} q3 10 0 18 q-3 -8 0 -18`} fill="#7fd0ff" opacity="0.9" />
+        </g>
+      ));
+    case 8: // occhiolino
+      return (
+        <>
+          <path d={`M${EYE_L - 8} ${EYE_Y - 7} L${EYE_L + 7} ${EYE_Y} L${EYE_L - 8} ${EYE_Y + 7}`} {...line} />
+          <AnimeEye x={EYE_R} />
+        </>
+      );
+    case 9: // decisi, col taglio affilato verso il naso
+      return both((x, s) => (
+        <g key={x}>
+          <path d={`M${x + 11 * s} ${EYE_Y - 9} L${x - 11 * s} ${EYE_Y - 2} Q${x} ${EYE_Y + 12} ${x + 11 * s} ${EYE_Y - 9} Z`} fill={INK} />
+          <circle cx={x + 3 * s} cy={EYE_Y - 1} r="2.2" fill="#fff" />
+        </g>
+      ));
+    case 10: // • •
+      return both((x) => <circle key={x} cx={x} cy={EYE_Y + 2} r="4.5" fill={INK} />);
+    default:
+      return both((x) => <AnimeEye key={x} x={x} />);
+  }
+}
+
+/** Occhione lucido da anime (come nell'icona dell'app). */
+function AnimeEye({ x }: { x: number }) {
   return (
     <g>
-      {[84, 116].map((x) => (
-        <g key={x}>
-          <ellipse cx={x} cy={90} rx="7" ry="9" fill={line} />
-          <circle cx={x + 2.5} cy={86.5} r="2.6" fill="#fff" />
+      <ellipse cx={x} cy={EYE_Y} rx="10.5" ry="13" fill="#15151b" />
+      <ellipse cx={x} cy={EYE_Y + 5} rx="7" ry="6" fill="#3b3f63" opacity="0.8" />
+      <circle cx={x - 3.5} cy={EYE_Y - 5} r="4.5" fill="#fff" />
+      <circle cx={x + 4} cy={EYE_Y + 6} r="1.9" fill="#fff" />
+    </g>
+  );
+}
+
+function RyukHair() {
+  // ciuffi neri spettinati che spuntano in tutte le direzioni
+  const spikes = [
+    [30, 70, 2, 40],
+    [36, 40, 18, 12],
+    [60, 26, 52, -8],
+    [88, 22, 90, -14],
+    [114, 22, 122, -12],
+    [140, 26, 158, 0],
+    [162, 40, 192, 18],
+    [170, 70, 198, 58],
+    [28, 96, -2, 100],
+    [172, 96, 202, 104],
+  ];
+  return (
+    <g fill="#141418">
+      <ellipse cx="100" cy="74" rx="70" ry="54" />
+      {spikes.map(([x, y, tx, ty], i) => (
+        <path key={i} d={`M${x - 12} ${y + 8} L${tx} ${ty} L${x + 12} ${y - 2} Z`} />
+      ))}
+    </g>
+  );
+}
+
+function OdmGear({ sw, bw }: { sw: number; bw: number }) {
+  // imbracatura a X, cintura e bombole di gas sui fianchi
+  return (
+    <g>
+      <path d={`M${100 - sw + 6} 140 L${100 + bw - 8} 212 M${100 + sw - 6} 140 L${100 - bw + 8} 212`} stroke="#3a2a20" strokeWidth="5" strokeLinecap="round" />
+      <rect x={100 - bw - 2} y="196" width={bw * 2 + 4} height="7" rx="3" fill="#3a2a20" />
+      {[-1, 1].map((s) => (
+        <g key={s}>
+          <rect x={s < 0 ? 100 - bw - 22 : 100 + bw + 4} y="182" width="18" height="30" rx="7" fill="#9aa3b2" stroke="#5d6573" strokeWidth="2" />
+          <rect x={s < 0 ? 100 - bw - 20 : 100 + bw + 6} y="186" width="14" height="4" rx="2" fill="#d8dde6" />
+          <rect x={s < 0 ? 100 - bw - 26 : 100 + bw + 10} y="168" width="6" height="18" rx="2" fill="#3a3f4a" />
         </g>
       ))}
     </g>
   );
 }
 
-function Accessory({ kind, line }: { kind: number; line: string }) {
+function Scarf() {
+  return (
+    <g>
+      <path d="M58 132 Q100 156 142 132 L146 146 Q100 172 54 146 Z" fill="#c8202f" />
+      <path d="M118 148 L130 196 L114 198 L108 152 Z" fill="#a8172a" />
+      <path d="M62 140 Q100 160 138 140" fill="none" stroke="#ff5a69" strokeWidth="2" opacity="0.6" />
+    </g>
+  );
+}
+
+function Accessory({ kind }: { kind: number }) {
   switch (kind) {
-    case 1:
+    case 1: // fiocco sull'orecchio
       return (
-        <g fill="rgba(255,255,255,0.18)" stroke={line} strokeWidth="3">
-          <circle cx="84" cy="90" r="12" />
-          <circle cx="116" cy="90" r="12" />
-          <path d="M96 90 H104 M72 88 L58 84 M128 88 L142 84" fill="none" />
+        <g transform="translate(150 38) rotate(18)">
+          <path d="M0 0 L-20 -12 Q-24 0 -20 12 Z" fill="#ff6fa8" />
+          <path d="M0 0 L20 -12 Q24 0 20 12 Z" fill="#ff6fa8" />
+          <circle r="6" fill="#ff3d86" />
+          <path d="M-16 -6 L-8 -2 M16 -6 L8 -2" stroke="#fff" strokeWidth="1.6" opacity="0.6" strokeLinecap="round" />
         </g>
       );
-    case 2:
+    case 2: // occhiali tondi
       return (
-        <g stroke={line} strokeWidth="2.5">
-          <rect x="69" y="81" width="28" height="18" rx="7" fill="#15151c" />
-          <rect x="103" y="81" width="28" height="18" rx="7" fill="#15151c" />
-          <path d="M97 88 H103 M69 86 L57 82 M131 86 L143 82" fill="none" />
-          <path d="M74 86 l8 0" stroke="#fff" strokeWidth="2" opacity="0.6" />
+        <g fill="rgba(255,255,255,0.15)" stroke="#3a2a20" strokeWidth="3">
+          <circle cx={EYE_L} cy={EYE_Y} r="16" />
+          <circle cx={EYE_R} cy={EYE_Y} r="16" />
+          <path d={`M${EYE_L + 16} ${EYE_Y} Q100 ${EYE_Y - 6} ${EYE_R - 16} ${EYE_Y}`} fill="none" />
         </g>
       );
-    case 3:
+    case 3: // occhiali da sole
       return (
-        <g stroke={line} strokeWidth="2.5">
-          <path d="M60 72 Q62 34 100 34 Q138 34 140 72 Z" fill="#ff5f5f" />
-          <path d="M100 70 Q140 64 162 74 Q140 80 100 76 Z" fill="#d43c3c" />
-          <circle cx="100" cy="36" r="4" fill="#d43c3c" />
-          <path d="M84 56 h14 v10 h-14z" fill="#fff" stroke="none" opacity="0.9" />
+        <g>
+          <rect x={EYE_L - 19} y={EYE_Y - 12} width="36" height="24" rx="10" fill="#15151c" />
+          <rect x={EYE_R - 17} y={EYE_Y - 12} width="36" height="24" rx="10" fill="#15151c" />
+          <path d={`M${EYE_L + 17} ${EYE_Y - 4} H${EYE_R - 17}`} stroke="#15151c" strokeWidth="4" />
+          <path d={`M${EYE_L - 12} ${EYE_Y - 4} l10 -4 M${EYE_R - 10} ${EYE_Y - 4} l10 -4`} stroke="#fff" strokeWidth="3" opacity="0.5" strokeLinecap="round" />
         </g>
       );
-    case 4:
+    case 4: // cuffie
       return (
-        <g stroke={line} strokeWidth="2.5">
-          <rect x="46" y="78" width="16" height="30" rx="7" fill="#ff5f5f" />
-          <rect x="138" y="78" width="16" height="30" rx="7" fill="#ff5f5f" />
+        <g>
+          <path d="M42 96 Q40 26 100 24 Q160 26 158 96" fill="none" stroke="#2b2b36" strokeWidth="9" strokeLinecap="round" />
+          {[-1, 1].map((s) => (
+            <g key={s}>
+              <rect x={s < 0 ? 30 : 152} y="80" width="18" height="34" rx="9" fill="#9999ff" />
+              <rect x={s < 0 ? 34 : 156} y="86" width="8" height="22" rx="4" fill="#c4c4ff" />
+            </g>
+          ))}
         </g>
       );
-    case 5:
+    case 5: // corona
       return (
-        <g stroke="#9b6d10" strokeWidth="2.5" strokeLinejoin="round">
-          <path d="M70 62 L72 34 L86 50 L100 28 L114 50 L128 34 L130 62 Z" fill="#ffd25e" />
-          <circle cx="100" cy="50" r="4" fill="#ff5f5f" stroke="none" />
-          <circle cx="82" cy="56" r="3" fill="#5aa9ff" stroke="none" />
-          <circle cx="118" cy="56" r="3" fill="#3ecf8e" stroke="none" />
+        <g transform="translate(100 34) rotate(-8)">
+          <path d="M-26 10 L-28 -14 L-14 -2 L0 -20 L14 -2 L28 -14 L26 10 Z" fill="#ffd25e" stroke="#c99323" strokeWidth="2.5" strokeLinejoin="round" />
+          <circle cx="0" cy="2" r="4" fill="#ff5f7a" />
+          <circle cx="-15" cy="5" r="3" fill="#5aa9ff" />
+          <circle cx="15" cy="5" r="3" fill="#3ecf8e" />
         </g>
       );
-    case 7:
+    case 6: // aureola
       return (
-        <g stroke={line} strokeWidth="2.5">
-          <path d="M58 74 Q100 58 142 74 L142 84 Q100 68 58 84 Z" fill="#e0353f" />
-          <path d="M142 78 L162 70 L158 82 Z M142 80 L160 92 L150 96 Z" fill="#e0353f" />
-          <circle cx="80" cy="72" r="1.6" fill="#fff" stroke="none" />
-          <circle cx="110" cy="68" r="1.6" fill="#fff" stroke="none" />
+        <g>
+          <ellipse cx="100" cy="22" rx="34" ry="9" fill="none" stroke="#ffe27a" strokeWidth="6" />
+          <ellipse cx="100" cy="22" rx="34" ry="9" fill="none" stroke="#fff6c9" strokeWidth="2" />
         </g>
       );
-    case 8:
+    case 7: // cerchietto con orecchie da gatto
       return (
-        <g stroke={line} strokeWidth="2.5">
-          <ellipse cx="100" cy="62" rx="66" ry="12" fill="#f0cf6a" />
-          <path d="M66 60 Q68 24 100 24 Q132 24 134 60 Z" fill="#f0cf6a" />
-          <path d="M67 52 Q100 58 133 52 L134 60 Q100 66 66 60 Z" fill="#c7262f" />
+        <g>
+          <path d="M50 66 Q100 22 150 66" fill="none" stroke="#2b2b36" strokeWidth="6" strokeLinecap="round" />
+          {[-1, 1].map((s) => (
+            <g key={s} transform={`translate(${100 + s * 34} 38) rotate(${s * 16})`}>
+              <path d="M-14 8 L0 -20 L14 8 Z" fill="#2b2b36" />
+              <path d="M-7 4 L0 -10 L7 4 Z" fill="#ff8ab0" />
+            </g>
+          ))}
         </g>
       );
-    case 9:
+    case 8: // berretto con pompon
       return (
-        <g stroke={line} strokeWidth="2.5">
-          <path d="M58 74 Q58 26 100 26 Q142 26 142 74 Z" fill="#9999ff" />
-          <rect x="56" y="64" width="88" height="14" rx="6" fill="#7b7bdb" />
-          <circle cx="100" cy="24" r="9" fill="#fff" />
+        <g>
+          <path d="M46 70 Q46 18 100 16 Q154 18 154 70 Z" fill="#9999ff" />
+          <rect x="42" y="58" width="116" height="18" rx="9" fill="#7b7bdb" />
+          <path d="M60 58 v18 M76 58 v18 M92 58 v18 M108 58 v18 M124 58 v18 M140 58 v18" stroke="#6a6ad0" strokeWidth="3" />
+          <circle cx="100" cy="14" r="11" fill="#fff" />
+        </g>
+      );
+    case 9: // bandana
+      return (
+        <g>
+          <path d="M44 66 Q100 44 156 66 L156 78 Q100 58 44 78 Z" fill="#e0353f" />
+          <path d="M156 70 L176 60 L172 76 Z M156 74 L174 88 L162 92 Z" fill="#c42532" />
+          <circle cx="76" cy="62" r="1.8" fill="#fff" />
+          <circle cx="110" cy="57" r="1.8" fill="#fff" />
+          <circle cx="134" cy="62" r="1.8" fill="#fff" />
+        </g>
+      );
+    case 10: // cappello di paglia
+      return (
+        <g>
+          <ellipse cx="100" cy="50" rx="76" ry="15" fill="#f0cf6a" />
+          <path d="M60 50 Q62 10 100 10 Q138 10 140 50 Z" fill="#f4d878" />
+          <path d="M61 40 Q100 48 139 40 L140 50 Q100 58 60 50 Z" fill="#d6283b" />
+          <path d="M40 52 Q100 66 160 52" fill="none" stroke="#d9b24c" strokeWidth="2" />
+        </g>
+      );
+    case 11: // capelli alla Goku
+      return (
+        <g fill="#16161c">
+          <path d="M42 74 Q42 32 100 30 Q158 32 158 74 Q100 50 42 74 Z" />
+          <path d="M42 74 L18 46 L48 50 L30 14 L66 34 L70 -4 L92 26 L108 -10 L118 26 L146 -2 L142 34 L182 18 L156 52 L186 60 L156 76 Q150 46 100 42 Q50 46 42 74 Z" />
+          <path d="M60 56 L74 84 L82 58 L94 82 L100 56 L112 80 L118 58 L132 78 L140 56 Q100 40 60 56 Z" />
+        </g>
+      );
+    case 12: // capelli di Ryuk: ciuffo davanti (il resto è dietro la testa)
+      return (
+        <g fill="#141418">
+          <path d="M42 74 Q42 32 100 30 Q158 32 158 74 Q100 50 42 74 Z" />
+          <path d="M48 64 L60 86 L68 60 L80 90 L88 58 L100 88 L110 58 L120 90 L130 60 L140 86 L152 64 Q100 30 48 64 Z" />
+        </g>
+      );
+    case 13: // il quaderno nero in mano
+      return (
+        <g transform="translate(58 176) rotate(-12)">
+          <rect x="-22" y="-28" width="44" height="56" rx="3" fill="#121216" stroke="#3a3a46" strokeWidth="2" />
+          <text x="0" y="-6" textAnchor="middle" fontSize="8.5" fontFamily="Georgia, serif" fontStyle="italic" fill="#e8e8e8">
+            DEATH
+          </text>
+          <text x="0" y="5" textAnchor="middle" fontSize="8.5" fontFamily="Georgia, serif" fontStyle="italic" fill="#e8e8e8">
+            NOTE
+          </text>
+          <circle cx="15" cy="15" r="5" fill="#ffc9d6" />
+        </g>
+      );
+    case 16: // coprifronte ninja
+      return (
+        <g>
+          <path d="M42 64 Q100 46 158 64 L158 80 Q100 62 42 80 Z" fill="#26407a" />
+          <rect x="76" y="50" width="48" height="24" rx="5" fill="#cfd5df" stroke="#8a93a3" strokeWidth="2" />
+          <path d="M100 56 a6 6 0 1 1 -6 6 a3 3 0 1 1 3 -3" fill="none" stroke="#5d6573" strokeWidth="2.2" strokeLinecap="round" />
+          <path d="M106 58 l8 -4" stroke="#5d6573" strokeWidth="2.2" strokeLinecap="round" />
+          <path d="M158 70 L180 80 L174 92 Z M158 74 L176 100 L164 102 Z" fill="#26407a" />
         </g>
       );
     default:

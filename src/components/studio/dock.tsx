@@ -259,13 +259,7 @@ export function DockZone({
         {active ? (
           render(active)
         ) : (
-          <div className="grid h-full place-items-center p-4 text-center text-[12px] text-[#7a7a7a]">
-            <span>
-              Pannello vuoto: trascina qui una scheda
-              <br />
-              oppure riaprila dal menu Finestra
-            </span>
-          </div>
+          <div className="grid h-full place-items-center p-1 text-center text-[11px] font-semibold text-[#2d8ceb]">Lascia qui</div>
         )}
       </div>
       {m && <ContextMenu x={m.x} y={m.y} items={[...(m.panel && menu ? [...menu(m.tab), "-" as const] : []), ...tabMenu(m.tab)]} onClose={() => setM(null)} />}
@@ -279,4 +273,141 @@ export function CloseX({ onClick }: { onClick: () => void }) {
       <X size={13} />
     </button>
   );
+}
+
+/** true mentre si trascina una scheda (per mostrare le zone libere dove lasciarla). */
+export const useDockDragging = () => useDrag((s) => s.tab !== null);
+
+export interface DockRow {
+  id: string;
+  zones: string[];
+}
+
+type Weights = Record<string, number>;
+
+/**
+ * Disposizione libera a righe: ogni riga ha più zone affiancate. Le zone
+ * senza pannelli spariscono e lasciano spazio alle altre; mentre si trascina
+ * una scheda ricompaiono come strisce dove lasciarla, così un pannello si
+ * può mettere ovunque (anche in una colonna o riga nuova). Le dimensioni si
+ * cambiano trascinando i divisori e restano salvate.
+ */
+export function DockRows({
+  layout,
+  rows,
+  storageKey,
+  defaults,
+  zone,
+  extras,
+  between,
+}: {
+  layout: ReturnType<typeof useDockLayout>;
+  rows: DockRow[];
+  storageKey: string;
+  /** pesi iniziali di righe e zone (si usano in proporzione) */
+  defaults: Weights;
+  zone: (id: string, className?: string, style?: React.CSSProperties) => ReactNode;
+  /** elementi fissi in una riga (es. la barra degli strumenti), dopo una zona o all'inizio */
+  extras?: Record<string, { after?: string; node: ReactNode }>;
+  /** elemento fisso tra la prima e la seconda riga (es. barra comandi sul telefono) */
+  between?: ReactNode;
+}) {
+  const dragging = useDockDragging();
+  const [w, setW] = useState<Weights>(() => {
+    try {
+      return { ...defaults, ...(JSON.parse(localStorage.getItem(storageKey) ?? "{}") as Weights) };
+    } catch {
+      return defaults;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(w));
+    } catch {
+      /* niente */
+    }
+  }, [w, storageKey]);
+  const weight = (id: string) => w[id] ?? defaults[id] ?? 1;
+  const filled = (id: string) => (layout.zones[id]?.tabs.length ?? 0) > 0;
+
+  /** sposta peso tra due elementi vicini, in proporzione allo spostamento del divisore */
+  const transfer = (a: string, b: string, deltaPx: number, sizePx: number, sum: number) =>
+    setW((cur) => {
+      const wa = cur[a] ?? defaults[a] ?? 1;
+      const wb = cur[b] ?? defaults[b] ?? 1;
+      const d = (deltaPx / Math.max(1, sizePx)) * sum;
+      const min = sum * 0.08;
+      const na = Math.max(min, Math.min(wa + wb - min, wa + d));
+      return { ...cur, [a]: na, [b]: wa + wb - na };
+    });
+
+  const gutter = (dir: "x" | "y", a: string, b: string, sum: number) => (
+    <div
+      key={`g-${a}-${b}`}
+      className={clsx("shrink-0 touch-none bg-[#0f0f0f] hover:bg-[#2d8ceb]/60", dir === "x" ? "w-[4px] cursor-col-resize" : "h-[4px] cursor-row-resize")}
+      onPointerDown={(e) => {
+        const el = e.currentTarget;
+        const box = (el.parentElement as HTMLElement).getBoundingClientRect();
+        const size = dir === "x" ? box.width : box.height;
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch {
+          /* niente */
+        }
+        let last = dir === "x" ? e.clientX : e.clientY;
+        const move = (ev: PointerEvent) => {
+          const v = dir === "x" ? ev.clientX : ev.clientY;
+          transfer(a, b, v - last, size, sum);
+          last = v;
+        };
+        const up = () => {
+          el.removeEventListener("pointermove", move);
+          el.removeEventListener("pointerup", up);
+        };
+        el.addEventListener("pointermove", move);
+        el.addEventListener("pointerup", up);
+      }}
+    />
+  );
+
+  const strip = (id: string, dir: "x" | "y") => zone(id, dir === "x" ? "w-[64px] shrink-0 opacity-80" : "h-[56px] shrink-0 opacity-80");
+
+  const visibleRows = rows.filter((r) => dragging || r.zones.some(filled));
+  const rowSum = visibleRows.filter((r) => r.zones.some(filled)).reduce((s, r) => s + weight(r.id), 0);
+  const out: ReactNode[] = [];
+  visibleRows.forEach((r, ri) => {
+    const real = r.zones.filter(filled);
+    const sum = real.reduce((s, z) => s + weight(z), 0);
+    const items: ReactNode[] = [];
+    const extra = extras?.[r.id];
+    if (extra && (!extra.after || !filled(extra.after))) items.push(<div key="extra">{extra.node}</div>);
+    let prev: string | null = null;
+    for (const z of r.zones) {
+      if (!filled(z)) {
+        if (dragging) items.push(<div key={z} className={real.length ? "flex shrink-0" : "flex min-w-0 flex-1"}>{real.length ? strip(z, "x") : zone(z, "min-w-0 flex-1 opacity-80")}</div>);
+        continue;
+      }
+      if (prev) items.push(gutter("x", prev, z, sum));
+      items.push(
+        <div key={z} className="flex min-w-[140px]" style={{ flex: `${weight(z) / (sum || 1)} 1 0px` }}>
+          {zone(z, "min-w-0 flex-1")}
+        </div>,
+      );
+      if (extra?.after === z) items.push(<div key="extra" className="flex shrink-0">{extra.node}</div>);
+      prev = z;
+    }
+    const rowFilled = real.length > 0;
+    const prevRow = visibleRows.slice(0, ri).filter((x) => x.zones.some(filled)).at(-1);
+    if (ri > 0) {
+      if (rowFilled && prevRow) out.push(gutter("y", prevRow.id, r.id, rowSum));
+      if (ri === 1 && between) out.push(<div key="between" className="shrink-0">{between}</div>);
+    }
+    out.push(
+      <div key={r.id} className={clsx("flex min-h-0 gap-0", rowFilled ? "min-h-[90px]" : "h-[56px] shrink-0")} style={rowFilled ? { flex: `${weight(r.id) / (rowSum || 1)} 1 0px` } : undefined}>
+        {items}
+      </div>,
+    );
+  });
+  if (between && visibleRows.length < 2) out.push(<div key="between" className="shrink-0">{between}</div>);
+  return <div className="flex min-h-0 flex-1 flex-col p-1">{out}</div>;
 }

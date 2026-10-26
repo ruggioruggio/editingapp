@@ -43,35 +43,12 @@ export function AccountMenu() {
     setModal(m);
   };
 
-  // ospite (o Supabase non configurato): avatar e impostazioni restano su questo dispositivo
-  if (status !== "user") {
+  // ospite: solo "Accedi" (avatar e impostazioni arrivano con l'account)
+  if (status === "guest") {
     return (
-      <div ref={ref} className="relative flex items-center gap-2">
-        <button type="button" onClick={() => setOpen((o) => !o)} aria-label={t("profile")} className="overflow-hidden rounded-full ring-2 ring-white/10">
-          <MyAvatar size={36} />
-        </button>
-        {status === "guest" && (
-          <Link href="/login?next=/learn" className="hidden rounded-xl border-2 border-line px-3 py-1.5 text-xs font-black uppercase text-pr hover:bg-panel-2 sm:block">
-            {t("signIn")}
-          </Link>
-        )}
-        {open && (
-          <div className="animate-pop absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-line bg-panel-2 p-2 shadow-2xl">
-            <button type="button" onClick={() => pick("profile")} className={item}>
-              <UserRound size={16} /> {t("profile")}
-            </button>
-            <button type="button" onClick={() => pick("settings")} className={item}>
-              <Settings size={16} /> {t("settings")}
-            </button>
-            {status === "guest" && (
-              <Link href="/login?next=/learn" className={item}>
-                <LogOut size={16} className="rotate-180" /> {t("signIn")}
-              </Link>
-            )}
-          </div>
-        )}
-        {modals}
-      </div>
+      <Link href="/login?next=/learn" className="rounded-xl border-2 border-line px-3 py-1.5 text-xs font-black uppercase text-pr hover:bg-panel-2">
+        {t("signIn")}
+      </Link>
     );
   }
 
@@ -82,16 +59,19 @@ export function AccountMenu() {
       </button>
       {open && (
         <div className="animate-pop absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-line bg-panel-2 p-2 shadow-2xl">
-          <div className="px-3 py-2">
-            <p className="truncate font-black">@{profile?.username ?? "…"}</p>
-            <p className="truncate text-xs text-ink-mute">{email}</p>
-          </div>
+          {status === "user" && (
+            <div className="px-3 py-2">
+              <p className="truncate font-black">@{profile?.username ?? "…"}</p>
+              <p className="truncate text-xs text-ink-mute">{email}</p>
+            </div>
+          )}
           <button type="button" onClick={() => pick("profile")} className={item}>
             <UserRound size={16} /> {t("profile")}
           </button>
           <button type="button" onClick={() => pick("settings")} className={item}>
             <Settings size={16} /> {t("settings")}
           </button>
+          {status === "user" && (
           <button
             type="button"
             onClick={async () => {
@@ -103,6 +83,7 @@ export function AccountMenu() {
           >
             <LogOut size={16} /> {t("signOut")}
           </button>
+          )}
         </div>
       )}
       {modals}

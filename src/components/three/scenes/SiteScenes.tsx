@@ -572,6 +572,77 @@ function DiscordScene() {
 
 type V3 = [number, number, number];
 
+
+// 9. Arrabbiato: dal telefono il simulatore non si apre. Squeak pesta i
+// piedi, scuote il telefono e gli esce il vapore dalle orecchie.
+function AngryScene() {
+  const mouse = useRef<THREE.Group>(null);
+  const phoneRef = useRef<THREE.Group>(null);
+  const puffs = useRef<(THREE.Mesh | null)[]>([]);
+  const rig = useRef(createRig());
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    const r = rig.current;
+    if (!mouse.current) return;
+    resetRig(r);
+    const c = t % 2.4;
+    // pestoni alternati
+    const stomp = Math.abs(Math.sin(c * Math.PI * 2.5));
+    if (r.footL) r.footL.position.y = 0.1 + (Math.sin(c * Math.PI * 5) > 0 ? stomp * 0.25 : 0);
+    if (r.footR) r.footR.position.y = 0.1 + (Math.sin(c * Math.PI * 5) < 0 ? stomp * 0.25 : 0);
+    if (r.body) r.body.position.y = Math.abs(Math.sin(c * Math.PI * 5)) * 0.08;
+    mouse.current.rotation.y = 0.15 + Math.sin(t * 9) * 0.04;
+    // scuote il telefono con la destra, pugno chiuso a sinistra
+    if (r.armR) r.armR.rotation.set(-1.9 + Math.sin(t * 22) * 0.25, 0, 0.3);
+    if (r.armL) r.armL.rotation.set(-0.5 + Math.sin(t * 11) * 0.3, 0, -0.6);
+    if (r.head) {
+      r.head.rotation.z = Math.sin(t * 14) * 0.08;
+      r.head.rotation.x = -0.12;
+    }
+    if (phoneRef.current) phoneRef.current.rotation.z = Math.sin(t * 22) * 0.35;
+    // nuvolette di vapore che salgono dalle orecchie
+    puffs.current.forEach((p, i) => {
+      if (!p) return;
+      const k = (t * 0.9 + i / 6) % 1;
+      const side = i % 2 ? 1 : -1;
+      p.position.set(side * (0.75 + k * 0.5), 2.85 + k * 1.3, 0.3);
+      p.scale.setScalar(0.12 + k * 0.28);
+      (p.material as THREE.MeshStandardMaterial).opacity = 0.75 * (1 - k);
+    });
+  });
+
+  return (
+    <Diorama tilt={-0.1}>
+      <group ref={mouse} scale={0.85}>
+        <Shadow />
+        <SqueakModel
+          rig={rig}
+          angry
+          rightHand={
+            <group ref={phoneRef} position={[0.3, 0.05, 0.3]} rotation={[0.2, 0, 0]}>
+              <mesh>
+                <boxGeometry args={[0.36, 0.66, 0.06]} />
+                <meshStandardMaterial color="#22232b" roughness={0.3} metalness={0.4} />
+              </mesh>
+              <mesh position={[0, 0, 0.032]}>
+                <planeGeometry args={[0.3, 0.56]} />
+                <meshBasicMaterial color="#ff5f5f" />
+              </mesh>
+            </group>
+          }
+        />
+        {Array.from({ length: 6 }, (_, i) => (
+          <mesh key={i} ref={(m) => void (puffs.current[i] = m)}>
+            <sphereGeometry args={[1, 16, 12]} />
+            <meshStandardMaterial color="#f2f2f2" transparent opacity={0.6} roughness={1} />
+          </mesh>
+        ))}
+      </group>
+    </Diorama>
+  );
+}
+
 const SCENES: Record<string, { Component: () => ReactNode; camera: V3; target: V3 }> = {
   slide: { Component: SlideScene, camera: [0, 2.1, 9.6], target: [0, 1.65, 0] },
   clap: { Component: ClapScene, camera: [0, 2.3, 8.2], target: [0, 1.55, 0] },
@@ -581,9 +652,10 @@ const SCENES: Record<string, { Component: () => ReactNode; camera: V3; target: V
   construction: { Component: () => <ConstructionScene />, camera: [0, 2.4, 9], target: [0, 1.25, 0] },
   maintenance: { Component: () => <ConstructionScene lines={["SQUEAKEDIT", "IN MANUTENZIONE"]} />, camera: [0, 2.4, 9], target: [0, 1.25, 0] },
   discord: { Component: DiscordScene, camera: [0, 2.0, 7.4], target: [0, 1.5, 0] },
+  angry: { Component: AngryScene, camera: [0, 2.2, 7.6], target: [0, 1.7, 0] },
 };
 
-export type SiteSceneName = "slide" | "clap" | "cheese" | "keyframe" | "run" | "construction" | "maintenance" | "discord";
+export type SiteSceneName = "slide" | "clap" | "cheese" | "keyframe" | "run" | "construction" | "maintenance" | "discord" | "angry";
 
 export default function SiteScene({ name, className }: { name: SiteSceneName; className?: string }) {
   const { Component, camera, target } = SCENES[name];
