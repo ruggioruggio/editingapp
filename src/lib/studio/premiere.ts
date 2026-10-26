@@ -101,6 +101,8 @@ export interface Clip {
   tIn?: Trans;
   tOut?: Trans;
   graphic?: GraphicLayer[];
+  /** fermo immagine: mostra sempre questo istante del file sorgente */
+  freeze?: number;
 }
 
 export interface Sequence {
@@ -154,6 +156,7 @@ export const trackLabel = (s: Sequence, id: string) => {
 
 /** Tempo nel file sorgente che corrisponde al tempo T della sequenza. */
 export function mediaTime(c: Clip, T: number) {
+  if (c.freeze !== undefined) return c.freeze;
   const d = (T - c.start) * c.speed;
   return c.reverse ? c.out - d : c.in + d;
 }
@@ -704,6 +707,8 @@ export interface PrState {
   toast: string | null;
   programZoom: "fit" | number;
   editingText: string | null;
+  /** impostazioni dell'ultima esportazione avviata (per gli esercizi delle lezioni) */
+  lastExport: { format: string; width: number; height: number; fps: number; bitrateMbps: number; audioKbps: number } | null;
 
   commit: (fn: (p: Project) => Project, label: string, key?: string) => void;
   commitSeq: (fn: (s: Sequence) => Sequence, label: string, key?: string) => void;
@@ -767,6 +772,7 @@ export const usePremiere = create<PrState>()(
       toast: null,
       programZoom: "fit",
       editingText: null,
+      lastExport: null,
 
       commit: (fn, label, key) => {
         const { project, past, lastKey, lastAt } = get();

@@ -7,6 +7,8 @@ import { Bell, Expand, Hand, Home, LayoutPanelLeft, MousePointer2, PenTool, Scis
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useIsPhone } from "@/lib/hooks/useIsPhone";
 import { DesktopOnly } from "../DesktopOnly";
+import { isEmbedded, studioExit } from "../embed";
+import { recoverSandbox } from "@/lib/lessons/sandbox";
 import { restoreFiles } from "@/lib/studio/media";
 import { playheadOf, seqOf, usePremiere, type PanelId, type PrTool } from "@/lib/studio/premiere";
 import { ContextMenu, Gutter, MenuBar, Panel, Toast, useWide, type Menu } from "../chrome";
@@ -284,9 +286,15 @@ function Meters() {
 export function PremiereStudio() {
   const hydrated = useHydrated();
   const phone = useIsPhone();
+  useEffect(() => recoverSandbox("premiere"), []);
   if (!hydrated) return <div className="fixed inset-0 bg-[#121212]" />;
   // dal telefono i simulatori completi sono inutilizzabili: restano negli esercizi delle lezioni
   return phone ? <DesktopOnly app="Premiere Pro" /> : <PremiereInner />;
+}
+
+/** Premiere dentro una lezione: anche da telefono, con il layout compatto. */
+export function PremiereStudioEmbedded() {
+  return <PremiereInner />;
 }
 
 function PremiereInner() {
@@ -351,7 +359,7 @@ function PremiereInner() {
         "-",
         { label: "Esporta", sub: [{ label: "Media…", keys: "Ctrl+M", disabled: !has, action: () => st.set({ dialog: { type: "export" } }) }] },
         "-",
-        { label: "Chiudi", action: () => (window.location.href = "/practice") },
+        { label: "Chiudi", action: () => studioExit("/practice") },
       ],
     },
     {
@@ -387,7 +395,7 @@ function PremiereInner() {
         { label: "Abilita", keys: "Maiusc+E", disabled: !sel, action: A.toggleEnable },
         { label: "Collega / Scollega", keys: "Ctrl+L", disabled: !sel, action: A.linkUnlink },
         "-",
-        { label: "Opzioni video", sub: [{ label: "Ridimensiona alla dimensione fotogramma", disabled: !sel, action: () => A.scaleToFrame(true) }, { label: "Imposta alla dimensione fotogramma", disabled: !sel, action: () => A.scaleToFrame(false) }] },
+        { label: "Opzioni video", sub: [{ label: "Aggiungi fermo immagine", disabled: !has, action: A.addFrameHold }, { label: "Ridimensiona alla dimensione fotogramma", disabled: !sel, action: () => A.scaleToFrame(true) }, { label: "Imposta alla dimensione fotogramma", disabled: !sel, action: () => A.scaleToFrame(false) }] },
       ],
     },
     {
@@ -457,7 +465,7 @@ function PremiereInner() {
       label: "Aiuto",
       items: [
         { label: "Scorciatoie da tastiera", action: () => st.set({ dialog: { type: "keys" } }) },
-        { label: "Torna alle lezioni di SqueakEdit", action: () => (window.location.href = "/learn") },
+        { label: "Torna alle lezioni di SqueakEdit", action: () => studioExit("/learn") },
       ],
     },
   ];
@@ -555,7 +563,7 @@ function PremiereInner() {
 
   const header = (
     <div className="flex h-11 shrink-0 items-center gap-1 border-b border-[#0f0f0f] bg-[#1b1b1b] px-3 text-[14px]">
-      <Link href="/practice" title="Home (torna a Pratica)" className="grid h-8 w-8 place-items-center rounded text-[#d0d0d0] hover:bg-white/10">
+      <Link href="/practice" onClick={(e) => isEmbedded() && (e.preventDefault(), studioExit("/practice"))} title="Home (torna a Pratica)" className="grid h-8 w-8 place-items-center rounded text-[#d0d0d0] hover:bg-white/10">
         <Home size={17} />
       </Link>
       {(

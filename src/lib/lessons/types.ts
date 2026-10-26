@@ -1,4 +1,6 @@
 import type { Sequence, Tool } from "@/lib/editor/types";
+import type { AeState } from "@/lib/studio/ae";
+import type { PrState } from "@/lib/studio/premiere";
 
 export interface TheoryStep {
   kind: "theory";
@@ -66,7 +68,22 @@ export type PremiereStep = { kind: "premiere"; title: string; instructions: stri
   | { dialog: "export"; goal: { format: string; width: number; height: number; fps: number; minMbps: number; maxMbps: number; audioKbps?: number } }
 );
 
-export type LessonStep = TheoryStep | QuizStep | MatchStep | EditorStep | PremiereStep;
+/** Un obiettivo dell'esercizio nel simulatore, verificato a ogni modifica. */
+export interface Goal<S> {
+  label: string;
+  test: (s: S) => boolean;
+}
+
+/**
+ * Esercizio nel simulatore vero (Premiere Pro o After Effects): si parte da
+ * un progetto preparato e si spuntano gli obiettivi mentre si lavora.
+ */
+export type StudioStep = { kind: "studio"; title: string; instructions: string; hint?: string } & (
+  | { app: "premiere"; setup: () => Partial<PrState>; goals: Goal<PrState>[] }
+  | { app: "ae"; setup: () => Partial<AeState>; goals: Goal<AeState>[] }
+);
+
+export type LessonStep = TheoryStep | QuizStep | MatchStep | EditorStep | PremiereStep | StudioStep;
 
 export interface Lesson {
   id: string;

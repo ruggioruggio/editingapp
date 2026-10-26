@@ -423,6 +423,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
       ...(isV
         ? ([
             "-",
+            { label: "Aggiungi fermo immagine", action: () => (st.select(c.id), A.addFrameHold()) },
             { label: "Ridimensiona alla dimensione fotogramma", action: () => A.scaleToFrame(true) },
             { label: "Imposta alla dimensione fotogramma", action: () => A.scaleToFrame(false) },
           ] as MenuItemLike[])

@@ -12,6 +12,7 @@ import {
   isVideoTrack,
   linked,
   liftExtract,
+  mediaTime,
   makeTrack,
   moveClips,
   newClip,
@@ -172,6 +173,21 @@ export function addEdit(all: boolean) {
   const ids = q.clips.filter((c) => (sel ? sel.includes(c.id) : tracks.includes(c.track)) && t > c.start && t < clipEnd(c)).map((c) => c.id);
   if (!ids.length) return s.notify("Nessuna clip sotto l'indicatore nelle tracce di destinazione");
   s.commitSeq((x) => razor(x, ids, t), all ? "Aggiungi modifica a tutte le tracce" : "Aggiungi modifica");
+}
+
+/** Fermo immagine: dalla posizione dell'indicatore in poi la clip resta ferma su quel fotogramma. */
+export function addFrameHold() {
+  const s = st();
+  const q = needSeq();
+  if (!q) return;
+  const t = T();
+  const target = q.clips.find((c) => (s.selection.length ? s.selection.includes(c.id) : true) && isVideoTrack(q, c.track) && t > c.start && t < clipEnd(c));
+  if (!target) return s.notify("Metti l'indicatore sopra una clip video (e selezionala)");
+  const frame = mediaTime(target, t);
+  s.commitSeq((x) => {
+    const cut = razor(x, [target.id], t);
+    return { ...cut, clips: cut.clips.map((c) => (c.track === target.track && Math.abs(c.start - t) < 1e-6 && c.mediaId === target.mediaId ? { ...c, freeze: frame, name: c.name + " (fermo)" } : c)) };
+  }, "Aggiungi fermo immagine");
 }
 
 export function deleteSelection(ripple: boolean) {

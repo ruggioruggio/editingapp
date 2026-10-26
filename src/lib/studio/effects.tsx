@@ -378,6 +378,17 @@ export const EFFECTS: EffectDef[] = [
     render: (_p, _c, out) => out.transform.push("scaleX(-1)"),
   },
   {
+    // come in Premiere: analizza il mosso e lo compensa ingrandendo un po' l'immagine
+    id: "warpstab",
+    name: "Stabilizzatore distorsione",
+    aliases: ["Warp Stabilizer"],
+    category: "Distorsione",
+    params: [pct("smooth", "Uniformità", 50), sel("method", "Metodo", ["Posizione", "Posizione, scala, rotazione", "Prospettiva", "Deformazione sottospazio"], 3), sel("framing", "Inquadratura", ["Solo stabilizzazione", "Stabilizza, ritaglia", "Stabilizza, ritaglia, scala automatica"], 2)],
+    render: (p, _c, out) => {
+      if (p.framing[0] === 2) out.transform.push(`scale(${1 + p.smooth[0] / 900})`);
+    },
+  },
+  {
     id: "vflip",
     name: "Capovolgi verticalmente",
     category: "Trasforma",

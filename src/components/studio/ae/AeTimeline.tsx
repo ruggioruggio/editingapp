@@ -136,6 +136,14 @@ function TimelineBody({ comp }: { comp: Comp }) {
       rows.push({ kind: "group", l, id: "text", name: "Testo", depth: 1 });
       if (g("text")) rows.push({ kind: "prop", l, path: "text.source", name: "Testo sorgente", depth: 2, dims: 0, input: <span className="truncate text-[#d0d0d0]">{l.text}</span> });
     }
+    // animatore di testo (macchina da scrivere, spaziatura che si apre…)
+    if (l.type === "text" && (all || (o as string[]).some((p) => p.startsWith("x.")))) {
+      rows.push({ kind: "group", l, id: "anim", name: "Animatore 1", depth: 1 });
+      if (g("anim")) {
+        pushProp("x.range", "Selettore intervallo: Fine", 2, 1, { suffix: "%", min: 0, max: 100 });
+        pushProp("x.tracking", "Spaziatura", 2, 1);
+      }
+    }
     if (l.shape && (all || (o as string[]).some((p) => p.startsWith("s.")))) {
       rows.push({ kind: "group", l, id: "shape", name: "Contenuto", depth: 1 });
       if (g("shape")) {

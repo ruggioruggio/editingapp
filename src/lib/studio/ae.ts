@@ -78,6 +78,9 @@ export interface Layer {
   masks: Mask[];
   audioLevel: Prop;
   reversed?: boolean;
+  /** animatore di testo: fine dell'intervallo visibile (%) e spaziatura tra le lettere */
+  textRange?: Prop;
+  tracking?: Prop;
 }
 
 export interface Comp {
@@ -223,6 +226,10 @@ export function layerProps(l: Layer): { path: string; name: string; group: strin
     out.push({ path: `m.${i}.opacity`, name: "Opacità maschera", group: m.name, prop: m.opacity });
     out.push({ path: `m.${i}.expansion`, name: "Espansione maschera", group: m.name, prop: m.expansion });
   });
+  if (l.type === "text") {
+    out.push({ path: "x.range", name: "Fine intervallo", group: "Animatore testo", prop: l.textRange ?? prop(100) });
+    out.push({ path: "x.tracking", name: "Spaziatura", group: "Animatore testo", prop: l.tracking ?? prop(0) });
+  }
   if (l.shape) {
     out.push({ path: "s.size", name: "Dimensione", group: "Contenuto", prop: l.shape.size });
     out.push({ path: "s.roundness", name: "Arrotondamento", group: "Contenuto", prop: l.shape.roundness });
@@ -245,6 +252,7 @@ export function withProp(l: Layer, path: string, p: Prop): Layer {
   if (a === "s" && l.shape) return { ...l, shape: { ...l.shape, [b]: p } };
   if (a === "e") return { ...l, effects: l.effects.map((e, i) => (i === Number(b) ? { ...e, params: { ...e.params, [c]: p } } : e)) };
   if (a === "a") return { ...l, audioLevel: p };
+  if (a === "x") return b === "range" ? { ...l, textRange: p } : { ...l, tracking: p };
   return l;
 }
 

@@ -1,5 +1,6 @@
 import type { EditorStep, Lesson, LessonStep, MatchStep, QuizStep, TheoryStep } from "@/lib/lessons/types";
 import { PRACTICE_SCENARIOS } from "../practice";
+import { withPractice } from "./s1-practice";
 
 // Sezione 1 "Primi passi": tutte le lezioni dalla 2 alla 30.
 // Scorciatoie riferite a Premiere Pro su Windows (su Mac: Ctrl → Cmd, Alt → Option).
@@ -24,14 +25,11 @@ const E = (scenario: keyof typeof PRACTICE_SCENARIOS, title: string, instruction
   title,
   instructions,
 });
-const L = (id: string, title: string, summary: string, steps: LessonStep[], xp = 10): Lesson => ({
-  id,
-  title,
-  summary,
-  minutes: 3,
-  xp,
-  steps,
-});
+/** Lezione con i suoi esercizi nel simulatore (vedi s1-practice.ts). */
+const L = (id: string, title: string, summary: string, steps: LessonStep[], xp = 10): Lesson => {
+  const all = withPractice(id, steps);
+  return { id, title, summary, minutes: Math.max(4, Math.round(all.length * 0.6)), xp: xp + 5 * all.filter((x) => x.kind === "studio").length, steps: all };
+};
 
 export const section1Lessons: Lesson[] = [
   // ---------------- Unità 1 · Fondamenti ----------------

@@ -7,6 +7,8 @@ import { Anchor, Brush, Circle, Eraser, Hand, Home, MousePointer2, PenTool, Pin,
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useIsPhone } from "@/lib/hooks/useIsPhone";
 import { DesktopOnly } from "../DesktopOnly";
+import { isEmbedded, studioExit } from "../embed";
+import { recoverSandbox } from "@/lib/lessons/sandbox";
 import { EFFECTS, EFFECT_CATEGORIES } from "@/lib/studio/effects";
 import { restoreFiles } from "@/lib/studio/media";
 import { compOf, useAe, type AeTool } from "@/lib/studio/ae";
@@ -88,7 +90,7 @@ function Toolbar() {
   const [ws, setWs] = useState("Standard");
   return (
     <div className="relative z-40 flex h-[46px] shrink-0 items-center gap-0.5 border-b border-[#0f0f0f] bg-[#232323] px-2 text-[#d0d0d0]">
-      <Link href="/practice" title="Home" className="grid h-8 w-8 place-items-center rounded hover:bg-white/10">
+      <Link href="/practice" onClick={(e) => isEmbedded() && (e.preventDefault(), studioExit("/practice"))} title="Home" className="grid h-8 w-8 place-items-center rounded hover:bg-white/10">
         <Home size={17} />
       </Link>
       {TOOLS.map((g, gi) => {
@@ -159,9 +161,15 @@ function Toolbar() {
 export function AfterEffectsStudio() {
   const hydrated = useHydrated();
   const phone = useIsPhone();
+  useEffect(() => recoverSandbox("ae"), []);
   if (!hydrated) return <div className="fixed inset-0 bg-[#121212]" />;
   // dal telefono i simulatori completi sono inutilizzabili: restano negli esercizi delle lezioni
   return phone ? <DesktopOnly app="After Effects" /> : <AeInner />;
+}
+
+/** After Effects dentro una lezione: anche da telefono, con il layout compatto. */
+export function AeStudioEmbedded() {
+  return <AeInner />;
 }
 
 const keyEv = (key: string) => handleAeKey(new KeyboardEvent("keydown", { key }));
@@ -207,7 +215,7 @@ function AeInner() {
         { label: "Importa", sub: [{ label: "File…", keys: "Ctrl+I", action: openAeImport }] },
         "-",
         { label: "Esporta", sub: [{ label: "Aggiungi alla coda di rendering", keys: "Ctrl+M", action: () => st.notify("L'esportazione non è disponibile nel simulatore") }] },
-        { label: "Chiudi", action: () => (window.location.href = "/practice") },
+        { label: "Chiudi", action: () => studioExit("/practice") },
       ],
     },
     {
@@ -348,7 +356,7 @@ function AeInner() {
       ],
     },
     { label: "Finestra", items: windowMenu(layout, PANEL_LABEL) },
-    { label: "Aiuto", items: [{ label: "Scelte rapide da tastiera", action: () => st.set({ dialog: { type: "keys" } }) }, { label: "Torna alle lezioni di SqueakEdit", action: () => (window.location.href = "/learn") }] },
+    { label: "Aiuto", items: [{ label: "Scelte rapide da tastiera", action: () => st.set({ dialog: { type: "keys" } }) }, { label: "Torna alle lezioni di SqueakEdit", action: () => studioExit("/learn") }] },
   ];
 
   const labels: Record<string, string> = { ...PANEL_LABEL, effectControls: `Controlli effetti ${layer ? layer.name : "(nessuno)"}`, composition: `Composizione ${comp?.name ?? ""}`, timeline: comp?.name ?? "Timeline" };

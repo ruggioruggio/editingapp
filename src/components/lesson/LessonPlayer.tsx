@@ -20,6 +20,7 @@ import { useT } from "@/lib/settings/i18n";
 import { sfx } from "@/lib/settings/sfx";
 import type { EditorTaskResult, Lesson } from "@/lib/lessons/types";
 import { PremiereTaskView } from "./PremiereTaskView";
+import { StudioTaskView } from "./StudioTaskView";
 import { currentStreak, useProgress } from "@/lib/progress/store";
 import { EditorTaskView, MatchView, QuizView, TheoryView } from "./StepViews";
 
@@ -134,7 +135,7 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
   };
 
   // esercizio nell'editor, finestra di Premiere o coppie completate: festeggia
-  const practical = step?.kind === "editor" || step?.kind === "premiere";
+  const practical = step?.kind === "editor" || step?.kind === "premiere" || step?.kind === "studio";
   useEffect(() => {
     if (!feedback && ((practical && editorResult.done) || (step?.kind === "match" && matchDone))) {
       sfx("correct");
@@ -148,7 +149,9 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
   const primaryDisabled = !feedback && ((step?.kind === "quiz" && selected === null) || practical || step?.kind === "match");
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && primary && !primaryDisabled) {
+      // con il simulatore aperto Invio serve al simulatore, non alla lezione
+      const typing = (e.target as HTMLElement | null)?.closest?.("input, textarea, [contenteditable=true]");
+      if (e.key === "Enter" && primary && !primaryDisabled && !typing && !document.body.dataset.studioOpen) {
         e.preventDefault();
         primary();
       }
@@ -212,6 +215,7 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
         {step.kind === "premiere" && (
           <PremiereTaskView key={stepIndex} step={step} onDone={() => setEditorResult({ done: true })} onMistake={miss} />
         )}
+        {step.kind === "studio" && <StudioTaskView key={stepIndex} step={step} onDone={() => setEditorResult({ done: true })} />}
       </main>
 
       <footer

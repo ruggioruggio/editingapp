@@ -60,7 +60,8 @@ export function PremiereDialogs() {
             fileName={seq.name}
             source={{ width: seq.width, height: seq.height, fps: seq.fps, seconds: Math.max(1, seqDuration(seq)) }}
             onCancel={close}
-            onExport={() => {
+            onExport={(s) => {
+              usePremiere.getState().set({ lastExport: s });
               setTimeout(() => {
                 usePremiere.getState().set({ dialog: null });
                 usePremiere.getState().notify("L'esportazione vera non è disponibile nel simulatore: le impostazioni sono state verificate");

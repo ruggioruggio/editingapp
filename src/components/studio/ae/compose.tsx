@@ -70,16 +70,26 @@ function star(points: number, r: number, inner: number) {
   );
 }
 
-function LayerContent({ l, t, project, playing, depth }: { l: Layer; t: number; project: AeProject; playing: boolean; depth: number }) {
+function LayerContent({ l, t, project, playing, depth, comp }: { l: Layer; t: number; project: AeProject; playing: boolean; depth: number; comp: Comp }) {
   switch (l.type) {
     case "solid":
       return <div className="absolute inset-0" style={{ background: l.color }} />;
-    case "text":
+    case "text": {
+      // animatore di testo: lettere visibili fino alla fine dell'intervallo, spaziatura animabile
+      const full = l.text || " ";
+      const ctx = (path: string) => ({ index: comp.layers.indexOf(l) + 1, fps: comp.fps, width: comp.width, height: comp.height, host: { project, comp, layerId: l.id, path } });
+      const range = l.textRange ? Math.max(0, Math.min(100, valueAt(l.textRange, t, ctx("x.range"))[0])) : 100;
+      const shown = full.slice(0, Math.round((full.length * range) / 100));
+      const tracking = l.tracking ? valueAt(l.tracking, t, ctx("x.tracking"))[0] : 0;
       return (
         <div className="absolute left-0 top-0" style={{ transform: "translate(-50%, -50%)" }}>
-          <div style={textCss(l.textStyle!)}>{l.text || " "}</div>
+          <div style={{ ...textCss(l.textStyle!), letterSpacing: tracking ? `${tracking / 10}px` : undefined }}>
+            <span>{shown}</span>
+            <span style={{ visibility: "hidden" }}>{full.slice(shown.length)}</span>
+          </div>
         </div>
       );
+    }
     case "shape": {
       const s = l.shape!;
       const [w, h] = valueAt(s.size, t);
@@ -164,7 +174,7 @@ export function CompFrame({ comp, project, t, playing = false, depth = 0, transp
         className="absolute left-0 top-0"
         style={{ width: l.w, height: l.h, ...tf.css, opacity: tf.opacity, mixBlendMode: BLEND_MODES[l.blend]?.[1], ...(mask ? { maskImage: mask, WebkitMaskImage: mask } : {}) }}
       >
-        <FxWrap out={out} w={l.w || 1} h={l.h || 1} t={t} style={{ overflow: "visible" }} render={(tt) => <LayerContent l={l} t={tt} project={project} playing={playing} depth={depth} />} />
+        <FxWrap out={out} w={l.w || 1} h={l.h || 1} t={t} style={{ overflow: "visible" }} render={(tt) => <LayerContent l={l} t={tt} project={project} playing={playing} depth={depth} comp={comp} />} />
       </div>
     );
     for (let i = chain.length - 1; i >= 0; i--) {
