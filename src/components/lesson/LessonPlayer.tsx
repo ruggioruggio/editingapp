@@ -14,6 +14,7 @@ import { canStartLesson, planOf, PLANS } from "@/lib/billing/plans";
 import { todayKey } from "@/lib/date";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { buildUnitTest, isLessonUnlocked, skippedLessons, UNIT_TEST_HEARTS } from "@/lib/lessons/progression";
+import { useAdmin } from "@/lib/admin/client";
 import type { EditorTaskResult, Lesson } from "@/lib/lessons/types";
 import { PremiereTaskView } from "./PremiereTaskView";
 import { currentStreak, useProgress } from "@/lib/progress/store";
@@ -60,7 +61,7 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
       return setAccess("ok");
     }
     if (!lessonId || !getLesson(lessonId)) return setAccess("missing");
-    if (!isLessonUnlocked(lessonId, s.completed)) return setAccess("locked");
+    if (!useAdmin.getState().unlockAll && !isLessonUnlocked(lessonId, s.completed)) return setAccess("locked");
     const ok = canStartLesson(planOf(s), s.daily, lessonId);
     setAccess(ok ? "ok" : "limit");
     if (ok) s.startLesson(lessonId);

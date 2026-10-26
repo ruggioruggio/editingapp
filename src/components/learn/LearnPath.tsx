@@ -22,6 +22,7 @@ import { getLesson } from "@/content/lessons";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import type { LessonKind, LessonMeta, Section } from "@/lib/lessons/types";
 import { canSkipTo, isLessonUnlocked } from "@/lib/lessons/progression";
+import { useAdmin } from "@/lib/admin/client";
 import { useProgress } from "@/lib/progress/store";
 
 // Percorso a zig-zag stile Duolingo
@@ -42,7 +43,8 @@ export function LearnPath() {
   const isDone = (id: string) => hydrated && Boolean(completed[id]);
 
   const all = sections.flatMap((s) => s.units.flatMap((u) => u.lessons));
-  const unlocked = (id: string) => hydrated && isLessonUnlocked(id, completed);
+  const unlockAll = useAdmin((s) => s.unlockAll);
+  const unlocked = (id: string) => hydrated && (unlockAll || isLessonUnlocked(id, completed));
   const nextUp = all.find((l) => l.status === "available" && !isDone(l.id) && unlocked(l.id))?.id;
   const currentSection = sections.find((s) => s.units.some((u) => u.lessons.some((l) => l.id === nextUp))) ?? sections[0];
 
@@ -60,7 +62,7 @@ export function LearnPath() {
           onToggle={() => setOpen(open === section.id ? "" : section.id)}
           isDone={isDone}
           unlocked={unlocked}
-          canSkip={(unitId) => hydrated && canSkipTo(unitId, completed)}
+          canSkip={(unitId) => hydrated && !unlockAll && canSkipTo(unitId, completed)}
           nextUp={nextUp}
           selected={selected}
           onSelect={(id) => setSelected(selected === id ? null : id)}

@@ -18,6 +18,8 @@ interface AdminState {
   mode: "server" | "local" | null;
   database: boolean;
   modShortcuts: boolean;
+  /** tutte le lezioni giocabili senza finire quelle prima (solo su questo dispositivo) */
+  unlockAll: boolean;
   quickBan: boolean;
   quickBanUser: string | null;
   localAnnouncement: Announcement | null;
@@ -32,12 +34,13 @@ export const useAdmin = create<AdminState>()(
       mode: null,
       database: false,
       modShortcuts: false,
+      unlockAll: false,
       quickBan: false,
       quickBanUser: null,
       localAnnouncement: null,
       set: (p) => set(p),
     }),
-    { name: "squeak-admin", partialize: (s) => ({ modShortcuts: s.modShortcuts, localAnnouncement: s.localAnnouncement }) },
+    { name: "squeak-admin", partialize: (s) => ({ modShortcuts: s.modShortcuts, unlockAll: s.unlockAll, localAnnouncement: s.localAnnouncement }) },
   ),
 );
 

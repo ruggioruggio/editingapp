@@ -354,6 +354,15 @@ function Tools() {
         </span>
         <input type="checkbox" checked={st.modShortcuts} onChange={(e) => st.set({ modShortcuts: e.target.checked })} className="h-5 w-5 accent-[#ed4245]" />
       </label>
+      <label className="flex items-center justify-between gap-4 rounded-xl bg-black/30 p-4">
+        <span>
+          <span className="flex items-center gap-2 font-black text-white">
+            <KeyRound size={16} /> Gioca a qualsiasi livello
+          </span>
+          <span className="text-sm text-[#b5bac1]">Tutte le lezioni sbloccate su questo dispositivo, senza dover finire quelle prima.</span>
+        </span>
+        <input type="checkbox" checked={st.unlockAll} onChange={(e) => st.set({ unlockAll: e.target.checked })} className="h-5 w-5 accent-[#57f287]" />
+      </label>
       <p className="text-xs font-bold uppercase tracking-wide text-[#80848e]">Il mio progresso (per fare test)</p>
       <div className="grid gap-2 sm:grid-cols-2">
         {tool("+100 XP", () => useProgress.setState({ xp: p().xp + 100 }))}
