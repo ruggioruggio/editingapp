@@ -2,44 +2,35 @@
 
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { SCENES } from "@/components/brand/scenes";
+import { Squeak3D } from "@/components/brand/Squeak3DLazy";
 
 const SESSION_KEY = "squeak-splash-shown";
-const PLAY_MS = 2700;
+const PLAY_MS = 2400;
 const EXIT_MS = 550;
 
-// Scelta presa una volta per caricamento pagina (evita il doppio effetto di StrictMode).
-let sessionChoice: number | null | undefined;
-// già mostrata in questo caricamento: cambiando scheda non deve ripartire
 let played = false;
 
-function pickScene(): number | null {
-  if (played) return null;
-  if (sessionChoice !== undefined) return sessionChoice;
-  let seen = false;
+function shouldPlay(): boolean {
+  if (played) return false;
   try {
-    seen = sessionStorage.getItem(SESSION_KEY) === "1";
+    if (sessionStorage.getItem(SESSION_KEY) === "1") return false;
     sessionStorage.setItem(SESSION_KEY, "1");
   } catch {
-    // storage non disponibile: mostriamo comunque lo splash
+    /* storage non disponibile */
   }
-  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  sessionChoice = seen || reduceMotion ? null : Math.floor(Math.random() * SCENES.length);
-  return sessionChoice;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+  return true;
 }
 
-/** Animazione d'apertura: una delle 5 scene di Squeak a caso, una volta per sessione. */
+/** Animazione d'apertura: Squeak fa una piroetta e saluta, una volta per sessione. */
 export function Splash() {
   const [phase, setPhase] = useState<"pending" | "play" | "exit" | "done">("pending");
-  const [index, setIndex] = useState(0);
 
   useEffect(() => {
-    const choice = pickScene();
-    if (choice === null) {
+    if (!shouldPlay()) {
       setPhase("done");
       return;
     }
-    setIndex(choice);
     setPhase("play");
     played = true;
   }, []);
@@ -56,7 +47,6 @@ export function Splash() {
   }, [phase]);
 
   if (phase === "done") return null;
-  const { Component, caption } = SCENES[index];
 
   return (
     <div
@@ -69,13 +59,12 @@ export function Splash() {
     >
       {phase !== "pending" && (
         <>
-          <div className="splash-in w-full max-w-md">
-            <Component loop={false} />
+          <div className="splash-in h-56 w-56">
+            <Squeak3D mode="spin" className="h-full w-full" />
           </div>
-          <p className="splash-in mt-6 text-4xl font-black tracking-tight">
+          <p className="splash-in mt-4 text-4xl font-black tracking-tight">
             Squeak<span className="text-pr">Edit</span>
           </p>
-          <p className="splash-in mt-2 text-sm font-semibold text-ink-mute">{caption}</p>
         </>
       )}
     </div>

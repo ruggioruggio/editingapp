@@ -66,18 +66,18 @@ function StrawHat() {
 /** Mantello rosso sulle spalle, che sventola (coordinate del corpo). */
 const Cape = forwardRef<THREE.Group>(function Cape(_props, ref) {
   return (
-    <group ref={ref} position={[0, 1.55, -0.1]}>
-      <mesh position={[0, -0.7, -0.12]} rotation={[0.08, 0, 0]}>
-        <cylinderGeometry args={[0.72, 1.0, 1.4, 36, 1, true, Math.PI * 0.55, Math.PI * 0.9]} />
+    <group ref={ref} position={[0, 1.55, -0.35]}>
+      <mesh position={[0, -0.7, -0.22]} rotation={[0.12, 0, 0]}>
+        <cylinderGeometry args={[0.72, 1.0, 1.4, 36, 1, true, Math.PI * 0.6, Math.PI * 0.8]} />
         <meshStandardMaterial color="#9e1b25" roughness={0.7} side={THREE.DoubleSide} />
       </mesh>
       {/* bordo dorato e colletto */}
-      <mesh position={[0, -1.4, -0.13]} rotation={[0.08, 0, 0]}>
-        <cylinderGeometry args={[1.005, 1.005, 0.08, 36, 1, true, Math.PI * 0.55, Math.PI * 0.9]} />
+      <mesh position={[0, -1.4, -0.23]} rotation={[0.12, 0, 0]}>
+        <cylinderGeometry args={[1.005, 1.005, 0.08, 36, 1, true, Math.PI * 0.6, Math.PI * 0.8]} />
         <meshStandardMaterial color="#f2c14e" roughness={0.5} side={THREE.DoubleSide} />
       </mesh>
-      <mesh position={[0, 0.02, -0.05]} rotation={[-Math.PI / 2, 0, 0.05 * Math.PI]}>
-        <torusGeometry args={[0.74, 0.06, 10, 36, Math.PI * 0.9]} />
+      <mesh position={[0, 0.02, -0.12]} rotation={[-Math.PI / 2, 0, 0.05 * Math.PI]}>
+        <torusGeometry args={[0.74, 0.06, 10, 36, Math.PI * 0.8]} />
         <meshStandardMaterial color="#7a121b" roughness={0.6} />
       </mesh>
     </group>
@@ -113,7 +113,7 @@ function SlideScene() {
   const START = curve.getPointAt(0);
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 6.2;
+    const t = state.clock.elapsedTime % 6.8;
     const r = rig.current;
     const b = body.current;
     const y = turn.current;
@@ -127,49 +127,81 @@ function SlideScene() {
     };
     let fistAt = 0;
     let flap = 0.15;
+    // Gear 5: corpo elastico, sobbalza e ondeggia
+    const wobble = Math.sin(t * 18) * 0.04;
+    const bounce = Math.abs(Math.sin(t * 7)) * 0.06;
 
-    if (t < 1.1) {
-      // in posa: si gira di profilo e carica il pugno all'indietro
-      b.position.set(START.x - 0.35, 0.2, 0);
-      b.rotation.z = 0;
-      y.rotation.y = lerp(0.25, PROFILE_RIGHT, easeInOut(phase(t, 0.2, 0.8)));
-      if (r.armR) r.armR.rotation.set(0.9 * easeOut(phase(t, 0.5, 1.1)), 0, 0.3);
-      if (r.armL) r.armL.rotation.set(-0.4, 0, -0.4);
+    if (t < 1.3) {
+      // si gira di profilo saltellando, carica il pugno indietro con esagerazione
+      const hop = Math.abs(Math.sin(t * 8));
+      b.position.set(START.x - 0.35, 0.2 + hop * 0.3, 0);
+      b.rotation.z = wobble;
+      // squash/stretch gommoso mentre saltella
+      const sq = 1 - hop * 0.15;
+      if (r.body) r.body.scale.set(1 + (1 - sq) * 0.6, sq, 1 + (1 - sq) * 0.6);
+      y.rotation.y = lerp(0.25, PROFILE_RIGHT, easeInOut(phase(t, 0.2, 0.9)));
+      if (r.armR) r.armR.rotation.set(0.9 * easeOut(phase(t, 0.5, 1.2)) + Math.sin(t * 12) * 0.15, 0, 0.3);
+      if (r.armL) r.armL.rotation.set(-0.4 + Math.sin(t * 10) * 0.3, 0, -0.4 - Math.sin(t * 8) * 0.15);
+      if (r.head) r.head.rotation.z = Math.sin(t * 11) * 0.12;
       show(0, 0);
-    } else if (t < 2.3) {
-      // GOMU GOMU: il braccio si allunga disegnando la curva
-      const p = easeOut(phase(t, 1.1, 2.0));
-      b.position.set(START.x - 0.35, 0.2, 0);
+    } else if (t < 2.5) {
+      // GOMU GOMU: braccio si allunga, corpo ondeggia all'indietro
+      const p = easeOut(phase(t, 1.3, 2.2));
+      b.position.set(START.x - 0.35, 0.2 + bounce, 0);
+      b.rotation.z = -0.06 * Math.sin(t * 14);
       y.rotation.y = PROFILE_RIGHT;
+      // si piega indietro mentre tira
+      if (r.body) r.body.rotation.x = 0.15 * Math.sin(phase(t, 1.3, 2.2) * Math.PI);
       if (r.armR) r.armR.scale.setScalar(0.001);
-      if (r.armL) r.armL.rotation.set(-0.6, 0, -0.6);
+      if (r.armL) r.armL.rotation.set(-0.6 + Math.sin(t * 16) * 0.4, 0, -0.6);
+      if (r.head) r.head.rotation.set(-0.1, 0, Math.sin(t * 9) * 0.15);
       show(0, p);
       fistAt = p;
-      flap = 0.5;
-    } else if (t < 4.0) {
-      // il braccio si accorcia e lo tira lungo la curva: scivola come sull'acqua
-      const p = phase(t, 2.3, 3.8) ** 1.6;
+      flap = 0.6;
+    } else if (t < 4.4) {
+      // vola lungo la curva gommosamente: si allunga, rimbalza, gambe che svolazzano
+      const raw = phase(t, 2.5, 4.2);
+      const p = raw ** 1.4;
       const pos = curve.getPointAt(Math.min(1, p));
       const tan = curve.getTangentAt(Math.min(1, p));
+      const tAngle = Math.atan2(tan.y, tan.x);
       b.position.set(pos.x - 0.1, pos.y - 1.15, 0);
-      b.rotation.z = Math.atan2(tan.y, tan.x) * 0.8;
+      // il corpo segue la curva ma con un'ondulazione comica
+      b.rotation.z = tAngle * 0.8 + Math.sin(t * 20) * 0.08;
       y.rotation.y = PROFILE_RIGHT;
+      // stretch nella direzione del moto (Gear 5!)
+      const speed = Math.abs(tan.y) + 0.3;
+      if (r.body) r.body.scale.set(1 / Math.sqrt(1 + speed * 0.2), 1 + speed * 0.2, 1);
       if (r.armR) r.armR.scale.setScalar(0.001);
-      if (r.armL) r.armL.rotation.set(-2.7, 0, -0.3);
+      // braccio sinistro e gambe svolazzano
+      if (r.armL) r.armL.rotation.set(-2.7 + Math.sin(t * 22) * 0.5, 0, -0.3 + Math.sin(t * 18) * 0.2);
+      if (r.footL) r.footL.position.set(-0.42, 0.1, 0.45 + Math.sin(t * 24) * 0.3);
+      if (r.footR) r.footR.position.set(0.42, 0.1, 0.45 - Math.sin(t * 24) * 0.3);
+      if (r.head) r.head.rotation.set(0, 0, Math.sin(t * 16) * 0.12);
       show(Math.min(1, p + 0.02), 1);
       fistAt = 1;
-      flap = 1.1;
+      flap = 1.3;
     } else {
-      // atterra, si gira verso di noi e fa il segno di vittoria col pugno
+      // atterra con rimbalzo gommoso, si gira e fa una posa buffa
       const end = curve.getPointAt(1);
-      const p = easeOut(phase(t, 4.0, 4.35));
-      b.position.set(end.x + 0.15 * p, lerp(end.y - 1.15, 0.2, p) + Math.abs(Math.sin(t * 6)) * 0.05 * (1 - phase(t, 4.3, 5)), 0);
-      b.rotation.z = lerp(b.rotation.z, 0, 0.2);
-      y.rotation.y = lerp(PROFILE_RIGHT, 0.2, easeInOut(phase(t, 4.4, 4.9)));
-      if (t > 4.8 && r.armR) r.armR.rotation.set(-2.9, 0, 0.15);
-      if (r.armL) r.armL.rotation.set(-0.3, 0, -0.5);
+      const land = easeOut(phase(t, 4.4, 4.7));
+      const landBounce = t < 5.2 ? Math.abs(Math.sin((t - 4.7) * 12)) * 0.2 * (1 - phase(t, 4.7, 5.2)) : 0;
+      b.position.set(end.x + 0.15 * land, lerp(end.y - 1.15, 0.2, land) + landBounce, 0);
+      b.rotation.z = lerp(b.rotation.z, wobble, 0.15);
+      // squash all'atterraggio
+      if (r.body && t < 5.0) {
+        const sq2 = 1 - landBounce * 0.6;
+        r.body.scale.set(1 + (1 - sq2) * 0.8, sq2, 1 + (1 - sq2) * 0.8);
+      }
+      y.rotation.y = lerp(PROFILE_RIGHT, 0.2, easeInOut(phase(t, 4.8, 5.3)));
+      if (t > 5.2) {
+        // posa Gear 5: braccia su e giù, testa che ciondola
+        if (r.armR) r.armR.rotation.set(-2.9 + Math.sin(t * 10) * 0.2, 0, 0.15 + Math.sin(t * 7) * 0.15);
+        if (r.armL) r.armL.rotation.set(-2.5 + Math.sin(t * 8) * 0.3, 0, -0.3 - Math.sin(t * 6) * 0.15);
+        if (r.head) r.head.rotation.set(0, Math.sin(t * 5) * 0.15, Math.sin(t * 8) * 0.1);
+      }
       show(0, 0);
-      flap = 0.3;
+      flap = 0.35;
     }
 
     if (fist.current) {
@@ -177,17 +209,15 @@ function SlideScene() {
       fist.current.position.copy(fp);
       fist.current.visible = fistAt > 0.01;
     }
-    // il mantello sventola di più quando vola
-    if (cape.current) cape.current.rotation.x = -0.1 - flap * (0.25 + Math.sin(state.clock.elapsedTime * 14) * 0.06);
-    if (hatBounce.current) hatBounce.current.position.y = t > 2.3 && t < 4 ? Math.abs(Math.sin(t * 10)) * 0.06 : 0;
-    // linee di velocità dietro di lui mentre sfreccia
+    if (cape.current) cape.current.rotation.x = -0.15 - flap * (0.3 + Math.sin(state.clock.elapsedTime * 16) * 0.08);
+    if (hatBounce.current) hatBounce.current.position.y = (t > 2.5 && t < 4.4 ? Math.abs(Math.sin(t * 14)) * 0.1 : 0) + Math.sin(t * 6) * 0.02;
     lines.current.forEach((l, i) => {
       if (!l) return;
-      const on = t > 2.5 && t < 3.9;
+      const on = t > 2.7 && t < 4.3;
       l.visible = on;
       if (on) {
-        l.position.set(b.position.x - 0.9 - i * 0.25, b.position.y + 0.6 + (i - 1.5) * 0.35, 0.3);
-        l.rotation.z = b.rotation.z;
+        l.position.set(b.position.x - 0.9 - i * 0.25, b.position.y + 0.6 + (i - 1.5) * 0.35 + Math.sin(t * 20 + i) * 0.1, 0.3);
+        l.rotation.z = b.rotation.z + Math.sin(t * 15 + i * 2) * 0.08;
       }
     });
   });

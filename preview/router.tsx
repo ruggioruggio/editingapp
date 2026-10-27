@@ -11,8 +11,8 @@ interface RouterValue {
 
 const RouterContext = createContext<RouterValue>({ path: "/", navigate: () => {}, back: () => {} });
 
-export function PreviewRouter({ children }: { children: (path: string) => ReactNode }) {
-  const [stack, setStack] = useState<string[]>(["/"]);
+export function PreviewRouter({ children, initial = "/" }: { children: (path: string) => ReactNode; initial?: string }) {
+  const [stack, setStack] = useState<string[]>([initial]);
   const path = stack[stack.length - 1];
 
   const navigate = useCallback((href: string, replace = false) => {

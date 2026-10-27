@@ -27,6 +27,8 @@ import { ThemeSync } from "@/components/app/ThemeSync";
 // Anteprima a file unico di SqueakEdit: le stesse pagine e componenti
 // dell'app, con un router in memoria al posto delle rotte di Next.js.
 
+const IS_ELECTRON = typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent);
+
 const APP_PAGES: Record<string, () => React.ReactNode> = {
   "/learn": () => <LearnPage />,
   "/quests": () => <QuestsPage />,
@@ -83,7 +85,7 @@ function render(fullPath: string) {
 }
 
 createRoot(document.getElementById("root")!).render(
-  <PreviewRouter>
+  <PreviewRouter initial={IS_ELECTRON ? "/learn" : "/"}>
     {(path) => (
       <>
         <SupabaseSync />

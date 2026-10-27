@@ -44,6 +44,7 @@ jobs:
         working-directory: desktop
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          SQUEAK_NO_ADMIN: "1"
       - uses: actions/upload-artifact@v4
         with:
           name: SqueakEdit-${{ runner.os }}
@@ -71,6 +72,8 @@ jobs:
         working-directory: mobile
       - run: npm run android
         working-directory: mobile
+        env:
+          SQUEAK_NO_ADMIN: "1"
       - run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
         working-directory: mobile/android
       - run: cp mobile/android/app/build/outputs/apk/debug/app-debug.apk SqueakEdit-Android.apk

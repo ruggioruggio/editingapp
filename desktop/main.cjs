@@ -1,6 +1,6 @@
 // SqueakEdit per Windows, Mac e Linux: una finestra che apre l'app
 // (la stessa del sito, in un unico file) anche senza connessione.
-const { app, BrowserWindow, Menu, shell } = require("electron");
+const { app, BrowserWindow, Menu, globalShortcut, shell } = require("electron");
 const path = require("node:path");
 
 function createWindow() {
@@ -25,6 +25,14 @@ function createWindow() {
     if (!url.startsWith("file:")) {
       e.preventDefault();
       if (/^https?:/i.test(url)) shell.openExternal(url);
+    }
+  });
+
+  // F11 per schermo intero
+  win.webContents.on("before-input-event", (e, input) => {
+    if (input.key === "F11" && input.type === "keyDown") {
+      e.preventDefault();
+      win.setFullScreen(!win.isFullScreen());
     }
   });
 }
