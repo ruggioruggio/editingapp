@@ -21,20 +21,6 @@ function useShirtTexture() {
     const g = c.getContext("2d")!;
     g.fillStyle = "#f1e7c4";
     g.fillRect(0, 0, 256, 256);
-    // macchie di unto e di bibita
-    const stains: [number, number, number, string][] = [
-      [60, 120, 22, "rgba(150,105,50,.45)"],
-      [170, 150, 30, "rgba(120,80,40,.4)"],
-      [120, 80, 14, "rgba(190,120,40,.5)"],
-      [210, 70, 18, "rgba(140,95,45,.35)"],
-      [40, 190, 16, "rgba(120,90,50,.4)"],
-    ];
-    for (const [x, y, r, col] of stains) {
-      g.fillStyle = col;
-      g.beginPath();
-      g.ellipse(x, y, r, r * 0.7, x * 0.03, 0, Math.PI * 2);
-      g.fill();
-    }
     // strappi: buchi trasparenti dai bordi frastagliati
     g.globalCompositeOperation = "destination-out";
     const hole = (cx: number, cy: number, r: number) => {
@@ -80,77 +66,15 @@ function Outfit() {
         <sphereGeometry args={[0.06, 12, 10]} />
         <meshStandardMaterial color="#9aa1b3" />
       </mesh>
-      {/* briciole sulla pancia */}
-      {[
-        [0.25, 0.95, 1.12],
-        [-0.3, 0.8, 1.15],
-        [0.1, 0.7, 1.22],
-        [-0.12, 1.05, 1.05],
-      ].map((p, i) => (
-        <mesh key={i} position={p as [number, number, number]}>
-          <sphereGeometry args={[0.035, 8, 6]} />
-          <meshStandardMaterial color="#e9b04a" roughness={0.6} />
-        </mesh>
-      ))}
     </group>
   );
 }
 
-/** Barba storta a ciuffi (coordinate della testa) e briciole intorno alla bocca. */
-function Beard() {
-  const tufts: [number, number, number, number][] = [
-    // x, lunghezza, inclinazione, spessore
-    [-0.36, 0.38, -0.2, 0.12],
-    [-0.22, 0.62, -0.1, 0.14],
-    [-0.06, 0.82, -0.04, 0.15],
-    [0.1, 0.7, 0.05, 0.14],
-    [0.26, 0.48, 0.14, 0.12],
-    [0.4, 0.28, 0.25, 0.1],
-  ];
-  return (
-    <group>
-      <group position={[0.14, -0.4, 0.9]} rotation={[0.1, 0, 0.32]}>
-        {tufts.map(([x, len, tilt, w], i) => (
-          <mesh key={i} position={[x, -len / 2, Math.abs(x) * -0.3]} rotation={[Math.PI, 0, tilt]}>
-            <coneGeometry args={[w, len, 7]} />
-            <meshStandardMaterial color="#6b5038" roughness={1} />
-          </mesh>
-        ))}
-        {/* peli sparsi sulle guance (a chiazze) */}
-        {[
-          [-0.48, 0.18],
-          [0.5, 0.25],
-          [-0.42, 0.32],
-        ].map(([x, y], i) => (
-          <mesh key={i} position={[x, y, -0.1]}>
-            <sphereGeometry args={[0.07, 8, 6]} />
-            <meshStandardMaterial color="#6b5038" roughness={1} />
-          </mesh>
-        ))}
-      </group>
-      {/* briciole intorno alla bocca */}
-      {[
-        [-0.18, -0.3, 1.0],
-        [0.15, -0.34, 1.0],
-        [0.05, -0.42, 0.97],
-        [-0.28, -0.22, 0.95],
-        [0.3, -0.24, 0.95],
-        [-0.06, -0.24, 1.07],
-        [0.22, -0.12, 1.02],
-      ].map((p, i) => (
-        <mesh key={i} position={p as [number, number, number]}>
-          <sphereGeometry args={[0.03 + (i % 3) * 0.008, 8, 6]} />
-          <meshStandardMaterial color="#e9b04a" roughness={0.6} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
 
 /** Sacchetto di patatine aperto con qualche patatina che esce. */
 function ChipBag() {
   return (
-    <group>
+    <group scale={0.6} rotation={[0.3, 0, 0.15]}>
       {/* sacchetto */}
       <mesh position={[0, 0.25, 0]} rotation={[0.1, 0, -0.15]}>
         <cylinderGeometry args={[0.18, 0.22, 0.52, 12]} />
@@ -169,17 +93,6 @@ function ChipBag() {
       ].map(([x, y, z, tilt], i) => (
         <mesh key={i} position={[x, y, z]} rotation={[0.4, tilt, 0.2 * (i - 1)]}>
           <boxGeometry args={[0.07, 0.14, 0.02]} />
-          <meshStandardMaterial color="#f9c74f" roughness={0.6} />
-        </mesh>
-      ))}
-      {/* patatine cadute a terra */}
-      {[
-        [0.3, 0.02, 0.15],
-        [-0.2, 0.02, 0.25],
-        [0.15, 0.02, -0.1],
-      ].map(([x, y, z], i) => (
-        <mesh key={i} position={[x, y, z]} rotation={[Math.PI / 2 - 0.2, i * 1.2, 0]}>
-          <boxGeometry args={[0.06, 0.1, 0.02]} />
           <meshStandardMaterial color="#f9c74f" roughness={0.6} />
         </mesh>
       ))}
@@ -248,16 +161,12 @@ function ModSqueak() {
         <group ref={roll}>
           {/* ciccione: più largo e più profondo */}
           <group position={[0, -1.05, 0]} scale={[1.32, 1.02, 1.28]}>
-            <SqueakModel rig={rig} sitting sleepy outfit={<Outfit />} hat={<Beard />} />
+            <SqueakModel rig={rig} sitting sleepy outfit={<Outfit />} leftHand={<ChipBag />} />
           </group>
         </group>
       </group>
       <group ref={shadow}>
         <Shadow radius={1.6} opacity={0.35} />
-      </group>
-      {/* sacchetto di patatine a fianco */}
-      <group position={[-1.4, 0, 0.6]} rotation={[0, 0.3, 0]}>
-        <ChipBag />
       </group>
     </>
   );

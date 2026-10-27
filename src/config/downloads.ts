@@ -7,7 +7,6 @@ const base = (process.env.NEXT_PUBLIC_DOWNLOAD_BASE || "https://github.com/ruggi
 
 export const DOWNLOADS = {
   windowsSetup: `${base}/SqueakEdit-Windows-setup.exe`,
-  windowsPortable: `${base}/SqueakEdit-Windows-portable.exe`,
   macArm: `${base}/SqueakEdit-Mac-arm64.dmg`,
   macIntel: `${base}/SqueakEdit-Mac-x64.dmg`,
   linux: `${base}/SqueakEdit-Linux.AppImage`,

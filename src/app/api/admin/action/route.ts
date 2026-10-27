@@ -38,9 +38,17 @@ export async function POST(req: NextRequest) {
       }
       case "search": {
         const q = str(body.q, 40).replace(/^@/, "").replace(/[%_,()]/g, "");
-        let query = sb.from("profiles").select("id, username, display_name, plan, xp, streak_count, pro_until, banned_until, ban_reason, role, created_at").order("created_at", { ascending: false }).limit(40);
+        const cols = "id, username, display_name, plan, xp, streak_count, pro_until, banned_until, ban_reason, role, created_at";
+        let query = sb.from("profiles").select(cols).order("created_at", { ascending: false }).limit(40);
         if (q) query = query.ilike("username", `%${q}%`);
-        const { data, error } = await query;
+        let { data, error } = await query;
+        if (error && /role/.test(error.message)) {
+          const fallback = cols.replace(", role", "");
+          query = sb.from("profiles").select(fallback).order("created_at", { ascending: false }).limit(40);
+          if (q) query = query.ilike("username", `%${q}%`);
+          ({ data, error } = await query);
+          if (!error && data) data = data.map((r: Record<string, unknown>) => ({ ...r, role: null }));
+        }
         if (error) throw error;
         return NextResponse.json({ users: data });
       }

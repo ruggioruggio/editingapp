@@ -40,7 +40,6 @@ export default function DownloadPage() {
             <p className="mb-5 text-ink-dim">Il posto migliore per i simulatori: schermo grande, mouse e tastiera.</p>
             <div className="space-y-3">
               <DownloadLink primary href={DOWNLOADS.windowsSetup} title="Installa per Windows" note="Programma di installazione (.exe)" />
-              <DownloadLink href={DOWNLOADS.windowsPortable} title="Versione portatile" note="Si apre senza installare" />
             </div>
             <p className="mt-4 text-xs text-ink-mute">Se Windows mostra &quot;PC protetto&quot;: Ulteriori informazioni → Esegui comunque.</p>
           </section>
