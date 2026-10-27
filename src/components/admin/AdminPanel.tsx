@@ -176,7 +176,6 @@ function Stats() {
 function Users() {
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<UserRow[]>([]);
-  const [editing, setEditing] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const { msg, busy, run } = useAsync();
@@ -220,51 +219,25 @@ function Users() {
                   </span>
                 )}
               </div>
+              <p className="mt-1 text-xs text-[#80848e]">Registrato il {new Date(u.created_at).toLocaleDateString("it-IT")}</p>
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {[1, 7, 30].map((d) => (
-                  <button key={d} type="button" disabled={busy} onClick={() => act("grantPro", { userId: u.id, days: d }, `Pro per ${d} giorni a @${u.username}`)} className={clsx(btn, "bg-[#faa61a]/20 text-[#faa61a] hover:bg-[#faa61a]/30")}>
-                    Pro {d}g
-                  </button>
-                ))}
-                <button type="button" disabled={busy} onClick={() => act("grantPro", { userId: u.id }, `Pro per sempre a @${u.username}`)} className={clsx(btn, "bg-[#faa61a]/20 text-[#faa61a] hover:bg-[#faa61a]/30")}>
-                  Pro ∞
-                </button>
-                {active(u.pro_until) && (
-                  <button type="button" disabled={busy} onClick={() => act("revokePro", { userId: u.id }, "Pro tolto")} className={clsx(btn, "bg-white/10 text-white hover:bg-white/20")}>
-                    Togli Pro
-                  </button>
-                )}
                 {active(u.banned_until) ? (
                   <button type="button" disabled={busy} onClick={() => act("unban", { userId: u.id }, `@${u.username} non è più sospeso`)} className={clsx(btn, "bg-[#3ba55d]/20 text-[#57f287]")}>
                     Revoca sospensione
                   </button>
                 ) : (
-                  [1, 7, 0].map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      disabled={busy}
-                      onClick={() => {
-                        const reason = window.prompt(`Motivo della sospensione di @${u.username}:`, "Spam");
-                        if (reason !== null) void act("ban", { userId: u.id, days: d || undefined, reason }, `@${u.username} sospeso`);
-                      }}
-                      className={clsx(btn, "bg-[#ed4245]/20 text-[#ff7b7e] hover:bg-[#ed4245]/30")}
-                    >
-                      Ban {d ? `${d}g` : "∞"}
-                    </button>
-                  ))
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      const reason = window.prompt(`Motivo della sospensione di @${u.username}:`, "Spam");
+                      if (reason !== null) void act("ban", { userId: u.id, reason }, `@${u.username} sospeso`);
+                    }}
+                    className={clsx(btn, "bg-[#ed4245]/20 text-[#ff7b7e] hover:bg-[#ed4245]/30")}
+                  >
+                    Sospendi
+                  </button>
                 )}
-                <button type="button" onClick={() => setEditing(editing === u.id ? null : u.id)} className={clsx(btn, editing === u.id ? "bg-[#5865f2] text-white" : "bg-white/10 text-white hover:bg-white/20")}>
-                  XP / serie
-                </button>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => window.confirm(`Eliminare tutti i messaggi inviati da @${u.username}?`) && void act("clearMessages", { userId: u.id }, "Messaggi eliminati")}
-                  className={clsx(btn, "bg-white/10 text-white hover:bg-white/20")}
-                >
-                  Cancella messaggi
-                </button>
                 <span className="mx-0.5 h-4 w-px bg-white/10" />
                 {(["owner", "moderatore", "amico", "founder"] as UserRole[]).map((r) => (
                   <button
@@ -295,16 +268,6 @@ function Users() {
                   <button type="submit" disabled={busy || newName.length < 3} className={clsx(btn, "bg-[#3ba55d] text-white")}>Salva</button>
                   <button type="button" onClick={() => setRenaming(null)} className={clsx(btn, "bg-white/10 text-white")}>Annulla</button>
                 </form>
-              )}
-              {editing === u.id && (
-                <div className="mt-3 rounded-lg bg-black/30 p-3">
-                  <StatsEditor
-                    key={u.id + u.xp + u.streak_count}
-                    initial={{ xp: u.xp, streak: u.streak_count }}
-                    busy={busy}
-                    onSave={(v) => void act("setStats", { userId: u.id, xp: v.xp, streak: v.streak }, `Valori di @${u.username}: ${v.xp} XP, serie ${v.streak}`)}
-                  />
-                </div>
               )}
             </div>
           ))}

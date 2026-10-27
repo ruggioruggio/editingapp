@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
@@ -9,6 +10,8 @@ import { features } from "@/config/features";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { todayState, useProgress } from "@/lib/progress/store";
+import { useAuth } from "@/lib/supabase/auth";
+import { getSupabase } from "@/lib/supabase/client";
 import { useT, type TKey } from "@/lib/settings/i18n";
 
 type Item = { href: string; label: TKey; icon: LucideIcon; color: string };
@@ -22,6 +25,31 @@ const RIGHT: Item[] = [
   { href: "/quests", label: "quests", icon: ScrollText, color: "#d291ff" },
   { href: "/friends", label: "friends", icon: Users, color: "#5ce1e6" },
 ];
+
+function usePendingRequests() {
+  const status = useAuth((s) => s.status);
+  const me = useAuth((s) => s.userId);
+  const [count, setCount] = useState(0);
+  const refresh = useCallback(async () => {
+    const sb = getSupabase();
+    if (!sb || !me) return;
+    const { count: n } = await sb
+      .from("friendships")
+      .select("id", { count: "exact", head: true })
+      .eq("addressee_id", me)
+      .eq("status", "pending");
+    setCount(n ?? 0);
+  }, [me]);
+  useEffect(() => {
+    if (status !== "user") return;
+    void refresh();
+    const h = setInterval(() => void refresh(), 30_000);
+    const onFocus = () => void refresh();
+    window.addEventListener("focus", onFocus);
+    return () => { clearInterval(h); window.removeEventListener("focus", onFocus); };
+  }, [status, refresh]);
+  return count;
+}
 
 /** Quante quest di oggi sono completate ma non ancora riscattate. */
 function useClaimableQuests() {
@@ -65,6 +93,7 @@ function DockItem({ item, active, badge }: { item: Item; active: boolean; badge?
 export function Dock() {
   const pathname = usePathname();
   const claimable = useClaimableQuests();
+  const pendingFriends = usePendingRequests();
   const aiActive = pathname.startsWith("/ai");
 
   return (
@@ -99,7 +128,7 @@ export function Dock() {
       </Link>
 
       {RIGHT.map((item) => (
-        <DockItem key={item.href} item={item} active={pathname.startsWith(item.href)} badge={item.href === "/quests" ? claimable : 0} />
+        <DockItem key={item.href} item={item} active={pathname.startsWith(item.href)} badge={item.href === "/quests" ? claimable : item.href === "/friends" ? pendingFriends : 0} />
       ))}
     </nav>
   );
