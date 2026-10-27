@@ -1,4 +1,6 @@
 import type { LessonKind, LessonMeta, Section, Unit } from "@/lib/lessons/types";
+import type { Lang } from "@/lib/settings/store";
+import { getCourseLang } from "./courseI18n";
 import { lessons } from "./lessons";
 
 // Mappa completa del corso: sezioni → unità → lezioni.
@@ -212,3 +214,21 @@ export const sections: Section[] = [
 ];
 
 export const allLessons = sections.flatMap((s) => s.units.flatMap((u) => u.lessons));
+
+export function getTranslatedSections(lang: Lang): Section[] {
+  if (lang === "it") return sections;
+  const t = getCourseLang(lang);
+  if (!t) return sections;
+  return sections.map((s) => ({
+    ...s,
+    ...(t.sections[s.id] ?? {}),
+    units: s.units.map((u) => ({
+      ...u,
+      ...(t.units[u.id] ?? {}),
+      lessons: u.lessons.map((l) => ({
+        ...l,
+        ...(t.lessons[l.id] ?? {}),
+      })),
+    })),
+  }));
+}

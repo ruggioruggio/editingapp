@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import clsx from "clsx";
-import { Ban, Crown, HardHat, Gavel, Handshake, KeyRound, LogOut, Megaphone, RefreshCw, ScrollText, Search, Shield, UserCog, Wrench, X } from "lucide-react";
+import { Ban, Crown, HardHat, Gavel, Handshake, KeyRound, LogOut, Megaphone, RefreshCw, ScrollText, Search, Shield, Terminal, UserCog, Wrench, X } from "lucide-react";
 import { allLessons } from "@/content/course";
 import { todayKey } from "@/lib/date";
 import { adminAction, adminLogin, adminLogout, markGrace, useAdmin, type Announcement } from "@/lib/admin/client";
@@ -29,6 +29,7 @@ interface UserRow {
 
 const TABS = [
   ["users", "Utenti", UserCog],
+  ["terminal", "Terminale", Terminal],
   ["friends", "Amicizie", Handshake],
   ["announce", "Annuncio", Megaphone],
   ["maintenance", "Manutenzione", HardHat],
@@ -523,6 +524,221 @@ function Tools() {
   );
 }
 
+function parseArgs(input: string): string[] {
+  const args: string[] = [];
+  let i = 0;
+  while (i < input.length) {
+    if (input[i] === " ") { i++; continue; }
+    if (input[i] === '"') {
+      const end = input.indexOf('"', i + 1);
+      args.push(end === -1 ? input.slice(i + 1) : input.slice(i + 1, end));
+      i = end === -1 ? input.length : end + 1;
+    } else {
+      const end = input.indexOf(" ", i);
+      args.push(end === -1 ? input.slice(i) : input.slice(i, end));
+      i = end === -1 ? input.length : end;
+    }
+  }
+  return args;
+}
+
+const HELP_TEXT = `Comandi disponibili:
+  /help                          — Mostra questo messaggio
+  /ren "vecchio" "nuovo"         — Rinomina un utente
+  /ban "utente" "durata" "motivo"— Sospendi (durata: 1d, 7d, 30d, vuoto=sempre)
+  /unban "utente"                — Revoca sospensione
+  /roleadd "utente" "ruolo"      — Assegna ruolo (owner/moderatore/amico/founder)
+  /roleremove "utente"           — Rimuovi ruolo
+  /xpadd "utente" "quantità"     — Aggiungi XP
+  /xpremove "utente" "quantità"  — Rimuovi XP
+  /streakset "utente" "giorni"   — Imposta la serie
+  /pro "utente"                  — Toggle Pro (se ha Pro lo toglie, se non ce l'ha lo dà)
+  /search "utente"               — Cerca un utente
+  /clear                         — Pulisci il terminale`;
+
+type Line = { text: string; type: "input" | "ok" | "error" | "info" };
+
+function AdminTerminal() {
+  const [lines, setLines] = useState<Line[]>([{ text: "SqueakEdit Admin Terminal v1.0 — scrivi /help per i comandi", type: "info" }]);
+  const [cmd, setCmd] = useState("");
+  const [history, setHistory] = useState<string[]>([]);
+  const [histIdx, setHistIdx] = useState(-1);
+  const [busy, setBusy] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const addLine = (text: string, type: Line["type"]) => setLines((p) => [...p, { text, type }]);
+
+  useEffect(() => { scrollRef.current?.scrollTo(0, scrollRef.current.scrollHeight); }, [lines]);
+
+  const idOf = async (username: string): Promise<string | null> => {
+    const res = await adminAction<{ users: UserRow[] }>("search", { q: username.replace(/^@/, "") });
+    const exact = res.users.find((u) => u.username === username.replace(/^@/, "").toLowerCase());
+    return exact?.id ?? null;
+  };
+
+  const exec = async () => {
+    const raw = cmd.trim();
+    if (!raw) return;
+    setHistory((h) => [raw, ...h.slice(0, 49)]);
+    setHistIdx(-1);
+    setCmd("");
+    addLine(`> ${raw}`, "input");
+
+    if (raw === "/clear") { setLines([]); return; }
+    if (raw === "/help") { addLine(HELP_TEXT, "info"); return; }
+
+    const parts = raw.startsWith("/") ? [raw.split(" ")[0], ...parseArgs(raw.slice(raw.indexOf(" ") + 1))] : parseArgs(raw);
+    if (raw.indexOf(" ") === -1 && raw.startsWith("/")) parts.splice(1);
+    const command = parts[0]?.toLowerCase();
+
+    setBusy(true);
+    try {
+      switch (command) {
+        case "/ren": {
+          const [, oldName, newName] = parts;
+          if (!oldName || !newName) { addLine("Uso: /ren \"vecchio\" \"nuovo\"", "error"); break; }
+          const id = await idOf(oldName);
+          if (!id) { addLine(`Utente @${oldName} non trovato`, "error"); break; }
+          await adminAction("renameUser", { userId: id, username: newName });
+          addLine(`@${oldName} rinominato in @${newName}`, "ok");
+          break;
+        }
+        case "/ban": {
+          const [, username, duration, ...reasonParts] = parts;
+          if (!username) { addLine("Uso: /ban \"utente\" \"durata\" \"motivo\"", "error"); break; }
+          const id = await idOf(username);
+          if (!id) { addLine(`Utente @${username} non trovato`, "error"); break; }
+          const days = duration ? parseInt(duration) || undefined : undefined;
+          const reason = reasonParts.join(" ") || undefined;
+          await adminAction("ban", { userId: id, days, reason });
+          addLine(`@${username} sospeso${days ? ` per ${days} giorni` : " per sempre"}${reason ? ` — ${reason}` : ""}`, "ok");
+          break;
+        }
+        case "/unban": {
+          const [, username] = parts;
+          if (!username) { addLine("Uso: /unban \"utente\"", "error"); break; }
+          const id = await idOf(username);
+          if (!id) { addLine(`Utente @${username} non trovato`, "error"); break; }
+          await adminAction("unban", { userId: id });
+          addLine(`Sospensione di @${username} revocata`, "ok");
+          break;
+        }
+        case "/roleadd": {
+          const [, username, role] = parts;
+          if (!username || !role) { addLine("Uso: /roleadd \"utente\" \"ruolo\"", "error"); break; }
+          if (!["owner", "moderatore", "amico", "founder"].includes(role)) { addLine(`Ruolo non valido. Usa: owner, moderatore, amico, founder`, "error"); break; }
+          const id = await idOf(username);
+          if (!id) { addLine(`Utente @${username} non trovato`, "error"); break; }
+          await adminAction("setRole", { userId: id, role });
+          addLine(`@${username} è ora ${ROLE_LABELS[role as UserRole]}`, "ok");
+          break;
+        }
+        case "/roleremove": {
+          const [, username] = parts;
+          if (!username) { addLine("Uso: /roleremove \"utente\"", "error"); break; }
+          const id = await idOf(username);
+          if (!id) { addLine(`Utente @${username} non trovato`, "error"); break; }
+          await adminAction("setRole", { userId: id, role: null });
+          addLine(`Ruolo rimosso da @${username}`, "ok");
+          break;
+        }
+        case "/xpadd": {
+          const [, username, amount] = parts;
+          if (!username || !amount) { addLine("Uso: /xpadd \"utente\" \"quantità\"", "error"); break; }
+          const id = await idOf(username);
+          if (!id) { addLine(`Utente @${username} non trovato`, "error"); break; }
+          const res = await adminAction<{ xp: number }>("addXp", { userId: id, amount: Math.abs(parseInt(amount) || 0) });
+          addLine(`+${amount} XP a @${username} (totale: ${res.xp})`, "ok");
+          break;
+        }
+        case "/xpremove": {
+          const [, username, amount] = parts;
+          if (!username || !amount) { addLine("Uso: /xpremove \"utente\" \"quantità\"", "error"); break; }
+          const id = await idOf(username);
+          if (!id) { addLine(`Utente @${username} non trovato`, "error"); break; }
+          const res = await adminAction<{ xp: number }>("addXp", { userId: id, amount: -Math.abs(parseInt(amount) || 0) });
+          addLine(`-${amount} XP da @${username} (totale: ${res.xp})`, "ok");
+          break;
+        }
+        case "/streakset": {
+          const [, username, days] = parts;
+          if (!username || days === undefined) { addLine("Uso: /streakset \"utente\" \"giorni\"", "error"); break; }
+          const id = await idOf(username);
+          if (!id) { addLine(`Utente @${username} non trovato`, "error"); break; }
+          await adminAction("setStreak", { userId: id, streak: parseInt(days) || 0 });
+          addLine(`Serie di @${username} impostata a ${days} giorni`, "ok");
+          break;
+        }
+        case "/pro": {
+          const [, username] = parts;
+          if (!username) { addLine("Uso: /pro \"utente\"", "error"); break; }
+          const id = await idOf(username);
+          if (!id) { addLine(`Utente @${username} non trovato`, "error"); break; }
+          const res = await adminAction<{ pro: boolean }>("togglePro", { userId: id });
+          addLine(`@${username}: Pro ${res.pro ? "attivato" : "disattivato"}`, "ok");
+          break;
+        }
+        case "/search": {
+          const [, username] = parts;
+          if (!username) { addLine("Uso: /search \"utente\"", "error"); break; }
+          const res = await adminAction<{ users: UserRow[] }>("search", { q: username.replace(/^@/, "") });
+          if (!res.users.length) { addLine("Nessun risultato", "info"); break; }
+          for (const u of res.users) {
+            const tags: string[] = [];
+            if (u.role) tags.push(ROLE_LABELS[u.role as UserRole] || u.role);
+            if (active(u.pro_until)) tags.push("PRO");
+            if (active(u.banned_until)) tags.push("SOSPESO");
+            addLine(`@${u.username} — ${u.xp} XP, serie ${u.streak_count}${tags.length ? ` [${tags.join(", ")}]` : ""}`, "info");
+          }
+          break;
+        }
+        default:
+          addLine(`Comando sconosciuto: ${command}. Scrivi /help per la lista.`, "error");
+      }
+    } catch (e) {
+      addLine(`Errore: ${e instanceof Error ? e.message : "sconosciuto"}`, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onKey = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
+    if (e.key === "Enter" && !busy) { void exec(); return; }
+    if (e.key === "ArrowUp") { e.preventDefault(); const next = Math.min(histIdx + 1, history.length - 1); setHistIdx(next); if (history[next]) setCmd(history[next]); }
+    if (e.key === "ArrowDown") { e.preventDefault(); const next = histIdx - 1; setHistIdx(next); setCmd(next < 0 ? "" : history[next] ?? ""); }
+  };
+
+  const lineColor = (t: Line["type"]) => ({ input: "text-[#80848e]", ok: "text-[#57f287]", error: "text-[#ff7b7e]", info: "text-[#b5bac1]" }[t]);
+
+  return (
+    <ServerOnly>
+      <div className="flex h-[420px] flex-col rounded-xl border border-white/10 bg-black font-mono text-sm">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 leading-relaxed" onClick={() => inputRef.current?.focus()}>
+          {lines.map((l, i) => (
+            <pre key={i} className={clsx("whitespace-pre-wrap", lineColor(l.type))}>{l.text}</pre>
+          ))}
+          {busy && <pre className="animate-pulse text-[#faa61a]">Esecuzione...</pre>}
+        </div>
+        <div className="flex items-center border-t border-white/10 px-3 py-2">
+          <span className="mr-2 text-[#5865f2] font-bold">$</span>
+          <input
+            ref={inputRef}
+            autoFocus
+            value={cmd}
+            onChange={(e) => setCmd(e.target.value)}
+            onKeyDown={onKey}
+            placeholder="/help per i comandi"
+            disabled={busy}
+            className="flex-1 bg-transparent text-white outline-none placeholder:text-[#4e5058]"
+          />
+        </div>
+      </div>
+    </ServerOnly>
+  );
+}
+
 function Log() {
   const [rows, setRows] = useState<{ id: number; action: string; target: string | null; details: Record<string, unknown> | null; created_at: string }[]>([]);
   const { msg, busy, run } = useAsync();
@@ -595,6 +811,7 @@ export function AdminPanel() {
             </nav>
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
               {tab === "users" && <Users />}
+              {tab === "terminal" && <AdminTerminal />}
               {tab === "friends" && <Friends />}
               {tab === "announce" && <AnnounceTab />}
               {tab === "maintenance" && <MaintenanceTab />}

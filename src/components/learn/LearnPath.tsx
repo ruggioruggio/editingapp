@@ -17,7 +17,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Mascot } from "@/components/brand/Mascot";
-import { sections } from "@/content/course";
+import { getTranslatedSections } from "@/content/course";
+import { useSettings } from "@/lib/settings/store";
 import { getLesson } from "@/content/lessons";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import type { LessonKind, LessonMeta, Section } from "@/lib/lessons/types";
@@ -41,6 +42,8 @@ export function LearnPath() {
   const hydrated = useHydrated();
   const completed = useProgress((s) => s.completed);
   const isDone = (id: string) => hydrated && Boolean(completed[id]);
+  const lang = useSettings((s) => s.lang);
+  const sections = getTranslatedSections(lang);
 
   const all = sections.flatMap((s) => s.units.flatMap((u) => u.lessons));
   const unlockAll = useAdmin((s) => s.unlockAll);

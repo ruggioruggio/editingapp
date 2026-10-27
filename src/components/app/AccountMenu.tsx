@@ -17,7 +17,6 @@ export function AccountMenu() {
   const t = useT();
   const status = useAuth((s) => s.status);
   const profile = useAuth((s) => s.profile);
-  const email = useAuth((s) => s.email);
   const [open, setOpen] = useState(false);
   const [modal, setModal] = useState<"settings" | "profile" | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -62,7 +61,6 @@ export function AccountMenu() {
           {status === "user" && (
             <div className="px-3 py-2">
               <p className="truncate font-black">@{profile?.username ?? "…"}</p>
-              <p className="truncate text-xs text-ink-mute">{email}</p>
             </div>
           )}
           <button type="button" onClick={() => pick("profile")} className={item}>
@@ -77,7 +75,7 @@ export function AccountMenu() {
             onClick={async () => {
               setOpen(false);
               await getSupabase()?.auth.signOut();
-              router.push("/");
+              router.push("/login");
             }}
             className={item}
           >

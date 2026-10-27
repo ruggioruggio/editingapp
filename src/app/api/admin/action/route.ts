@@ -131,6 +131,33 @@ export async function POST(req: NextRequest) {
         await log(userId, { role });
         return NextResponse.json({ ok: true });
       }
+      case "addXp": {
+        const amount = Math.round(Number(body.amount) || 0);
+        if (!amount) return NextResponse.json({ error: "Quantità non valida" }, { status: 400 });
+        const { data: cur } = await sb.from("profiles").select("xp").eq("id", userId).maybeSingle<{ xp: number }>();
+        if (!cur) return NextResponse.json({ error: "Utente non trovato" }, { status: 404 });
+        const newXp = Math.max(0, cur.xp + amount);
+        const { error } = await sb.from("profiles").update({ xp: newXp }).eq("id", userId);
+        if (error) throw error;
+        await log(userId, { amount, newXp });
+        return NextResponse.json({ ok: true, xp: newXp });
+      }
+      case "setStreak": {
+        const count = Math.max(0, Math.round(Number(body.streak) || 0));
+        const { error } = await sb.from("profiles").update({ streak_count: count, streak_last_day: count ? new Date().toISOString().slice(0, 10) : null }).eq("id", userId);
+        if (error) throw error;
+        await log(userId, { streak: count });
+        return NextResponse.json({ ok: true });
+      }
+      case "togglePro": {
+        const { data: cur } = await sb.from("profiles").select("pro_until").eq("id", userId).maybeSingle<{ pro_until: string | null }>();
+        if (!cur) return NextResponse.json({ error: "Utente non trovato" }, { status: 404 });
+        const isActive = !!cur.pro_until && new Date(cur.pro_until).getTime() > Date.now();
+        const { error } = await sb.from("profiles").update({ pro_until: isActive ? null : FOREVER }).eq("id", userId);
+        if (error) throw error;
+        await log(userId, { pro: !isActive });
+        return NextResponse.json({ ok: true, pro: !isActive });
+      }
       case "renameUser": {
         const newName = str(body.username, 30).toLowerCase().replace(/[^a-z0-9_]/g, "");
         if (!newName || newName.length < 3) return NextResponse.json({ error: "Nome troppo corto (min 3 caratteri, solo lettere, numeri e _)" }, { status: 400 });
@@ -173,7 +200,7 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     const msg = e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Errore";
     // tabelle o colonne mancanti: il file 0003_admin.sql non è stato ancora eseguito
-    const hint = /column|relation|does not exist|schema cache/i.test(msg) ? " (esegui supabase/migrations/0003_admin.sql nel SQL Editor di Supabase)" : "";
+    const hint = /column|relation|does not exist|schema cache/i.test(msg) ? " (esegui tutte le migration SQL mancanti: supabase/migrations/ nel SQL Editor di Supabase)" : "";
     return NextResponse.json({ error: msg + hint }, { status: 500 });
   }
 }

@@ -1,71 +1,68 @@
 // SqueakEdit per Windows, Mac e Linux: una finestra che apre l'app
 // (la stessa del sito, in un unico file) anche senza connessione.
-const { app, BrowserWindow, ipcMain, Menu, globalShortcut, shell } = require("electron");
+const { app, BrowserWindow, Menu, shell } = require("electron");
+const http = require("node:http");
+const fs = require("node:fs");
 const path = require("node:path");
 
-const PROTOCOL = "squeakedit";
-
-if (process.defaultApp) {
-  if (process.argv.length >= 2) app.setAsDefaultProtocolClient(PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
-} else {
-  app.setAsDefaultProtocolClient(PROTOCOL);
+const LOG_FILE = path.join(app.getPath("userData"), "oauth-debug.log");
+function dbg(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}\n`;
+  try { fs.appendFileSync(LOG_FILE, line); } catch {}
 }
+dbg("main.cjs avviato");
 
+const OAUTH_PORT = 19274;
 let mainWin = null;
 
-function handleDeepLink(url) {
-  if (!mainWin) return;
-  const hash = url.split("#")[1];
-  if (hash) {
-    mainWin.webContents.executeJavaScript(`window.dispatchEvent(new CustomEvent("squeakedit-oauth",{detail:"${hash}"}));`);
-  }
-  mainWin.focus();
-}
-
-function openOAuthWindow(url) {
-  const authWin = new BrowserWindow({
-    width: 520, height: 720,
-    parent: mainWin, modal: true,
-    title: "Accedi — SqueakEdit",
-    autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
-  });
-  authWin.loadURL(url);
-  const check = (navUrl) => {
-    // Supabase redirige con hash fragment: #access_token=...&refresh_token=...
-    if (navUrl.includes("access_token=") || navUrl.includes("#access_token")) {
-      const hash = navUrl.split("#")[1] || "";
-      if (hash && mainWin) {
-        mainWin.webContents.executeJavaScript(
-          `window.dispatchEvent(new CustomEvent("squeakedit-oauth",{detail:${JSON.stringify(hash)}}));`
-        );
-      }
-      authWin.close();
-      return true;
+// --- OAuth: server HTTP locale per ricevere il callback ---
+// Il browser di sistema fa il login → Supabase redirige a http://localhost:19274?code=xxx
+// → il server locale lo cattura e lo manda alla finestra Electron.
+function startOAuthServer() {
+  const server = http.createServer((req, res) => {
+    const url = new URL(req.url, "http://localhost");
+    const code = url.searchParams.get("code");
+    dbg("Richiesta ricevuta: " + req.url + " code: " + (code ? "SI" : "NO"));
+    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    if (code && mainWin && !mainWin.isDestroyed()) {
+      res.end(`<html><body style="background:#121212;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center"><div><h2 style="color:#3ecf8e">Login riuscito!</h2><p>Torna a SqueakEdit. Puoi chiudere questa pagina.</p></div></body></html>`);
+      const payload = JSON.stringify({ code });
+      dbg("Invio code alla finestra: " + code.substring(0, 8) + "...");
+      mainWin.webContents.executeJavaScript(
+        `console.log("[OAuth main→renderer] code ricevuto"); window.dispatchEvent(new CustomEvent("squeakedit-oauth",{detail:${JSON.stringify(payload)}}));`
+      ).then(() => dbg("executeJavaScript OK")).catch((e) => dbg("executeJavaScript ERRORE: " + e.message));
+      if (mainWin.isMinimized()) mainWin.restore();
+      mainWin.focus();
+    } else {
+      const err = url.searchParams.get("error_description") || url.searchParams.get("error") || "Errore sconosciuto";
+      res.end(`<html><body style="background:#121212;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><h2 style="color:#ed4245">Errore: ${err}</h2></body></html>`);
     }
-    return false;
-  };
-  authWin.webContents.on("will-redirect", (e, navUrl) => { check(navUrl); });
-  authWin.webContents.on("will-navigate", (e, navUrl) => { check(navUrl); });
-  authWin.webContents.on("did-navigate", (_e, navUrl) => { check(navUrl); });
-  authWin.webContents.on("did-navigate-in-page", (_e, navUrl) => { check(navUrl); });
+  });
+  server.listen(OAUTH_PORT, () => {
+    dbg("Server OAuth in ascolto su porta " + OAUTH_PORT);
+  });
+  server.on("error", (e) => { dbg("ERRORE server: " + e.message); });
 }
 
+// --- Finestra principale ---
 function createWindow() {
   const win = new BrowserWindow({
-    width: 1440,
-    height: 900,
-    minWidth: 980,
-    minHeight: 620,
+    width: 1440, height: 900, minWidth: 980, minHeight: 620,
     backgroundColor: "#121212",
     title: "SqueakEdit",
     icon: path.join(__dirname, "build", "icon.png"),
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, sandbox: true, preload: path.join(__dirname, "preload.cjs") },
+    webPreferences: { contextIsolation: true, sandbox: true },
   });
   mainWin = win;
   win.loadFile(path.join(__dirname, "app", "index.html"));
-  // i link esterni (Discord, siti…) si aprono nel browser
+
+  // Inietta la porta OAuth nella pagina (usata da OAuthButtons.tsx)
+  win.webContents.on("did-finish-load", () => {
+    win.webContents.executeJavaScript(`window.__OAUTH_PORT__=${OAUTH_PORT};`);
+  });
+
+  // Link esterni si aprono nel browser di sistema
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/i.test(url)) shell.openExternal(url);
     return { action: "deny" };
@@ -87,20 +84,18 @@ function createWindow() {
   win.on("closed", () => { mainWin = null; });
 }
 
-ipcMain.on("oauth-start", (_e, url) => { if (typeof url === "string" && /^https:/i.test(url)) openOAuthWindow(url); });
-
-// su Mac il menu serve per copia/incolla (Cmd+C, Cmd+V); altrove non serve
+// su Mac il menu serve per copia/incolla; altrove non serve
 if (process.platform !== "darwin") Menu.setApplicationMenu(null);
 
 const gotLock = app.requestSingleInstanceLock();
-if (!gotLock) { app.quit(); } else {
-  app.on("second-instance", (_e, argv) => {
-    const deepLink = argv.find((a) => a.startsWith(PROTOCOL + "://"));
-    if (deepLink) handleDeepLink(deepLink);
+dbg("gotLock: " + gotLock);
+if (!gotLock) { dbg("ALTRA ISTANZA - esco"); app.quit(); } else {
+  app.on("second-instance", () => {
     if (mainWin) { if (mainWin.isMinimized()) mainWin.restore(); mainWin.focus(); }
   });
-  app.on("open-url", (_e, url) => handleDeepLink(url));
   app.whenReady().then(() => {
+    dbg("app.whenReady() - avvio server e finestra");
+    startOAuthServer();
     createWindow();
     app.on("activate", () => BrowserWindow.getAllWindows().length === 0 && createWindow());
   });

@@ -44,16 +44,21 @@ export function OAuthButtons({ next }: { next: string }) {
   useEffect(() => {
     if (!IS_ELECTRON) return;
     const handler = async (e: Event) => {
-      const hash = (e as CustomEvent).detail as string;
-      const params = new URLSearchParams(hash);
-      const accessToken = params.get("access_token");
-      const refreshToken = params.get("refresh_token");
-      if (accessToken && refreshToken) {
+      try {
+        const detail = (e as CustomEvent).detail as string;
+        console.log("[OAuth] Evento ricevuto, detail:", detail);
+        const { code } = JSON.parse(detail);
+        if (!code) { console.log("[OAuth] Nessun code"); return; }
         const sb = getSupabase();
-        if (sb) {
-          const { error: err } = await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-          if (!err) router.replace(next || "/learn");
-        }
+        if (!sb) { console.log("[OAuth] Supabase non disponibile"); return; }
+        console.log("[OAuth] Chiamo exchangeCodeForSession...");
+        const { data, error: err } = await sb.auth.exchangeCodeForSession(code);
+        console.log("[OAuth] Risultato:", err ? "ERRORE: " + err.message : "OK", data?.session ? "sessione ottenuta" : "nessuna sessione");
+        if (err) { setError("Login fallito: " + err.message); return; }
+        router.replace(next || "/learn");
+      } catch (ex) {
+        console.error("[OAuth] Eccezione:", ex);
+        setError("Errore OAuth: " + String(ex));
       }
     };
     window.addEventListener("squeakedit-oauth", handler);
@@ -64,16 +69,11 @@ export function OAuthButtons({ next }: { next: string }) {
     const sb = getSupabase();
     if (!sb) return;
     if (IS_ELECTRON) {
-      const { data, error: err } = await sb.auth.signInWithOAuth({ provider, options: { skipBrowserRedirect: true } });
+      const port = (window as unknown as { __OAUTH_PORT__?: number }).__OAUTH_PORT__ || 19274;
+      const redirectTo = `http://localhost:${port}`;
+      const { data, error: err } = await sb.auth.signInWithOAuth({ provider, options: { skipBrowserRedirect: true, redirectTo } });
       if (err) { setError(authErrorMessage(err)); return; }
-      if (data.url) {
-        const w = window as unknown as { squeakDesktop?: { openOAuth: (url: string) => void } };
-        if (w.squeakDesktop?.openOAuth) {
-          w.squeakDesktop.openOAuth(data.url);
-        } else {
-          window.open(data.url);
-        }
-      }
+      if (data.url) window.open(data.url);
     } else {
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
       const { error: err } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo } });
