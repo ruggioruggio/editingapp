@@ -255,7 +255,7 @@ export function DockZone({
           </div>
         ))}
       </div>
-      <div className="relative min-h-0 flex-1">
+      <div className="relative min-h-0 flex-1 overflow-auto">
         {active ? (
           render(active)
         ) : (

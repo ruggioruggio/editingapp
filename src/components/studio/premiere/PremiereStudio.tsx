@@ -693,6 +693,7 @@ function PremiereInner() {
   } else {
     // telefono: due zone compatte con gli strumenti in mezzo
     body = (
+      <div className="flex min-h-[600px] flex-1 flex-col">
       <DockRows
         layout={layout}
         rows={PHONE_ROWS}
@@ -719,12 +720,13 @@ function PremiereInner() {
         </div>
         }
       />
+      </div>
     );
   }
 
   return (
     <div
-      className="force-dark fixed inset-0 flex select-none flex-col bg-[#121212] text-[#d0d0d0]"
+      className={clsx("force-dark fixed inset-0 flex select-none flex-col bg-[#121212] text-[#d0d0d0]", !wide && "overflow-y-auto")}
       onDragOver={(e) => e.dataTransfer.types.includes("Files") && e.preventDefault()}
       onDrop={(e) => {
         if (!e.dataTransfer.files.length) return;

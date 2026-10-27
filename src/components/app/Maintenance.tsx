@@ -37,7 +37,12 @@ export function MaintenanceGate() {
   }, []);
 
   const m = remote?.on ? remote : local?.on ? local : null;
-  if (!hydrated || !m || unlocked || graceActive()) return null;
+  if (!hydrated || !m) return null;
+  if (unlocked || graceActive()) return (
+    <div className="fixed bottom-24 left-1/2 z-[280] -translate-x-1/2 animate-pop rounded-2xl border border-danger/40 bg-danger/15 px-5 py-3 text-center text-sm font-bold text-danger shadow-lg backdrop-blur">
+      Manutenzione attiva — gli utenti vedono il cantiere
+    </div>
+  );
   return (
     <div className="fixed inset-0 z-[280] flex flex-col items-center justify-center gap-4 overflow-y-auto bg-app p-6 text-center">
       {/* toccando 7 volte il cantiere si apre il pannello admin */}
