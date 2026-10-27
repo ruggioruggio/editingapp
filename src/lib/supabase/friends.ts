@@ -6,6 +6,7 @@ export interface FriendProfile {
   xp: number;
   streak_count: number;
   streak_last_day: string | null;
+  role: string | null;
 }
 
 export interface FriendLink {
@@ -20,7 +21,7 @@ export interface FriendsData {
   outgoing: FriendLink[];
 }
 
-const PROFILE_FIELDS = "id, username, xp, streak_count, streak_last_day";
+const PROFILE_FIELDS = "id, username, xp, streak_count, streak_last_day, role";
 
 interface Row {
   id: number;

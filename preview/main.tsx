@@ -22,6 +22,7 @@ import { getLegalDoc, LEGAL_UPDATED } from "@/content/legal";
 import { PreviewRouter } from "./router";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { MaintenanceGate } from "@/components/app/Maintenance";
+import { Onboarding } from "@/components/app/Onboarding";
 import { ThemeSync } from "@/components/app/ThemeSync";
 
 // Anteprima a file unico di SqueakEdit: le stesse pagine e componenti
@@ -93,6 +94,7 @@ createRoot(document.getElementById("root")!).render(
       <>
         <SupabaseSync />
         <ThemeSync />
+        <Onboarding />
         <MaintenanceGate />
         <AdminGate />
         <div key={APP_PAGES[path.split("?")[0]] ? "app" : path}>{render(path)}</div>

@@ -7,7 +7,7 @@ import { allLessons } from "@/content/course";
 import { todayKey } from "@/lib/date";
 import { adminAction, adminLogin, adminLogout, markGrace, useAdmin, type Announcement } from "@/lib/admin/client";
 import { useProgress } from "@/lib/progress/store";
-import { useAuth } from "@/lib/supabase/auth";
+import { useAuth, ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
 import { ModSqueakScene } from "@/components/three/lazy";
 
 // Pannello di amministrazione: Pro regalato, sospensioni, amicizie forzate,
@@ -23,6 +23,7 @@ interface UserRow {
   pro_until: string | null;
   banned_until: string | null;
   ban_reason: string | null;
+  role: string | null;
   created_at: string;
 }
 
@@ -210,6 +211,11 @@ function Users() {
                     SOSPESO {fmtUntil(u.banned_until!)} · {u.ban_reason}
                   </span>
                 )}
+                {u.role && (
+                  <span className="rounded-full px-2 py-0.5 text-[11px] font-bold" style={{ backgroundColor: `${ROLE_COLORS[u.role as UserRole]}25`, color: ROLE_COLORS[u.role as UserRole] }}>
+                    {ROLE_LABELS[u.role as UserRole]}
+                  </span>
+                )}
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {[1, 7, 30].map((d) => (
@@ -256,6 +262,24 @@ function Users() {
                 >
                   Cancella messaggi
                 </button>
+                <span className="mx-0.5 h-4 w-px bg-white/10" />
+                {(["owner", "moderatore", "amico", "founder"] as UserRole[]).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    disabled={busy || u.role === r}
+                    onClick={() => act("setRole", { userId: u.id, role: r }, `@${u.username} è ora ${ROLE_LABELS[r]}`)}
+                    className={clsx(btn, u.role === r ? "ring-1 ring-white/40" : "")}
+                    style={{ backgroundColor: `${ROLE_COLORS[r]}20`, color: ROLE_COLORS[r] }}
+                  >
+                    {ROLE_LABELS[r]}
+                  </button>
+                ))}
+                {u.role && (
+                  <button type="button" disabled={busy} onClick={() => act("setRole", { userId: u.id, role: null }, `Ruolo rimosso da @${u.username}`)} className={clsx(btn, "bg-white/10 text-white hover:bg-white/20")}>
+                    ✕ Ruolo
+                  </button>
+                )}
               </div>
               {editing === u.id && (
                 <div className="mt-3 rounded-lg bg-black/30 p-3">

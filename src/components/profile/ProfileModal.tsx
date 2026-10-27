@@ -3,7 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { BookOpen, Flame, Shuffle, Trophy, Zap } from "lucide-react";
-import { useAuth } from "@/lib/supabase/auth";
+import { useAuth, ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { currentStreak, useProgress } from "@/lib/progress/store";
 import { useT } from "@/lib/settings/i18n";
@@ -73,6 +73,11 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
             <AvatarArt avatar={avatar} size={220} round={false} />
           </div>
           <p className="text-xl font-black">{profile ? `@${profile.username}` : "Squeak"}</p>
+          {profile?.role && (
+            <span className="rounded-full px-2.5 py-0.5 text-xs font-bold" style={{ backgroundColor: `${ROLE_COLORS[profile.role]}25`, color: ROLE_COLORS[profile.role] }}>
+              {ROLE_LABELS[profile.role]}
+            </span>
+          )}
           <button
             type="button"
             className="duo-btn duo-ghost w-full"

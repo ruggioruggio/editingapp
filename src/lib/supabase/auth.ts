@@ -2,6 +2,22 @@ import { create } from "zustand";
 import type { AuthError } from "@supabase/supabase-js";
 import type { PlanId } from "@/lib/billing/plans";
 
+export type UserRole = "owner" | "moderatore" | "amico" | "founder";
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  founder: "Founder",
+  owner: "Owner",
+  moderatore: "Moderatore",
+  amico: "Amico",
+};
+
+export const ROLE_COLORS: Record<UserRole, string> = {
+  founder: "#ff6b6b",
+  owner: "#ffc93c",
+  moderatore: "#5865f2",
+  amico: "#3ecf8e",
+};
+
 export interface Profile {
   id: string;
   username: string;
@@ -10,6 +26,7 @@ export interface Profile {
   xp: number;
   streak_count: number;
   streak_last_day: string | null;
+  role: UserRole | null;
 }
 
 interface AuthState {

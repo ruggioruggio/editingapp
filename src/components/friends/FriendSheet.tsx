@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import clsx from "clsx";
 import { ArrowUp, Flame, Star, X, Zap } from "lucide-react";
+import { ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
 import { ACHIEVEMENTS } from "@/lib/gamification/achievements";
 import { getSupabase } from "@/lib/supabase/client";
 import type { FriendProfile } from "@/lib/supabase/friends";
@@ -51,7 +52,14 @@ export function FriendSheet({
               {friend.username[0]}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-lg font-black">@{friend.username}</p>
+              <p className="truncate text-lg font-black">
+                @{friend.username}
+                {friend.role && (
+                  <span className="ml-2 inline-block rounded-full px-2 py-0.5 align-middle text-[11px] font-bold" style={{ backgroundColor: `${ROLE_COLORS[friend.role as UserRole]}25`, color: ROLE_COLORS[friend.role as UserRole] }}>
+                    {ROLE_LABELS[friend.role as UserRole]}
+                  </span>
+                )}
+              </p>
               <p className="flex items-center gap-3 text-xs font-bold text-ink-mute">
                 <span className="flex items-center gap-1 text-cheese">
                   <Zap size={13} /> {friend.xp} XP

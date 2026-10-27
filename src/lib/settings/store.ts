@@ -23,15 +23,26 @@ export interface Avatar {
 
 export const DEFAULT_AVATAR: Avatar = { fur: 0, shirt: 0, shirtColor: 0, muscles: 1, accessory: 0, eyes: 0, bg: 0 };
 
+export type EditingLevel = "zero" | "base" | "intermedio" | "avanzato";
+
+export interface OnboardingData {
+  level: EditingLevel;
+  software: string[];
+  goal: string;
+}
+
 interface SettingsState {
   lang: Lang;
   theme: Theme;
   master: number;
   volumes: Record<SfxCategory, number>;
   avatar: Avatar;
-  set: (patch: Partial<Omit<SettingsState, "set" | "setVolume" | "setAvatar">>) => void;
+  onboardingDone: boolean;
+  onboarding: OnboardingData | null;
+  set: (patch: Partial<Omit<SettingsState, "set" | "setVolume" | "setAvatar" | "completeOnboarding">>) => void;
   setVolume: (cat: SfxCategory, v: number) => void;
   setAvatar: (patch: Partial<Avatar>) => void;
+  completeOnboarding: (data: OnboardingData) => void;
 }
 
 const fullVolumes = () => Object.fromEntries(SFX_CATEGORIES.map((c) => [c, 0.8])) as Record<SfxCategory, number>;
@@ -44,9 +55,12 @@ export const useSettings = create<SettingsState>()(
       master: 0.8,
       volumes: fullVolumes(),
       avatar: DEFAULT_AVATAR,
+      onboardingDone: false,
+      onboarding: null,
       set: (patch) => set(patch),
       setVolume: (cat, v) => set((s) => ({ volumes: { ...s.volumes, [cat]: v } })),
       setAvatar: (patch) => set((s) => ({ avatar: { ...s.avatar, ...patch } })),
+      completeOnboarding: (data) => set({ onboardingDone: true, onboarding: data }),
     }),
     {
       name: "squeak-settings",

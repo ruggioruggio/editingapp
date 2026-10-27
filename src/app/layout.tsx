@@ -3,6 +3,7 @@ import { JetBrains_Mono, Nunito } from "next/font/google";
 import { SupabaseSync } from "@/components/app/SupabaseSync";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { MaintenanceGate } from "@/components/app/Maintenance";
+import { Onboarding } from "@/components/app/Onboarding";
 import { ThemeSync } from "@/components/app/ThemeSync";
 import { THEME_BOOT } from "@/lib/settings/store";
 import { brand } from "@/config/brand";
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body className="min-h-dvh bg-app text-ink">
         <SupabaseSync />
         <ThemeSync />
+        <Onboarding />
         {children}
         <MaintenanceGate />
         <AdminGate />

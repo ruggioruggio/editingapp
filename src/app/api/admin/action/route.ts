@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       }
       case "search": {
         const q = str(body.q, 40).replace(/^@/, "").replace(/[%_,()]/g, "");
-        let query = sb.from("profiles").select("id, username, display_name, plan, xp, streak_count, pro_until, banned_until, ban_reason, created_at").order("created_at", { ascending: false }).limit(40);
+        let query = sb.from("profiles").select("id, username, display_name, plan, xp, streak_count, pro_until, banned_until, ban_reason, role, created_at").order("created_at", { ascending: false }).limit(40);
         if (q) query = query.ilike("username", `%${q}%`);
         const { data, error } = await query;
         if (error) throw error;
@@ -113,6 +113,14 @@ export async function POST(req: NextRequest) {
         const { error } = await sb.from("messages").delete().eq("sender_id", userId);
         if (error) throw error;
         await log(userId);
+        return NextResponse.json({ ok: true });
+      }
+      case "setRole": {
+        const role = str(body.role, 20) || null;
+        if (role && !["owner", "moderatore", "amico", "founder"].includes(role)) return NextResponse.json({ error: "Ruolo non valido" }, { status: 400 });
+        const { error } = await sb.from("profiles").update({ role }).eq("id", userId);
+        if (error) throw error;
+        await log(userId, { role });
         return NextResponse.json({ ok: true });
       }
       case "announce": {
