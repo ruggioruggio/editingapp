@@ -152,6 +152,12 @@ export function SupabaseSync() {
       }, 0);
     });
 
+    // Su Capacitor/Electron il client non fa auto-restore: forziamo getSession()
+    void sb.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user && !activeUser) void startSession(session.user);
+      else if (!session && useAuth.getState().status === "loading") endSession();
+    });
+
     const onHide = () => document.visibilityState === "hidden" && flush();
     document.addEventListener("visibilitychange", onHide);
 

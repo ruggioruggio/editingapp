@@ -12,7 +12,16 @@ export function getSupabase(): SupabaseClient | null {
   if (!isSupabaseConfigured) return null;
   if (!client) {
     client = IS_NATIVE
-      ? createClient(supabaseUrl, supabaseKey, { auth: { flowType: "pkce", storage: globalThis.localStorage, detectSessionInUrl: false } })
+      ? createClient(supabaseUrl, supabaseKey, {
+          auth: {
+            flowType: "pkce",
+            storage: globalThis.localStorage,
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: false,
+            storageKey: "sb-squeakedit-auth",
+          },
+        })
       : createBrowserClient(supabaseUrl, supabaseKey);
   }
   return client;
