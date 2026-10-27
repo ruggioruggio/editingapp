@@ -147,6 +147,46 @@ function Beard() {
   );
 }
 
+/** Sacchetto di patatine aperto con qualche patatina che esce. */
+function ChipBag() {
+  return (
+    <group>
+      {/* sacchetto */}
+      <mesh position={[0, 0.25, 0]} rotation={[0.1, 0, -0.15]}>
+        <cylinderGeometry args={[0.18, 0.22, 0.52, 12]} />
+        <meshStandardMaterial color="#e63946" roughness={0.75} />
+      </mesh>
+      {/* apertura accartocciata */}
+      <mesh position={[0, 0.52, 0]} rotation={[0.1, 0, -0.15]}>
+        <cylinderGeometry args={[0.15, 0.19, 0.08, 12]} />
+        <meshStandardMaterial color="#c62828" roughness={0.8} />
+      </mesh>
+      {/* patatine che sporgono */}
+      {[
+        [0.06, 0.58, 0.04, 0.3],
+        [-0.05, 0.56, -0.03, -0.2],
+        [0.02, 0.6, 0.06, 0.15],
+      ].map(([x, y, z, tilt], i) => (
+        <mesh key={i} position={[x, y, z]} rotation={[0.4, tilt, 0.2 * (i - 1)]}>
+          <boxGeometry args={[0.07, 0.14, 0.02]} />
+          <meshStandardMaterial color="#f9c74f" roughness={0.6} />
+        </mesh>
+      ))}
+      {/* patatine cadute a terra */}
+      {[
+        [0.3, 0.02, 0.15],
+        [-0.2, 0.02, 0.25],
+        [0.15, 0.02, -0.1],
+      ].map(([x, y, z], i) => (
+        <mesh key={i} position={[x, y, z]} rotation={[Math.PI / 2 - 0.2, i * 1.2, 0]}>
+          <boxGeometry args={[0.06, 0.1, 0.02]} />
+          <meshStandardMaterial color="#f9c74f" roughness={0.6} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function ModSqueak() {
   const rig = useRef<SqueakRig>(createRig());
   const pos = useRef<THREE.Group>(null);
@@ -214,6 +254,10 @@ function ModSqueak() {
       </group>
       <group ref={shadow}>
         <Shadow radius={1.6} opacity={0.35} />
+      </group>
+      {/* sacchetto di patatine a fianco */}
+      <group position={[-1.4, 0, 0.6]} rotation={[0, 0.3, 0]}>
+        <ChipBag />
       </group>
     </>
   );

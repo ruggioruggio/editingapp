@@ -64,17 +64,27 @@ export function PNumber({
   step?: number;
   className?: string;
 }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const display = draft ?? String(value);
   return (
     <input
       type="number"
-      value={value}
+      value={display}
       min={min}
       max={max}
       step={step}
       disabled={disabled}
-      onChange={(e) => {
-        const n = Number(e.target.value);
-        if (!Number.isNaN(n)) onChange(Math.min(max, Math.max(min, n)));
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        if (draft !== null) {
+          const n = Number(draft);
+          if (!Number.isNaN(n) && draft !== "") onChange(Math.min(max, Math.max(min, n)));
+          setDraft(null);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        e.stopPropagation();
       }}
       className={clsx(P.field, "w-20 tabular-nums", className)}
     />

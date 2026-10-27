@@ -11,15 +11,21 @@ interface RouterValue {
 
 const RouterContext = createContext<RouterValue>({ path: "/", navigate: () => {}, back: () => {} });
 
-export function PreviewRouter({ children, initial = "/" }: { children: (path: string) => ReactNode; initial?: string }) {
+export function PreviewRouter({ children, initial = "/", blockedPaths }: { children: (path: string) => ReactNode; initial?: string; blockedPaths?: Set<string> }) {
   const [stack, setStack] = useState<string[]>([initial]);
   const path = stack[stack.length - 1];
 
   const navigate = useCallback((href: string, replace = false) => {
+    if (blockedPaths?.has(href)) return;
     setStack((s) => (replace ? [...s.slice(0, -1), href] : [...s, href]));
     window.scrollTo(0, 0);
-  }, []);
-  const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), []);
+  }, [blockedPaths]);
+  const back = useCallback(() => setStack((s) => {
+    if (s.length <= 1) return s;
+    const prev = s[s.length - 2];
+    if (blockedPaths?.has(prev)) return s;
+    return s.slice(0, -1);
+  }), [blockedPaths]);
 
   const value = useMemo(() => ({ path, navigate, back }), [path, navigate, back]);
   return <RouterContext.Provider value={value}>{children(path)}</RouterContext.Provider>;

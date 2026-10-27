@@ -75,10 +75,11 @@ const css = readFileSync(cssOut, "utf8");
 // 3. Pagina: niente <html>/<head>/<body>, li aggiunge l'artefatto
 const html = `<title>SqueakEdit</title>
 <meta name="description" content="Anteprima di SqueakEdit: impara il montaggio video, 3 minuti al giorno.">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap">
-<style>:root{color-scheme:dark}html,body{background:#121212}${css}</style>
+<style>:root{color-scheme:dark}html,body{background:#121212;overflow-y:auto;-webkit-overflow-scrolling:touch}body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}${css}</style>
 <div id="root"></div>
 <script>${js}</script>
 `;

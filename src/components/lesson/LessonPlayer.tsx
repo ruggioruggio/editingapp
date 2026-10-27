@@ -137,9 +137,14 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
   // esercizio nell'editor, finestra di Premiere o coppie completate: festeggia
   const practical = step?.kind === "editor" || step?.kind === "premiere" || step?.kind === "studio";
   useEffect(() => {
-    if (!feedback && ((practical && editorResult.done) || (step?.kind === "match" && matchDone))) {
+    if (!feedback && practical && editorResult.done) {
+      setAnswered((n) => n + 1);
       sfx("correct");
-      setFeedback({ outcome: "win", title: pick(PRAISE), text: practical ? "Esattamente come lo faresti in Premiere." : undefined, id: Date.now() });
+      setFeedback({ outcome: "win", title: pick(PRAISE), text: "Esattamente come lo faresti in Premiere.", id: Date.now() });
+    }
+    if (!feedback && step?.kind === "match" && matchDone) {
+      sfx("correct");
+      setFeedback({ outcome: "win", title: pick(PRAISE), id: Date.now() });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, practical, editorResult.done, matchDone, feedback]);

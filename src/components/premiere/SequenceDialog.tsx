@@ -132,12 +132,12 @@ export function SequenceDialog({
   initialName?: string;
 }) {
   const [tab, setTab] = useState<"Predefiniti sequenza" | "Impostazioni" | "Tracce" | "Informazioni VR">("Predefiniti sequenza");
-  const [selected, setSelected] = useState<string>(DEFAULT.name);
-  const [open, setOpen] = useState(() => new Set(["0-Digital SLR", "1-1080p"]));
-  const [mode, setMode] = useState<EditingMode>(DEFAULT.mode);
-  const [fps, setFps] = useState<number>(DEFAULT.fps);
-  const [width, setWidth] = useState(DEFAULT.width);
-  const [height, setHeight] = useState(DEFAULT.height);
+  const [selected, setSelected] = useState<string>("");
+  const [open, setOpen] = useState(() => new Set<string>());
+  const [mode, setMode] = useState<EditingMode>("Personalizzato");
+  const [fps, setFps] = useState<number>(24);
+  const [width, setWidth] = useState(1280);
+  const [height, setHeight] = useState(720);
   const [pixel, setPixel] = useState("Pixel quadrati (1,0)");
   const [fields, setFields] = useState("Nessun campo (scansione progressiva)");
   const [sampleRate, setSampleRate] = useState<number>(48000);

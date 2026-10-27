@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Provider } from "@supabase/supabase-js";
 import { authErrorMessage } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { FormMessage } from "./AuthShell";
+
+const IS_ELECTRON = typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent);
 
 const GoogleLogo = () => (
   <svg width="20" height="20" viewBox="0 0 18 18" aria-hidden>
@@ -37,12 +39,34 @@ const PROVIDERS: { id: Provider; label: string }[] = [
 export function OAuthButtons({ next }: { next: string }) {
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!IS_ELECTRON) return;
+    const handler = async (e: Event) => {
+      const hash = (e as CustomEvent).detail as string;
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      if (accessToken && refreshToken) {
+        const sb = getSupabase();
+        if (sb) await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      }
+    };
+    window.addEventListener("squeakedit-oauth", handler);
+    return () => window.removeEventListener("squeakedit-oauth", handler);
+  }, []);
+
   const signIn = async (provider: Provider) => {
     const sb = getSupabase();
     if (!sb) return;
-    const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
-    const { error: err } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo } });
-    if (err) setError(authErrorMessage(err));
+    if (IS_ELECTRON) {
+      const { data, error: err } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: "squeakedit://auth/callback", skipBrowserRedirect: true } });
+      if (err) { setError(authErrorMessage(err)); return; }
+      if (data.url) window.open(data.url);
+    } else {
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
+      const { error: err } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo } });
+      if (err) setError(authErrorMessage(err));
+    }
   };
 
   return (

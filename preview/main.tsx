@@ -29,6 +29,8 @@ import { ThemeSync } from "@/components/app/ThemeSync";
 
 const IS_ELECTRON = typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent);
 
+const BLOCKED_ON_DESKTOP = new Set(["/"]);
+
 const APP_PAGES: Record<string, () => React.ReactNode> = {
   "/learn": () => <LearnPage />,
   "/quests": () => <QuestsPage />,
@@ -81,11 +83,12 @@ function render(fullPath: string) {
   if (path.startsWith("/legal/")) return <LegalPreview slug={path.slice("/legal/".length)} />;
   // il layout dell'app resta montato tra le schede (come in Next): cambia solo la pagina
   if (APP_PAGES[path]) return <AppLayout>{<div key={path}>{APP_PAGES[path]()}</div>}</AppLayout>;
-  return (SITE_PAGES[path] ?? SITE_PAGES["/"])();
+  if (IS_ELECTRON && BLOCKED_ON_DESKTOP.has(path)) return (SITE_PAGES["/login"] ?? SITE_PAGES["/"])();
+  return (SITE_PAGES[path] ?? (IS_ELECTRON ? SITE_PAGES["/login"] : SITE_PAGES["/"]))();
 }
 
 createRoot(document.getElementById("root")!).render(
-  <PreviewRouter initial={IS_ELECTRON ? "/learn" : "/"}>
+  <PreviewRouter initial={IS_ELECTRON ? "/login" : "/"} blockedPaths={IS_ELECTRON ? BLOCKED_ON_DESKTOP : undefined}>
     {(path) => (
       <>
         <SupabaseSync />

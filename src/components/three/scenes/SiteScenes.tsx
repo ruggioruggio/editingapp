@@ -63,23 +63,31 @@ function StrawHat() {
   );
 }
 
-/** Mantello rosso sulle spalle, che sventola (coordinate del corpo). */
+/** Mantello rosso a più segmenti con effetto stoffa (coordinate del corpo). */
+const CAPE_SEGS = 5;
 const Cape = forwardRef<THREE.Group>(function Cape(_props, ref) {
+  const segs = useRef<(THREE.Group | null)[]>([]);
   return (
-    <group ref={ref} position={[0, 1.55, -0.35]}>
-      <mesh position={[0, -0.7, -0.22]} rotation={[0.12, 0, 0]}>
-        <cylinderGeometry args={[0.72, 1.0, 1.4, 36, 1, true, Math.PI * 0.6, Math.PI * 0.8]} />
-        <meshStandardMaterial color="#9e1b25" roughness={0.7} side={THREE.DoubleSide} />
-      </mesh>
-      {/* bordo dorato e colletto */}
-      <mesh position={[0, -1.4, -0.23]} rotation={[0.12, 0, 0]}>
-        <cylinderGeometry args={[1.005, 1.005, 0.08, 36, 1, true, Math.PI * 0.6, Math.PI * 0.8]} />
-        <meshStandardMaterial color="#f2c14e" roughness={0.5} side={THREE.DoubleSide} />
-      </mesh>
-      <mesh position={[0, 0.02, -0.12]} rotation={[-Math.PI / 2, 0, 0.05 * Math.PI]}>
+    <group ref={ref} position={[0, 1.55, -0.55]}>
+      {/* colletto */}
+      <mesh position={[0, 0.02, 0.08]} rotation={[-Math.PI / 2, 0, 0.05 * Math.PI]}>
         <torusGeometry args={[0.74, 0.06, 10, 36, Math.PI * 0.8]} />
         <meshStandardMaterial color="#7a121b" roughness={0.6} />
       </mesh>
+      {/* segmenti del mantello, ognuno ruota con ritardo progressivo */}
+      {Array.from({ length: CAPE_SEGS }, (_, i) => {
+        const h = 0.3;
+        const topW = 0.62 + i * 0.06;
+        const botW = 0.62 + (i + 1) * 0.06;
+        return (
+          <group key={i} ref={(el) => void (segs.current[i] = el)} position={[0, -i * h, 0]}>
+            <mesh position={[0, -h / 2, 0]} rotation={[0.05, 0, 0]}>
+              <cylinderGeometry args={[topW, botW, h, 28, 1, true, Math.PI * 0.6, Math.PI * 0.8]} />
+              <meshStandardMaterial color={i === CAPE_SEGS - 1 ? "#f2c14e" : "#9e1b25"} roughness={0.7} side={THREE.DoubleSide} />
+            </mesh>
+          </group>
+        );
+      })}
     </group>
   );
 });
@@ -89,8 +97,8 @@ function SlideScene() {
   const curve = useMemo(
     () =>
       new THREE.CatmullRomCurve3([
-        new THREE.Vector3(-2.55, 2.05, 0),
-        new THREE.Vector3(-1.6, 2.5, 0),
+        new THREE.Vector3(-2.2, 1.6, 0),
+        new THREE.Vector3(-1.4, 2.3, 0),
         new THREE.Vector3(-0.6, 3.55, 0),
         new THREE.Vector3(0.3, 3.75, 0),
         new THREE.Vector3(1.2, 3.1, 0),
@@ -209,7 +217,15 @@ function SlideScene() {
       fist.current.position.copy(fp);
       fist.current.visible = fistAt > 0.01;
     }
-    if (cape.current) cape.current.rotation.x = -0.15 - flap * (0.3 + Math.sin(state.clock.elapsedTime * 16) * 0.08);
+    if (cape.current) {
+      const cg = cape.current;
+      const segsArr = (cg as unknown as { children: THREE.Object3D[] }).children;
+      for (let i = 1; i < segsArr.length; i++) {
+        const delay = i * 0.12;
+        const wave = Math.sin((state.clock.elapsedTime - delay) * 12) * 0.06;
+        segsArr[i].rotation.x = -flap * (0.15 + i * 0.06) + wave;
+      }
+    }
     if (hatBounce.current) hatBounce.current.position.y = (t > 2.5 && t < 4.4 ? Math.abs(Math.sin(t * 14)) * 0.1 : 0) + Math.sin(t * 6) * 0.02;
     lines.current.forEach((l, i) => {
       if (!l) return;

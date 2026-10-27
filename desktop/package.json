@@ -20,30 +20,56 @@
   "build": {
     "appId": "com.squeakedit.app",
     "productName": "SqueakEdit",
-    "files": ["main.cjs", "app/**", "build/icon.png"],
-    "directories": { "output": "dist", "buildResources": "build" },
+    "files": [
+      "main.cjs",
+      "app/**",
+      "build/icon.png"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
     "win": {
-      "target": ["portable", "nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "build/icon.png"
     },
-    "portable": { "artifactName": "SqueakEdit-Windows-portable.${ext}" },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "artifactName": "SqueakEdit-Windows-setup.${ext}"
     },
     "mac": {
-      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
       "category": "public.app-category.education",
       "icon": "build/icon.png",
       "identity": "-"
     },
-    "dmg": { "artifactName": "SqueakEdit-Mac-${arch}.${ext}" },
+    "dmg": {
+      "artifactName": "SqueakEdit-Mac-${arch}.${ext}"
+    },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "category": "Education",
       "icon": "build/icon.png"
     },
-    "appImage": { "artifactName": "SqueakEdit-Linux.${ext}" }
+    "appImage": {
+      "artifactName": "SqueakEdit-Linux.${ext}"
+    }
+  },
+  "allowScripts": {
+    "electron@37.10.3": true,
+    "electron-winstaller@5.4.0": true
   }
 }
