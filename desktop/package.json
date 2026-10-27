@@ -22,6 +22,7 @@
     "productName": "SqueakEdit",
     "files": [
       "main.cjs",
+      "preload.cjs",
       "app/**",
       "build/icon.png"
     ],

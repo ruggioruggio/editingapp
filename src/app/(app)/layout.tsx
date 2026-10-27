@@ -1,5 +1,6 @@
 import { AccountMenu } from "@/components/app/AccountMenu";
 import { Dock } from "@/components/app/Dock";
+import { Onboarding } from "@/components/app/Onboarding";
 import { Splash } from "@/components/app/Splash";
 import { AnnouncementBar, BanGate } from "@/components/app/SiteNotices";
 import { StatsBar } from "@/components/app/StatsBar";
@@ -8,6 +9,7 @@ import { Logo } from "@/components/brand/Logo";
 export default function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <div className="min-h-dvh">
+      <Onboarding />
       <Splash />
       <BanGate />
       <AnnouncementBar />

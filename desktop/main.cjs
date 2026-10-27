@@ -1,6 +1,6 @@
 // SqueakEdit per Windows, Mac e Linux: una finestra che apre l'app
 // (la stessa del sito, in un unico file) anche senza connessione.
-const { app, BrowserWindow, Menu, globalShortcut, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, Menu, globalShortcut, shell } = require("electron");
 const path = require("node:path");
 
 const PROTOCOL = "squeakedit";
@@ -22,6 +22,35 @@ function handleDeepLink(url) {
   mainWin.focus();
 }
 
+function openOAuthWindow(url) {
+  const authWin = new BrowserWindow({
+    width: 520, height: 720,
+    parent: mainWin, modal: true,
+    title: "Accedi — SqueakEdit",
+    autoHideMenuBar: true,
+    webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false },
+  });
+  authWin.loadURL(url);
+  const check = (navUrl) => {
+    // Supabase redirige con hash fragment: #access_token=...&refresh_token=...
+    if (navUrl.includes("access_token=") || navUrl.includes("#access_token")) {
+      const hash = navUrl.split("#")[1] || "";
+      if (hash && mainWin) {
+        mainWin.webContents.executeJavaScript(
+          `window.dispatchEvent(new CustomEvent("squeakedit-oauth",{detail:${JSON.stringify(hash)}}));`
+        );
+      }
+      authWin.close();
+      return true;
+    }
+    return false;
+  };
+  authWin.webContents.on("will-redirect", (e, navUrl) => { check(navUrl); });
+  authWin.webContents.on("will-navigate", (e, navUrl) => { check(navUrl); });
+  authWin.webContents.on("did-navigate", (_e, navUrl) => { check(navUrl); });
+  authWin.webContents.on("did-navigate-in-page", (_e, navUrl) => { check(navUrl); });
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
@@ -32,7 +61,7 @@ function createWindow() {
     title: "SqueakEdit",
     icon: path.join(__dirname, "build", "icon.png"),
     autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, sandbox: true },
+    webPreferences: { contextIsolation: true, sandbox: true, preload: path.join(__dirname, "preload.cjs") },
   });
   mainWin = win;
   win.loadFile(path.join(__dirname, "app", "index.html"));
@@ -57,6 +86,8 @@ function createWindow() {
   });
   win.on("closed", () => { mainWin = null; });
 }
+
+ipcMain.on("oauth-start", (_e, url) => { if (typeof url === "string" && /^https:/i.test(url)) openOAuthWindow(url); });
 
 // su Mac il menu serve per copia/incolla (Cmd+C, Cmd+V); altrove non serve
 if (process.platform !== "darwin") Menu.setApplicationMenu(null);

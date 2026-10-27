@@ -59,9 +59,16 @@ export function OAuthButtons({ next }: { next: string }) {
     const sb = getSupabase();
     if (!sb) return;
     if (IS_ELECTRON) {
-      const { data, error: err } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: "squeakedit://auth/callback", skipBrowserRedirect: true } });
+      const { data, error: err } = await sb.auth.signInWithOAuth({ provider, options: { skipBrowserRedirect: true } });
       if (err) { setError(authErrorMessage(err)); return; }
-      if (data.url) window.open(data.url);
+      if (data.url) {
+        const w = window as unknown as { squeakDesktop?: { openOAuth: (url: string) => void } };
+        if (w.squeakDesktop?.openOAuth) {
+          w.squeakDesktop.openOAuth(data.url);
+        } else {
+          window.open(data.url);
+        }
+      }
     } else {
       const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`;
       const { error: err } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo } });
