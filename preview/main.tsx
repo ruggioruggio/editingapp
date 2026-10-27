@@ -28,8 +28,9 @@ import { ThemeSync } from "@/components/app/ThemeSync";
 // dell'app, con un router in memoria al posto delle rotte di Next.js.
 
 const IS_ELECTRON = typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent);
+const IS_NATIVE = IS_ELECTRON || !!process.env.SQUEAK_DESKTOP;
 
-const BLOCKED_ON_DESKTOP = new Set(["/"]);
+const BLOCKED_ON_NATIVE = new Set(["/"]);
 
 const APP_PAGES: Record<string, () => React.ReactNode> = {
   "/learn": () => <LearnPage />,
@@ -83,12 +84,12 @@ function render(fullPath: string) {
   if (path.startsWith("/legal/")) return <LegalPreview slug={path.slice("/legal/".length)} />;
   // il layout dell'app resta montato tra le schede (come in Next): cambia solo la pagina
   if (APP_PAGES[path]) return <AppLayout>{<div key={path}>{APP_PAGES[path]()}</div>}</AppLayout>;
-  if (IS_ELECTRON && BLOCKED_ON_DESKTOP.has(path)) return (SITE_PAGES["/login"] ?? SITE_PAGES["/"])();
-  return (SITE_PAGES[path] ?? (IS_ELECTRON ? SITE_PAGES["/login"] : SITE_PAGES["/"]))();
+  if (IS_NATIVE && BLOCKED_ON_NATIVE.has(path)) return (SITE_PAGES["/login"] ?? SITE_PAGES["/"])();
+  return (SITE_PAGES[path] ?? (IS_NATIVE ? SITE_PAGES["/login"] : SITE_PAGES["/"]))();
 }
 
 createRoot(document.getElementById("root")!).render(
-  <PreviewRouter initial={IS_ELECTRON ? "/login" : "/"} blockedPaths={IS_ELECTRON ? BLOCKED_ON_DESKTOP : undefined}>
+  <PreviewRouter initial={IS_NATIVE ? "/login" : "/"} blockedPaths={IS_NATIVE ? BLOCKED_ON_NATIVE : undefined}>
     {(path) => (
       <>
         <SupabaseSync />
