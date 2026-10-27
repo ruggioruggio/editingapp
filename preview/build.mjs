@@ -7,13 +7,23 @@ import { dirname, resolve } from "node:path";
 import { build } from "esbuild";
 
 const root = resolve(import.meta.dirname, "..");
-// hash lento della password admin (solo per la verifica locale dell'anteprima)
+const isDesktop = !!process.env.SQUEAK_DESKTOP;
+
+// legge variabili da .env.local
+let envLocal = "";
+try { envLocal = readFileSync(resolve(root, ".env.local"), "utf8"); } catch { /* nessun .env.local */ }
+const envVar = (name) => new RegExp(`^${name}=(.*)$`, "m").exec(envLocal)?.[1]?.trim() ?? "";
+
+// hash admin: nelle build pubbliche (SQUEAK_NO_ADMIN=1) non viene incluso
 let previewAdminHash = "";
-// le app da distribuire (desktop, Android) si costruiscono con SQUEAK_NO_ADMIN=1: niente hash dentro
-if (!process.env.SQUEAK_NO_ADMIN) try {
-  previewAdminHash = /^ADMIN_PREVIEW_HASH=(.*)$/m.exec(readFileSync(resolve(root, ".env.local"), "utf8"))?.[1]?.trim() ?? "";
-} catch {
-  /* nessun .env.local: pannello admin non disponibile nell'anteprima */
+if (!process.env.SQUEAK_NO_ADMIN) previewAdminHash = envVar("ADMIN_PREVIEW_HASH");
+
+// Supabase: nelle build desktop/mobile si leggono le chiavi pubbliche da .env.local
+let supabaseUrl = "";
+let supabaseKey = "";
+if (isDesktop) {
+  supabaseUrl = envVar("NEXT_PUBLIC_SUPABASE_URL");
+  supabaseKey = envVar("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY") || envVar("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 }
 const out = resolve(process.argv[2] ?? resolve(root, "preview/dist/squeakedit.html"));
 const tmp = resolve(root, "preview/dist");
@@ -38,10 +48,9 @@ const result = await build({
   },
   define: {
     "process.env.NODE_ENV": '"production"',
-    // anteprima solo da ospite: niente account né database
-    "process.env.NEXT_PUBLIC_SUPABASE_URL": '""',
-    "process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY": '""',
-    "process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": '""',
+    "process.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(supabaseUrl),
+    "process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY": JSON.stringify(supabaseKey),
+    "process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabaseKey),
     "process.env.ADMIN_PREVIEW_HASH": JSON.stringify(previewAdminHash),
   },
   banner: { js: "var process=globalThis.process||{env:{}};" },
