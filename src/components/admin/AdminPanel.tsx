@@ -176,6 +176,8 @@ function Users() {
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<UserRow[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
   const { msg, busy, run } = useAsync();
   const search = () => run(async () => setRows((await adminAction<{ users: UserRow[] }>("search", { q })).users), "Ricerca completata");
   useEffect(() => {
@@ -280,7 +282,19 @@ function Users() {
                     ✕ Ruolo
                   </button>
                 )}
+                <span className="mx-0.5 h-4 w-px bg-white/10" />
+                <button type="button" onClick={() => { setRenaming(renaming === u.id ? null : u.id); setNewName(u.username); }} className={clsx(btn, renaming === u.id ? "bg-[#5865f2] text-white" : "bg-white/10 text-white hover:bg-white/20")}>
+                  Rinomina
+                </button>
               </div>
+              {renaming === u.id && (
+                <form className="mt-2 flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); act("renameUser", { userId: u.id, username: newName }, `@${u.username} rinominato in @${newName}`); setRenaming(null); }}>
+                  <span className="text-sm text-[#b5bac1]">@</span>
+                  <input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.stopPropagation()} className={clsx(input, "w-48")} placeholder="nuovo nome" />
+                  <button type="submit" disabled={busy || newName.length < 3} className={clsx(btn, "bg-[#3ba55d] text-white")}>Salva</button>
+                  <button type="button" onClick={() => setRenaming(null)} className={clsx(btn, "bg-white/10 text-white")}>Annulla</button>
+                </form>
+              )}
               {editing === u.id && (
                 <div className="mt-3 rounded-lg bg-black/30 p-3">
                   <StatsEditor

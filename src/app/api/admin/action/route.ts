@@ -131,6 +131,16 @@ export async function POST(req: NextRequest) {
         await log(userId, { role });
         return NextResponse.json({ ok: true });
       }
+      case "renameUser": {
+        const newName = str(body.username, 30).toLowerCase().replace(/[^a-z0-9_]/g, "");
+        if (!newName || newName.length < 3) return NextResponse.json({ error: "Nome troppo corto (min 3 caratteri, solo lettere, numeri e _)" }, { status: 400 });
+        const { data: dup } = await sb.from("profiles").select("id").eq("username", newName).neq("id", userId).maybeSingle<{ id: string }>();
+        if (dup) return NextResponse.json({ error: `Il nome @${newName} è già in uso` }, { status: 409 });
+        const { error } = await sb.from("profiles").update({ username: newName }).eq("id", userId);
+        if (error) throw error;
+        await log(userId, { newName });
+        return NextResponse.json({ ok: true });
+      }
       case "announce": {
         const text = str(body.text, 280);
         const tone = ["info", "success", "warning"].includes(str(body.tone, 10)) ? str(body.tone, 10) : "info";

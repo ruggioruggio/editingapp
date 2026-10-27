@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Provider } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 import { authErrorMessage } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { FormMessage } from "./AuthShell";
@@ -38,6 +39,7 @@ const PROVIDERS: { id: Provider; label: string }[] = [
 /** Accesso con Google/Discord: vanno attivati in Supabase → Authentication → Providers. */
 export function OAuthButtons({ next }: { next: string }) {
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (!IS_ELECTRON) return;
@@ -48,12 +50,15 @@ export function OAuthButtons({ next }: { next: string }) {
       const refreshToken = params.get("refresh_token");
       if (accessToken && refreshToken) {
         const sb = getSupabase();
-        if (sb) await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        if (sb) {
+          const { error: err } = await sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          if (!err) router.replace(next || "/learn");
+        }
       }
     };
     window.addEventListener("squeakedit-oauth", handler);
     return () => window.removeEventListener("squeakedit-oauth", handler);
-  }, []);
+  }, [router, next]);
 
   const signIn = async (provider: Provider) => {
     const sb = getSupabase();
