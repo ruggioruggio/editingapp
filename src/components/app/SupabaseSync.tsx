@@ -13,6 +13,8 @@ import { publishEvents, saveDailyActivity } from "@/lib/supabase/social";
 
 const SAVE_DELAY_MS = 1500;
 const ADMIN_POLL_MS = 60_000;
+const IS_ELECTRON_RT = typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent);
+const IS_CAPACITOR = !IS_ELECTRON_RT && !!process.env.SQUEAK_DESKTOP;
 
 /** Pro regalato e sospensioni decisi dal pannello admin (colonne di 0003_admin.sql). */
 async function loadAdminFlags(sb: SupabaseClient, userId: string) {
@@ -136,12 +138,31 @@ export function SupabaseSync() {
       if (useProgress.getState().ownerId !== null) useProgress.getState().reset();
     };
 
+    let retryCount = 0;
+
+    const handleAuth = (user: User | null) => {
+      if (user && user.id !== activeUser) {
+        retryCount = 0;
+        void startSession(user);
+      } else if (!user && (activeUser || useAuth.getState().status === "loading")) {
+        // Su Capacitor lo storage è async: la prima lettura potrebbe non essere
+        // ancora pronta. Riproviamo getSession() prima di dichiarare "guest".
+        if (IS_CAPACITOR && retryCount < 3) {
+          retryCount++;
+          setTimeout(() => {
+            void sb.auth.getSession().then(({ data: { session: s } }) => {
+              handleAuth(s?.user ?? null);
+            });
+          }, retryCount * 500);
+        } else {
+          endSession();
+        }
+      }
+    };
+
     const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
       const user = session?.user ?? null;
-      setTimeout(() => {
-        if (user && user.id !== activeUser) void startSession(user);
-        else if (!user && (activeUser || useAuth.getState().status === "loading")) endSession();
-      }, 0);
+      setTimeout(() => handleAuth(user), 0);
     });
 
     const onHide = () => document.visibilityState === "hidden" && flush();

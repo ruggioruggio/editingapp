@@ -3,5 +3,12 @@
   "appName": "Squeak Edit - DEMO",
   "webDir": "www",
   "backgroundColor": "#121212",
-  "android": { "backgroundColor": "#121212" }
+  "android": {
+    "backgroundColor": "#121212",
+    "allowMixedContent": true
+  },
+  "server": {
+    "hostname": "app.squeakedit.local",
+    "androidScheme": "https"
+  }
 }
