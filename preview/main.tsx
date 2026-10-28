@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import AppLayout from "@/app/(app)/layout";
 import AiPage from "@/app/(app)/ai/page";
@@ -17,9 +18,10 @@ import { AfterEffectsStudio } from "@/components/studio/ae/AfterEffectsStudio";
 import { PremiereStudio } from "@/components/studio/premiere/PremiereStudio";
 import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { SupabaseSync } from "@/components/app/SupabaseSync";
+import { useAuth } from "@/lib/supabase/auth";
 import { getLesson } from "@/content/lessons";
 import { getLegalDoc, LEGAL_UPDATED } from "@/content/legal";
-import { PreviewRouter } from "./router";
+import { PreviewRouter, usePreviewRouter } from "./router";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { MaintenanceGate } from "@/components/app/Maintenance";
 import { ThemeSync } from "@/components/app/ThemeSync";
@@ -31,6 +33,18 @@ const IS_ELECTRON = typeof navigator !== "undefined" && /Electron/i.test(navigat
 const IS_NATIVE = IS_ELECTRON || !!process.env.SQUEAK_DESKTOP;
 
 const BLOCKED_ON_NATIVE = new Set(["/"]);
+const AUTH_PAGES = new Set(["/login", "/signup", "/reset-password"]);
+
+function NativeAuthRedirect({ path }: { path: string }) {
+  const status = useAuth((s) => s.status);
+  const { navigate } = usePreviewRouter();
+  useEffect(() => {
+    if (IS_NATIVE && status === "user" && AUTH_PAGES.has(path.split("?")[0])) {
+      navigate("/learn", true);
+    }
+  }, [status, path, navigate]);
+  return null;
+}
 
 const APP_PAGES: Record<string, () => React.ReactNode> = {
   "/learn": () => <LearnPage />,
@@ -94,6 +108,7 @@ createRoot(document.getElementById("root")!).render(
       <>
         <SupabaseSync />
         <ThemeSync />
+        <NativeAuthRedirect path={path} />
         <MaintenanceGate />
         <AdminGate />
         <div key={APP_PAGES[path.split("?")[0]] ? "app" : path}>{render(path)}</div>
