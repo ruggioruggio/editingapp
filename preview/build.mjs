@@ -40,6 +40,7 @@ const result = await build({
   target: "es2020",
   jsx: "automatic",
   tsconfig: resolve(root, "tsconfig.json"),
+  nodePaths: [resolve(root, "mobile/node_modules")],
   alias: {
     "next/link": resolve(root, "preview/shims/link.tsx"),
     "next/navigation": resolve(root, "preview/shims/navigation.ts"),

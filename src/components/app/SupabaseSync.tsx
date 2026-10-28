@@ -14,10 +14,13 @@ import { publishEvents, saveDailyActivity } from "@/lib/supabase/social";
 const SAVE_DELAY_MS = 1500;
 const ADMIN_POLL_MS = 60_000;
 
+const IS_ELECTRON_RT = typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent);
+const IS_CAPACITOR = !IS_ELECTRON_RT && !!process.env.SQUEAK_DESKTOP;
+
 /** Pro regalato e sospensioni decisi dal pannello admin (colonne di 0003_admin.sql). */
 async function loadAdminFlags(sb: SupabaseClient, userId: string) {
   const { data, error } = await sb.from("profiles").select("pro_until, banned_until, ban_reason").eq("id", userId).maybeSingle<{ pro_until: string | null; banned_until: string | null; ban_reason: string | null }>();
-  if (error || !data) return; // migrazione non ancora eseguita: nessun effetto
+  if (error || !data) return;
   useProgress.setState({ proUntil: data.pro_until, bannedUntil: data.banned_until, banReason: data.ban_reason });
 }
 
@@ -45,10 +48,6 @@ const STREAK_MILESTONES = [3, 7, 14, 30, 50, 100, 365];
 
 type ProgressSnapshot = ReturnType<typeof useProgress.getState>;
 
-/**
- * Condivide con gli amici ciò che è appena successo: lezioni completate,
- * obiettivi sbloccati e traguardi di serie. Alimenta anche le serie condivise.
- */
 async function shareActivity(sb: SupabaseClient, userId: string, state: ProgressSnapshot, prev: ProgressSnapshot) {
   const events: Parameters<typeof publishEvents>[1] = [];
 
@@ -80,92 +79,105 @@ async function shareActivity(sb: SupabaseClient, userId: string, state: Progress
  */
 export function SupabaseSync() {
   useEffect(() => {
-    const sb = getSupabase();
-    if (!sb) {
-      useAuth.setState({ status: "disabled" });
-      return;
-    }
+    let dead = false;
+    let cleanup: (() => void) | undefined;
 
-    let activeUser: string | null = null;
-    let stopWatching: (() => void) | null = null;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let adminPoll: ReturnType<typeof setInterval> | undefined;
+    void (async () => {
+      // Su Capacitor, idratiamo lo storage nativo prima di creare il client
+      if (IS_CAPACITOR) {
+        const { hydrateCapStorage } = await import("@/lib/supabase/capacitorStorage");
+        await hydrateCapStorage();
+      }
+      if (dead) return;
 
-    const flush = () => {
-      clearTimeout(timer);
-      if (activeUser) void saveProgress(sb, activeUser);
-    };
+      const sb = getSupabase();
+      if (!sb) {
+        useAuth.setState({ status: "disabled" });
+        return;
+      }
 
-    const startSession = async (user: User) => {
-      activeUser = user.id;
-      useAuth.setState({ status: "user", userId: user.id, email: user.email ?? null });
+      let activeUser: string | null = null;
+      let stopWatching: (() => void) | null = null;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let adminPoll: ReturnType<typeof setInterval> | undefined;
 
-      const [{ data: profile }, { data: row }] = await Promise.all([
-        sb.from("profiles").select("id, username, display_name, plan, xp, streak_count, streak_last_day").eq("id", user.id).maybeSingle<Profile>(),
-        sb.from("progress").select("data").eq("user_id", user.id).maybeSingle<{ data: unknown }>(),
-      ]);
-      if (activeUser !== user.id) return; // nel frattempo è cambiato account
-
-      const local = useProgress.getState();
-      // i dati locali si fondono solo se sono da ospite o già di questo account
-      const localData = local.ownerId === null || local.ownerId === user.id ? pickGameData(local) : null;
-      const remote = row ? normalizeGameData(row.data) : null;
-      const merged = remote && localData ? mergeGameData(localData, remote) : (remote ?? localData ?? initialGameData());
-
-      useProgress.setState({ ...merged, ownerId: user.id, plan: profile?.plan ?? "free", username: profile?.username ?? null });
-      useAuth.setState({ profile: profile ?? null });
-      void loadAdminFlags(sb, user.id);
-      void loadAvatar(sb, user.id);
-      clearInterval(adminPoll);
-      adminPoll = setInterval(() => activeUser && void loadAdminFlags(sb, activeUser), ADMIN_POLL_MS);
-      await saveProgress(sb, user.id);
-      // recupera l'attività di oggi fatta da ospite, per le serie condivise
-      const today = todayState(merged.today);
-      if (today.stats.lessons > 0) void saveDailyActivity(sb, user.id, today.day, today.stats.lessons);
-
-      stopWatching?.();
-      stopWatching = useProgress.subscribe((state, prev) => {
+      const flush = () => {
         clearTimeout(timer);
-        timer = setTimeout(flush, SAVE_DELAY_MS);
-        void shareActivity(sb, user.id, state, prev);
+        if (activeUser) void saveProgress(sb, activeUser);
+      };
+
+      const startSession = async (user: User) => {
+        activeUser = user.id;
+        useAuth.setState({ status: "user", userId: user.id, email: user.email ?? null });
+
+        const [{ data: profile }, { data: row }] = await Promise.all([
+          sb.from("profiles").select("id, username, display_name, plan, xp, streak_count, streak_last_day").eq("id", user.id).maybeSingle<Profile>(),
+          sb.from("progress").select("data").eq("user_id", user.id).maybeSingle<{ data: unknown }>(),
+        ]);
+        if (activeUser !== user.id) return;
+
+        const local = useProgress.getState();
+        const localData = local.ownerId === null || local.ownerId === user.id ? pickGameData(local) : null;
+        const remote = row ? normalizeGameData(row.data) : null;
+        const merged = remote && localData ? mergeGameData(localData, remote) : (remote ?? localData ?? initialGameData());
+
+        useProgress.setState({ ...merged, ownerId: user.id, plan: profile?.plan ?? "free", username: profile?.username ?? null });
+        useAuth.setState({ profile: profile ?? null });
+        void loadAdminFlags(sb, user.id);
+        void loadAvatar(sb, user.id);
+        clearInterval(adminPoll);
+        adminPoll = setInterval(() => activeUser && void loadAdminFlags(sb, activeUser), ADMIN_POLL_MS);
+        await saveProgress(sb, user.id);
+        const today = todayState(merged.today);
+        if (today.stats.lessons > 0) void saveDailyActivity(sb, user.id, today.day, today.stats.lessons);
+
+        stopWatching?.();
+        stopWatching = useProgress.subscribe((state, prev) => {
+          clearTimeout(timer);
+          timer = setTimeout(flush, SAVE_DELAY_MS);
+          void shareActivity(sb, user.id, state, prev);
+        });
+      };
+
+      const endSession = () => {
+        flush();
+        stopWatching?.();
+        stopWatching = null;
+        activeUser = null;
+        clearInterval(adminPoll);
+        useProgress.setState({ proUntil: null, bannedUntil: null, banReason: null });
+        useAuth.setState({ status: "guest", userId: null, email: null, profile: null });
+        if (useProgress.getState().ownerId !== null) useProgress.getState().reset();
+      };
+
+      const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
+        const user = session?.user ?? null;
+        setTimeout(() => {
+          if (user && user.id !== activeUser) void startSession(user);
+          else if (!user && (activeUser || useAuth.getState().status === "loading")) endSession();
+        }, 0);
       });
-    };
 
-    const endSession = () => {
-      flush();
-      stopWatching?.();
-      stopWatching = null;
-      activeUser = null;
-      clearInterval(adminPoll);
-      useProgress.setState({ proUntil: null, bannedUntil: null, banReason: null });
-      useAuth.setState({ status: "guest", userId: null, email: null, profile: null });
-      // i dati di un account non devono restare a chi usa il dispositivo dopo
-      if (useProgress.getState().ownerId !== null) useProgress.getState().reset();
-    };
+      // Forziamo il ripristino della sessione dal storage nativo
+      void sb.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user && !activeUser) void startSession(session.user);
+        else if (!session && useAuth.getState().status === "loading") endSession();
+      });
 
-    const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
-      const user = session?.user ?? null;
-      // fuori dal callback: Supabase sconsiglia chiamate async dentro onAuthStateChange
-      setTimeout(() => {
-        if (user && user.id !== activeUser) void startSession(user);
-        else if (!user && (activeUser || useAuth.getState().status === "loading")) endSession();
-      }, 0);
-    });
+      const onHide = () => document.visibilityState === "hidden" && flush();
+      document.addEventListener("visibilitychange", onHide);
 
-    // Su Capacitor/Electron il client non fa auto-restore: forziamo getSession()
-    void sb.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user && !activeUser) void startSession(session.user);
-      else if (!session && useAuth.getState().status === "loading") endSession();
-    });
-
-    const onHide = () => document.visibilityState === "hidden" && flush();
-    document.addEventListener("visibilitychange", onHide);
+      cleanup = () => {
+        sub.subscription.unsubscribe();
+        document.removeEventListener("visibilitychange", onHide);
+        flush();
+        stopWatching?.();
+      };
+    })();
 
     return () => {
-      sub.subscription.unsubscribe();
-      document.removeEventListener("visibilitychange", onHide);
-      flush();
-      stopWatching?.();
+      dead = true;
+      cleanup?.();
     };
   }, []);
 
