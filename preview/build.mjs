@@ -54,6 +54,7 @@ const result = await build({
     "process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabaseKey),
     "process.env.ADMIN_PREVIEW_HASH": JSON.stringify(previewAdminHash),
     "process.env.SQUEAK_DESKTOP": JSON.stringify(isDesktop ? "1" : ""),
+    "process.env.SQUEAK_NO_ADMIN": JSON.stringify(process.env.SQUEAK_NO_ADMIN ? "1" : ""),
   },
   banner: { js: "var process=globalThis.process||{env:{}};" },
   logLevel: "warning",

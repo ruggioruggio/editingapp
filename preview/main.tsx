@@ -31,19 +31,32 @@ import { ThemeSync } from "@/components/app/ThemeSync";
 
 const IS_ELECTRON = typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent);
 const IS_NATIVE = IS_ELECTRON || !!process.env.SQUEAK_DESKTOP;
+const NO_ADMIN = !!process.env.SQUEAK_NO_ADMIN;
 
 const BLOCKED_ON_NATIVE = new Set(["/"]);
 const AUTH_PAGES = new Set(["/login", "/signup", "/reset-password"]);
 
-function NativeAuthRedirect({ path }: { path: string }) {
+function NativeAuthGate({ path, children }: { path: string; children: React.ReactNode }) {
   const status = useAuth((s) => s.status);
   const { navigate } = usePreviewRouter();
+  const onAuthPage = AUTH_PAGES.has(path.split("?")[0]);
+
   useEffect(() => {
-    if (IS_NATIVE && status === "user" && AUTH_PAGES.has(path.split("?")[0])) {
+    if (IS_NATIVE && status === "user" && onAuthPage) {
       navigate("/learn", true);
     }
-  }, [status, path, navigate]);
-  return null;
+  }, [status, onAuthPage, navigate]);
+
+  if (IS_NATIVE && onAuthPage && status === "loading") {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100dvh", background: "#121212" }}>
+        <div style={{ width: 48, height: 48, border: "4px solid #333", borderTopColor: "#3ecf8e", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+        <style>{"@keyframes spin{to{transform:rotate(360deg)}}"}</style>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
 }
 
 const APP_PAGES: Record<string, () => React.ReactNode> = {
@@ -108,10 +121,11 @@ createRoot(document.getElementById("root")!).render(
       <>
         <SupabaseSync />
         <ThemeSync />
-        <NativeAuthRedirect path={path} />
         <MaintenanceGate />
-        <AdminGate />
-        <div key={APP_PAGES[path.split("?")[0]] ? "app" : path}>{render(path)}</div>
+        {!NO_ADMIN && <AdminGate />}
+        <NativeAuthGate path={path}>
+          <div key={APP_PAGES[path.split("?")[0]] ? "app" : path}>{render(path)}</div>
+        </NativeAuthGate>
       </>
     )}
   </PreviewRouter>,

@@ -26,6 +26,8 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@capacitor/core": "^7.3.0",
+    "@capacitor/preferences": "^7.0.4",
     "@tailwindcss/cli": "^4.3.3",
     "@tailwindcss/postcss": "^4.1.13",
     "@types/node": "^22.0.0",
