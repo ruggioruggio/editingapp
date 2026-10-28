@@ -14,9 +14,6 @@ import { publishEvents, saveDailyActivity } from "@/lib/supabase/social";
 const SAVE_DELAY_MS = 1500;
 const ADMIN_POLL_MS = 60_000;
 
-const IS_ELECTRON_RT = typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent);
-const IS_CAPACITOR = !IS_ELECTRON_RT && !!process.env.SQUEAK_DESKTOP;
-
 /** Pro regalato e sospensioni decisi dal pannello admin (colonne di 0003_admin.sql). */
 async function loadAdminFlags(sb: SupabaseClient, userId: string) {
   const { data, error } = await sb.from("profiles").select("pro_until, banned_until, ban_reason").eq("id", userId).maybeSingle<{ pro_until: string | null; banned_until: string | null; ban_reason: string | null }>();
@@ -79,105 +76,82 @@ async function shareActivity(sb: SupabaseClient, userId: string, state: Progress
  */
 export function SupabaseSync() {
   useEffect(() => {
-    let dead = false;
-    let cleanup: (() => void) | undefined;
+    const sb = getSupabase();
+    if (!sb) {
+      useAuth.setState({ status: "disabled" });
+      return;
+    }
 
-    void (async () => {
-      // Su Capacitor, idratiamo lo storage nativo prima di creare il client
-      if (IS_CAPACITOR) {
-        const { hydrateCapStorage } = await import("@/lib/supabase/capacitorStorage");
-        await hydrateCapStorage();
-      }
-      if (dead) return;
+    let activeUser: string | null = null;
+    let stopWatching: (() => void) | null = null;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let adminPoll: ReturnType<typeof setInterval> | undefined;
 
-      const sb = getSupabase();
-      if (!sb) {
-        useAuth.setState({ status: "disabled" });
-        return;
-      }
+    const flush = () => {
+      clearTimeout(timer);
+      if (activeUser) void saveProgress(sb, activeUser);
+    };
 
-      let activeUser: string | null = null;
-      let stopWatching: (() => void) | null = null;
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      let adminPoll: ReturnType<typeof setInterval> | undefined;
+    const startSession = async (user: User) => {
+      activeUser = user.id;
+      useAuth.setState({ status: "user", userId: user.id, email: user.email ?? null });
 
-      const flush = () => {
+      const [{ data: profile }, { data: row }] = await Promise.all([
+        sb.from("profiles").select("id, username, display_name, plan, xp, streak_count, streak_last_day").eq("id", user.id).maybeSingle<Profile>(),
+        sb.from("progress").select("data").eq("user_id", user.id).maybeSingle<{ data: unknown }>(),
+      ]);
+      if (activeUser !== user.id) return;
+
+      const local = useProgress.getState();
+      const localData = local.ownerId === null || local.ownerId === user.id ? pickGameData(local) : null;
+      const remote = row ? normalizeGameData(row.data) : null;
+      const merged = remote && localData ? mergeGameData(localData, remote) : (remote ?? localData ?? initialGameData());
+
+      useProgress.setState({ ...merged, ownerId: user.id, plan: profile?.plan ?? "free", username: profile?.username ?? null });
+      useAuth.setState({ profile: profile ?? null });
+      void loadAdminFlags(sb, user.id);
+      void loadAvatar(sb, user.id);
+      clearInterval(adminPoll);
+      adminPoll = setInterval(() => activeUser && void loadAdminFlags(sb, activeUser), ADMIN_POLL_MS);
+      await saveProgress(sb, user.id);
+      const today = todayState(merged.today);
+      if (today.stats.lessons > 0) void saveDailyActivity(sb, user.id, today.day, today.stats.lessons);
+
+      stopWatching?.();
+      stopWatching = useProgress.subscribe((state, prev) => {
         clearTimeout(timer);
-        if (activeUser) void saveProgress(sb, activeUser);
-      };
-
-      const startSession = async (user: User) => {
-        activeUser = user.id;
-        useAuth.setState({ status: "user", userId: user.id, email: user.email ?? null });
-
-        const [{ data: profile }, { data: row }] = await Promise.all([
-          sb.from("profiles").select("id, username, display_name, plan, xp, streak_count, streak_last_day").eq("id", user.id).maybeSingle<Profile>(),
-          sb.from("progress").select("data").eq("user_id", user.id).maybeSingle<{ data: unknown }>(),
-        ]);
-        if (activeUser !== user.id) return;
-
-        const local = useProgress.getState();
-        const localData = local.ownerId === null || local.ownerId === user.id ? pickGameData(local) : null;
-        const remote = row ? normalizeGameData(row.data) : null;
-        const merged = remote && localData ? mergeGameData(localData, remote) : (remote ?? localData ?? initialGameData());
-
-        useProgress.setState({ ...merged, ownerId: user.id, plan: profile?.plan ?? "free", username: profile?.username ?? null });
-        useAuth.setState({ profile: profile ?? null });
-        void loadAdminFlags(sb, user.id);
-        void loadAvatar(sb, user.id);
-        clearInterval(adminPoll);
-        adminPoll = setInterval(() => activeUser && void loadAdminFlags(sb, activeUser), ADMIN_POLL_MS);
-        await saveProgress(sb, user.id);
-        const today = todayState(merged.today);
-        if (today.stats.lessons > 0) void saveDailyActivity(sb, user.id, today.day, today.stats.lessons);
-
-        stopWatching?.();
-        stopWatching = useProgress.subscribe((state, prev) => {
-          clearTimeout(timer);
-          timer = setTimeout(flush, SAVE_DELAY_MS);
-          void shareActivity(sb, user.id, state, prev);
-        });
-      };
-
-      const endSession = () => {
-        flush();
-        stopWatching?.();
-        stopWatching = null;
-        activeUser = null;
-        clearInterval(adminPoll);
-        useProgress.setState({ proUntil: null, bannedUntil: null, banReason: null });
-        useAuth.setState({ status: "guest", userId: null, email: null, profile: null });
-        if (useProgress.getState().ownerId !== null) useProgress.getState().reset();
-      };
-
-      const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
-        const user = session?.user ?? null;
-        setTimeout(() => {
-          if (user && user.id !== activeUser) void startSession(user);
-          else if (!user && (activeUser || useAuth.getState().status === "loading")) endSession();
-        }, 0);
+        timer = setTimeout(flush, SAVE_DELAY_MS);
+        void shareActivity(sb, user.id, state, prev);
       });
+    };
 
-      // Forziamo il ripristino della sessione dal storage nativo
-      void sb.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user && !activeUser) void startSession(session.user);
-        else if (!session && useAuth.getState().status === "loading") endSession();
-      });
+    const endSession = () => {
+      flush();
+      stopWatching?.();
+      stopWatching = null;
+      activeUser = null;
+      clearInterval(adminPoll);
+      useProgress.setState({ proUntil: null, bannedUntil: null, banReason: null });
+      useAuth.setState({ status: "guest", userId: null, email: null, profile: null });
+      if (useProgress.getState().ownerId !== null) useProgress.getState().reset();
+    };
 
-      const onHide = () => document.visibilityState === "hidden" && flush();
-      document.addEventListener("visibilitychange", onHide);
+    const { data: sub } = sb.auth.onAuthStateChange((_event, session) => {
+      const user = session?.user ?? null;
+      setTimeout(() => {
+        if (user && user.id !== activeUser) void startSession(user);
+        else if (!user && (activeUser || useAuth.getState().status === "loading")) endSession();
+      }, 0);
+    });
 
-      cleanup = () => {
-        sub.subscription.unsubscribe();
-        document.removeEventListener("visibilitychange", onHide);
-        flush();
-        stopWatching?.();
-      };
-    })();
+    const onHide = () => document.visibilityState === "hidden" && flush();
+    document.addEventListener("visibilitychange", onHide);
 
     return () => {
-      dead = true;
-      cleanup?.();
+      sub.subscription.unsubscribe();
+      document.removeEventListener("visibilitychange", onHide);
+      flush();
+      stopWatching?.();
     };
   }, []);
 
