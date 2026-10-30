@@ -120,11 +120,23 @@ export function SupabaseSync() {
       if (today.stats.lessons > 0) void saveDailyActivity(sb, user.id, today.day, today.stats.lessons);
 
       stopWatching?.();
-      stopWatching = useProgress.subscribe((state, prev) => {
+      let avatarTimer: ReturnType<typeof setTimeout> | undefined;
+      const stopProgress = useProgress.subscribe((state, prev) => {
         clearTimeout(timer);
         timer = setTimeout(flush, SAVE_DELAY_MS);
         void shareActivity(sb, user.id, state, prev);
       });
+      const stopAvatar = useSettings.subscribe(
+        (s) => s.avatar,
+        (avatar) => {
+          clearTimeout(avatarTimer);
+          avatarTimer = setTimeout(() => {
+            if (activeUser) void sb.from("profiles").update({ avatar }).eq("id", activeUser);
+          }, SAVE_DELAY_MS);
+        },
+        { equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b) },
+      );
+      stopWatching = () => { stopProgress(); stopAvatar(); clearTimeout(avatarTimer); };
     };
 
     const endSession = () => {

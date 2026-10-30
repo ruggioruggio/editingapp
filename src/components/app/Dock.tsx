@@ -99,7 +99,7 @@ export function Dock() {
   return (
     <nav
       aria-label="Navigazione principale"
-      className="glass fixed bottom-[max(12px,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-end gap-0.5 rounded-[30px] px-2 pb-2 pt-2 sm:gap-1.5 sm:px-3"
+      className="glass fixed bottom-[max(12px,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-end gap-0.5 rounded-[30px] px-2 pb-2 pt-2 sm:gap-1.5 sm:px-3 lg:hidden"
     >
       {LEFT.map((item) => (
         <DockItem key={item.href} item={item} active={pathname.startsWith(item.href)} badge={item.href === "/quests" ? claimable : 0} />

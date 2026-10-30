@@ -171,7 +171,10 @@ function SignedInFriends() {
     { id: me, username: profile?.username ?? "tu", xp: myXp, streak: myStreak, isMe: true },
     ...(data?.friends ?? []).map((f) => ({ id: f.other.id, username: f.other.username, xp: f.other.xp, streak: liveStreak(f.other), isMe: false })),
   ].sort((a, b) => b.xp - a.xp);
-  const openFriend = data?.friends.find((f) => f.other.id === openId)?.other ?? null;
+  const openFriend = data?.friends.find((f) => f.other.id === openId)?.other
+    ?? data?.incoming.find((r) => r.other.id === openId)?.other
+    ?? data?.outgoing.find((r) => r.other.id === openId)?.other
+    ?? null;
 
   return (
     <div className="space-y-6">
@@ -228,8 +231,10 @@ function SignedInFriends() {
           <ul className="space-y-2">
             {data.incoming.map((r) => (
               <li key={r.id} className="flex items-center gap-3 rounded-2xl border border-[#5ce1e6]/40 bg-panel p-3">
-                <Avatar name={r.other.username} />
-                <p className="min-w-0 flex-1 truncate font-bold">@{r.other.username}</p>
+                <button type="button" onClick={() => setOpenId(r.other.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left hover:opacity-90">
+                  <Avatar name={r.other.username} />
+                  <p className="min-w-0 flex-1 truncate font-bold">@{r.other.username}</p>
+                </button>
                 <ModHammer username={r.other.username} />
                 <button
                   type="button"
@@ -342,14 +347,16 @@ function SignedInFriends() {
           <ul className="space-y-2">
             {data.outgoing.map((r) => (
               <li key={r.id} className="flex items-center gap-3 rounded-2xl border border-line bg-panel p-3">
-                <Avatar name={r.other.username} />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-bold">@{r.other.username}</p>
-                  <ModHammer username={r.other.username} />
-                  <p className="flex items-center gap-1 text-xs text-ink-mute">
-                    <Clock size={12} /> In attesa di risposta
-                  </p>
-                </div>
+                <button type="button" onClick={() => setOpenId(r.other.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left hover:opacity-90">
+                  <Avatar name={r.other.username} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold">@{r.other.username}</p>
+                    <p className="flex items-center gap-1 text-xs text-ink-mute">
+                      <Clock size={12} /> In attesa di risposta
+                    </p>
+                  </div>
+                </button>
+                <ModHammer username={r.other.username} />
                 <IconButton label={`Annulla richiesta a ${r.other.username}`} onClick={() => act(() => removeFriendship(sb, r.id))} />
               </li>
             ))}
