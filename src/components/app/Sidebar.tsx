@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { BookOpen, Clapperboard, ScrollText, Sparkles, Users, type LucideIcon } from "lucide-react";
+import { BookOpen, Clapperboard, Sparkles, Target, Users, type LucideIcon } from "lucide-react";
 import { AppIcon } from "@/components/brand/Mascot";
 import { Logo } from "@/components/brand/Logo";
 import { features } from "@/config/features";
@@ -20,7 +20,7 @@ type NavItem = { href: string; label: TKey; icon: LucideIcon; color: string };
 const NAV_ITEMS: NavItem[] = [
   { href: "/learn", label: "learn", icon: BookOpen, color: "#9999ff" },
   { href: "/practice", label: "practice", icon: Clapperboard, color: "#2d8ceb" },
-  { href: "/quests", label: "quests", icon: ScrollText, color: "#d291ff" },
+  { href: "/goals", label: "goals", icon: Target, color: "#d291ff" },
   { href: "/friends", label: "friends", icon: Users, color: "#5ce1e6" },
 ];
 
@@ -102,8 +102,8 @@ export function Sidebar() {
           <SidebarItem
             key={item.href}
             item={item}
-            active={pathname.startsWith(item.href) || (item.href === "/quests" && pathname.startsWith("/goals"))}
-            badge={item.href === "/quests" ? claimable : item.href === "/friends" ? pendingFriends : 0}
+            active={pathname.startsWith(item.href) || (item.href === "/goals" && pathname.startsWith("/quests"))}
+            badge={item.href === "/goals" ? claimable : item.href === "/friends" ? pendingFriends : 0}
           />
         ))}
 

@@ -28,7 +28,7 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
               </div>
             </div>
           </header>
-          <main className="pb-36 lg:pb-8">{children}</main>
+          <main className="pb-28 lg:pb-8">{children}</main>
         </div>
         <RightPanel />
       </div>

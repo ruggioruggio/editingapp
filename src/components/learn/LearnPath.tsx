@@ -13,6 +13,7 @@ import {
   Palette,
   Scissors,
   Sparkles,
+  Star,
   Volume2,
   type LucideIcon,
 } from "lucide-react";
@@ -26,7 +27,6 @@ import { canSkipTo, isLessonUnlocked } from "@/lib/lessons/progression";
 import { useAdmin } from "@/lib/admin/client";
 import { useProgress } from "@/lib/progress/store";
 
-// Percorso a zig-zag stile Duolingo
 const OFFSETS = [0, 46, 70, 46, 0, -46, -70, -46];
 
 const KIND_ICON: Record<LessonKind, LucideIcon> = {
@@ -37,6 +37,43 @@ const KIND_ICON: Record<LessonKind, LucideIcon> = {
   motion: Sparkles,
   project: Clapperboard,
 };
+
+function TreasureChest({ unlocked }: { unlocked: boolean }) {
+  return (
+    <div className="flex flex-col items-center py-2">
+      <div
+        className={clsx(
+          "relative grid h-16 w-16 place-items-center rounded-2xl transition-transform hover:scale-105",
+          unlocked ? "bg-gradient-to-b from-amber-400 to-amber-600" : "bg-gradient-to-b from-zinc-500 to-zinc-700",
+        )}
+        style={{
+          boxShadow: unlocked
+            ? "0 6px 0 #92400e, 0 8px 20px rgba(245,158,11,0.3)"
+            : "0 6px 0 #27272a, 0 8px 16px rgba(0,0,0,0.3)",
+        }}
+      >
+        {/* glossy highlight */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-2xl bg-gradient-to-b from-white/30 to-transparent" />
+        <svg viewBox="0 0 40 40" className="h-9 w-9" fill="none">
+          {/* chest body */}
+          <rect x="4" y="16" width="32" height="18" rx="3" fill={unlocked ? "#92400e" : "#3f3f46"} />
+          <rect x="4" y="16" width="32" height="9" rx="3" fill={unlocked ? "#b45309" : "#52525b"} />
+          {/* lid */}
+          <path d="M2 16 C2 10, 38 10, 38 16 L38 18 L2 18 Z" fill={unlocked ? "#d97706" : "#71717a"} />
+          <path d="M2 16 C2 10, 38 10, 38 16 L38 14 C38 8, 2 8, 2 14 Z" fill={unlocked ? "#f59e0b" : "#a1a1aa"} />
+          {/* clasp */}
+          <rect x="16" y="14" width="8" height="10" rx="2" fill={unlocked ? "#fbbf24" : "#d4d4d8"} />
+          <circle cx="20" cy="20" r="2" fill={unlocked ? "#92400e" : "#3f3f46"} />
+        </svg>
+        {unlocked && (
+          <div className="absolute -right-1 -top-1">
+            <Star size={16} className="text-yellow-300 drop-shadow" fill="currentColor" />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function LearnPath() {
   const hydrated = useHydrated();
@@ -54,7 +91,6 @@ export function LearnPath() {
   const [open, setOpen] = useState<string>(currentSection.id);
   const [selected, setSelected] = useState<string | null>(null);
 
-  // un tocco in un punto qualsiasi fuori dalla lezione aperta la chiude
   useEffect(() => {
     if (!selected) return;
     const close = (e: PointerEvent) => {
@@ -112,8 +148,6 @@ function SectionBlock({
   const done = lessons.filter((l) => isDone(l.id)).length;
 
   return (
-    // la cornice serve solo sul telefono; su web e desktop la sezione resta "aperta"
-    // niente overflow-hidden: il riquadro dell'ultima lezione non deve essere tagliato
     <section className="rounded-3xl border border-line bg-panel/60 md:border-0 md:bg-transparent">
       <button type="button" onClick={onToggle} className="flex w-full items-center gap-4 p-5 text-left">
         <div className="min-w-0 flex-1">
@@ -136,40 +170,51 @@ function SectionBlock({
 
       {open && (
         <div className="space-y-10 px-4 pb-10">
-          {section.units.map((unit, u) => (
-            <div key={unit.id}>
-              <div className="mb-8 rounded-2xl p-4 text-[#121212]" style={{ background: section.color }}>
-                <p className="text-xs font-black uppercase tracking-widest opacity-70">Unità {unit.id.slice(1)}</p>
-                <h3 className="text-lg font-black">{unit.title}</h3>
-                <p className="text-sm font-semibold opacity-80">{unit.description}</p>
-                {canSkip(unit.id) && (
-                  // come il "salta qui" di Duolingo: un test sugli argomenti saltati, con 3 vite
-                  <Link href={`/unit-test/${unit.id}`} className="mt-3 inline-flex items-center gap-1.5 rounded-xl border-2 border-[#121212]/30 bg-[#121212]/15 px-3 py-1.5 text-xs font-black uppercase hover:bg-[#121212]/25">
-                    <KeyRound size={14} /> Salta qui
-                  </Link>
-                )}
+          {section.units.map((unit, u) => {
+            const unitLessons = unit.lessons;
+            return (
+              <div key={unit.id}>
+                <div className="mb-8 rounded-2xl p-4 text-[#121212]" style={{ background: section.color }}>
+                  <p className="text-xs font-black uppercase tracking-widest opacity-70">Unità {unit.id.slice(1)}</p>
+                  <h3 className="text-lg font-black">{unit.title}</h3>
+                  <p className="text-sm font-semibold opacity-80">{unit.description}</p>
+                  {canSkip(unit.id) && (
+                    <Link href={`/unit-test/${unit.id}`} className="mt-3 inline-flex items-center gap-1.5 rounded-xl border-2 border-[#121212]/30 bg-[#121212]/15 px-3 py-1.5 text-xs font-black uppercase hover:bg-[#121212]/25">
+                      <KeyRound size={14} /> Salta qui
+                    </Link>
+                  )}
+                </div>
+                <ol className="flex flex-col items-center gap-7">
+                  {unitLessons.map((lesson, i) => {
+                    const showChest = i > 0 && i % 3 === 0;
+                    const chestUnlocked = unitLessons.slice(Math.max(0, i - 3), i).every((l) => isDone(l.id));
+                    return (
+                      <li
+                        key={lesson.id}
+                        className={clsx("relative", selected === lesson.id && "z-30")}
+                        style={{ transform: `translateX(${OFFSETS[(i + u * 2) % OFFSETS.length]}px)` }}
+                      >
+                        {showChest && (
+                          <div className="mb-6 flex justify-center" style={{ transform: `translateX(${-OFFSETS[(i + u * 2) % OFFSETS.length]}px)` }}>
+                            <TreasureChest unlocked={chestUnlocked} />
+                          </div>
+                        )}
+                        <LessonNode
+                          lesson={lesson}
+                          color={section.color}
+                          done={isDone(lesson.id)}
+                          unlocked={unlocked(lesson.id)}
+                          current={lesson.id === nextUp}
+                          selected={selected === lesson.id}
+                          onSelect={() => onSelect(lesson.id)}
+                        />
+                      </li>
+                    );
+                  })}
+                </ol>
               </div>
-              <ol className="flex flex-col items-center gap-7">
-                {unit.lessons.map((lesson, i) => (
-                  <li
-                    key={lesson.id}
-                    className={clsx("relative", selected === lesson.id && "z-30")}
-                    style={{ transform: `translateX(${OFFSETS[(i + u * 2) % OFFSETS.length]}px)` }}
-                  >
-                    <LessonNode
-                      lesson={lesson}
-                      color={section.color}
-                      done={isDone(lesson.id)}
-                      unlocked={unlocked(lesson.id)}
-                      current={lesson.id === nextUp}
-                      selected={selected === lesson.id}
-                      onSelect={() => onSelect(lesson.id)}
-                    />
-                  </li>
-                ))}
-              </ol>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </section>
@@ -194,9 +239,8 @@ function LessonNode({
   onSelect: () => void;
 }) {
   const soon = lesson.status === "soon";
-  // bloccata se non ancora pronta o se manca la lezione precedente
   const locked = soon || (!unlocked && !done);
-  const Icon = locked ? Lock : done ? Check : KIND_ICON[lesson.kind];
+  const Icon = locked ? Lock : done ? Star : KIND_ICON[lesson.kind];
 
   return (
     <div data-lesson-node className="flex flex-col items-center">
@@ -210,19 +254,26 @@ function LessonNode({
         onClick={onSelect}
         aria-label={lesson.title}
         className={clsx(
-          "grid h-[70px] w-[70px] place-items-center rounded-full transition-transform active:translate-y-1",
+          "relative grid h-[72px] w-[72px] place-items-center rounded-full transition-transform active:translate-y-1",
           locked ? "bg-panel-3 text-ink-mute" : "hover:scale-105",
-          done && "bg-cheese text-[#4a3500]",
+          done && "text-[#4a3500]",
           !locked && !done && "text-[#121212]",
-          current && "ring-4 ring-white/15 ring-offset-4 ring-offset-app",
+          current && "ring-4 ring-white/20 ring-offset-4 ring-offset-app",
         )}
-        // bordo inferiore della stessa tinta ma più scuro, come i nodi di Duolingo
         style={{
-          background: !locked && !done ? color : undefined,
-          boxShadow: `0 7px 0 ${locked ? "#1f1f1f" : done ? "#b88a12" : `color-mix(in srgb, ${color} 55%, black)`}`,
+          background: locked ? undefined : done ? "linear-gradient(180deg, #fbbf24 0%, #d97706 100%)" : `linear-gradient(180deg, color-mix(in srgb, ${color} 85%, white) 0%, ${color} 100%)`,
+          boxShadow: locked
+            ? "0 8px 0 #1f1f1f"
+            : done
+              ? "0 8px 0 #92400e, 0 12px 24px rgba(245,158,11,0.25)"
+              : `0 8px 0 color-mix(in srgb, ${color} 45%, black), 0 12px 24px color-mix(in srgb, ${color} 20%, transparent)`,
         }}
       >
-        <Icon size={28} strokeWidth={2.6} />
+        {/* glossy highlight */}
+        {!locked && (
+          <div className="pointer-events-none absolute inset-x-[6px] top-[4px] h-[40%] rounded-full bg-gradient-to-b from-white/40 to-transparent" />
+        )}
+        <Icon size={done ? 30 : 28} strokeWidth={2.4} fill={done ? "currentColor" : "none"} />
       </button>
 
       {selected && (

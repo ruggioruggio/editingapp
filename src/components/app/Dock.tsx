@@ -14,16 +14,13 @@ import { useAuth } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { useT, type TKey } from "@/lib/settings/i18n";
 
-type Item = { href: string; label: TKey; icon: LucideIcon; color: string };
+type Item = { href: string; label: TKey; icon: LucideIcon; color: string; activeColor: string };
 
-const LEFT: Item[] = [
-  { href: "/learn", label: "learn", icon: BookOpen, color: "#9999ff" },
-  { href: "/practice", label: "practice", icon: Clapperboard, color: "#2d8ceb" },
-];
-const RIGHT: Item[] = [
-  // quest e obiettivi stanno nella stessa pagina
-  { href: "/quests", label: "quests", icon: ScrollText, color: "#d291ff" },
-  { href: "/friends", label: "friends", icon: Users, color: "#5ce1e6" },
+const ITEMS: Item[] = [
+  { href: "/learn", label: "learn", icon: BookOpen, color: "#7c7cff", activeColor: "#9999ff" },
+  { href: "/practice", label: "practice", icon: Clapperboard, color: "#2385d6", activeColor: "#2d8ceb" },
+  { href: "/quests", label: "quests", icon: ScrollText, color: "#c080ee", activeColor: "#d291ff" },
+  { href: "/friends", label: "friends", icon: Users, color: "#4cc8cc", activeColor: "#5ce1e6" },
 ];
 
 function usePendingRequests() {
@@ -51,7 +48,6 @@ function usePendingRequests() {
   return count;
 }
 
-/** Quante quest di oggi sono completate ma non ancora riscattate. */
 function useClaimableQuests() {
   const hydrated = useHydrated();
   const today = useProgress((s) => s.today);
@@ -61,35 +57,38 @@ function useClaimableQuests() {
 }
 
 function DockItem({ item, active, badge }: { item: Item; active: boolean; badge?: number }) {
-  const t = useT();
   const Icon = item.icon;
   return (
     <Link
       href={item.href}
       aria-current={active ? "page" : undefined}
-      className="group relative flex w-14 flex-col items-center gap-1 sm:w-16"
+      className="group relative flex flex-1 flex-col items-center justify-center py-2"
     >
       <span
         className={clsx(
-          "relative grid h-11 w-11 place-items-center rounded-2xl transition-all duration-200 ease-out group-hover:-translate-y-1 group-hover:scale-110",
-          active ? "bg-white/15 shadow-[inset_0_1px_0_rgb(255_255_255/0.3)]" : "group-hover:bg-white/10",
+          "relative grid h-12 w-12 place-items-center rounded-2xl transition-all duration-200",
+          active && "bg-white/10",
         )}
       >
-        <Icon size={22} strokeWidth={2.3} style={{ color: active ? item.color : "#d4d4d8" }} />
+        <Icon
+          size={26}
+          strokeWidth={2.4}
+          style={{ color: active ? item.activeColor : item.color }}
+          className="drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+        />
         {!!badge && (
-          <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] font-black text-white ring-2 ring-[#18181f]">
+          <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] font-black text-white ring-2 ring-[#1a1a24]">
             {badge}
           </span>
         )}
       </span>
-      <span className={clsx("text-[11px] font-extrabold leading-none", active ? "text-white" : "text-zinc-300")}>
-        {t(item.label)}
-      </span>
+      {active && (
+        <span className="mt-0.5 h-1 w-5 rounded-full" style={{ background: item.activeColor }} />
+      )}
     </Link>
   );
 }
 
-/** Dock flottante in liquid glass, stile Apple, con Squeak AI al centro. */
 export function Dock() {
   const pathname = usePathname();
   const claimable = useClaimableQuests();
@@ -99,36 +98,50 @@ export function Dock() {
   return (
     <nav
       aria-label="Navigazione principale"
-      className="glass fixed bottom-[max(12px,env(safe-area-inset-bottom))] left-1/2 z-50 flex -translate-x-1/2 items-end gap-0.5 rounded-[30px] px-2 pb-2 pt-2 sm:gap-1.5 sm:px-3 lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t border-white/8 bg-[#1a1a24] pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
-      {LEFT.map((item) => (
-        <DockItem key={item.href} item={item} active={pathname.startsWith(item.href)} badge={item.href === "/quests" ? claimable : 0} />
+      {ITEMS.slice(0, 2).map((item) => (
+        <DockItem
+          key={item.href}
+          item={item}
+          active={pathname.startsWith(item.href)}
+          badge={item.href === "/quests" ? claimable : 0}
+        />
       ))}
 
-      <Link href="/ai" aria-current={aiActive ? "page" : undefined} className="group mx-1 flex w-16 flex-col items-center gap-1">
+      <Link
+        href="/ai"
+        aria-current={aiActive ? "page" : undefined}
+        className="group relative flex flex-1 flex-col items-center justify-center py-2"
+      >
         <span
-          // stesso raggio dell'icona (24% del lato), così il contorno combacia
-          style={{ borderRadius: 64 * 0.24 }}
           className={clsx(
-            "relative -mt-6 grid h-16 w-16 place-items-center transition-transform duration-200 group-hover:-translate-y-1 group-hover:scale-105",
-            "shadow-[0_10px_28px_rgb(0_0_0/0.6)] outline-2 outline-offset-2",
-            aiActive ? "outline-white/80" : "outline-transparent",
+            "relative -mt-7 grid h-[60px] w-[60px] place-items-center rounded-[18px] shadow-[0_4px_20px_rgba(0,0,0,0.5)]",
+            aiActive && "ring-2 ring-white/30",
           )}
+          style={{ borderRadius: 60 * 0.24 }}
         >
-          <AppIcon size={64} />
+          <AppIcon size={60} />
           {features.squeakAi ? (
-            <Sparkles size={16} className="absolute -right-1 -top-1 text-cheese drop-shadow" fill="currentColor" />
+            <Sparkles size={14} className="absolute -right-1 -top-1 text-cheese drop-shadow" fill="currentColor" />
           ) : (
-            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-[#18181f] bg-cheese px-2 py-0.5 text-[9px] font-black uppercase leading-none text-[#3a2500]">
+            <span className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-[#1a1a24] bg-cheese px-2 py-0.5 text-[9px] font-black uppercase leading-none text-[#3a2500]">
               presto
             </span>
           )}
         </span>
-        <span className={clsx("text-[11px] font-black leading-none", aiActive ? "text-white" : "text-pr")}>Squeak AI</span>
+        {aiActive && (
+          <span className="mt-0.5 h-1 w-5 rounded-full bg-cheese" />
+        )}
       </Link>
 
-      {RIGHT.map((item) => (
-        <DockItem key={item.href} item={item} active={pathname.startsWith(item.href)} badge={item.href === "/quests" ? claimable : item.href === "/friends" ? pendingFriends : 0} />
+      {ITEMS.slice(2).map((item) => (
+        <DockItem
+          key={item.href}
+          item={item}
+          active={pathname.startsWith(item.href)}
+          badge={item.href === "/quests" ? claimable : item.href === "/friends" ? pendingFriends : 0}
+        />
       ))}
     </nav>
   );

@@ -1,82 +1,105 @@
 import { useSettings, type SfxCategory } from "./store";
 
-// Effetti sonori sintetizzati con WebAudio: niente file da scaricare, e
-// ogni categoria ha il suo volume nelle impostazioni.
-
-type Note = { f: number; at: number; len: number; type?: OscillatorType; gain?: number; slide?: number };
+type Note = { f: number; at: number; len: number; type?: OscillatorType; gain?: number; slide?: number; detune?: number };
 
 const SOUNDS: Record<SfxCategory, Note[]> = {
-  // "ding-ding" brillante come in Duolingo
   correct: [
-    { f: 880, at: 0, len: 0.12, type: "triangle" },
-    { f: 1318.5, at: 0.09, len: 0.22, type: "triangle" },
+    { f: 523.3, at: 0, len: 0.08, type: "sine", gain: 0.7 },
+    { f: 659.3, at: 0.06, len: 0.08, type: "sine", gain: 0.7 },
+    { f: 784, at: 0.12, len: 0.18, type: "sine", gain: 0.8 },
   ],
-  // tonfo morbido verso il basso
   wrong: [
-    { f: 330, at: 0, len: 0.16, type: "square", gain: 0.35, slide: 260 },
-    { f: 247, at: 0.13, len: 0.24, type: "square", gain: 0.35, slide: 196 },
+    { f: 311, at: 0, len: 0.18, type: "triangle", gain: 0.6, slide: 220 },
+    { f: 277, at: 0.15, len: 0.28, type: "triangle", gain: 0.5, slide: 185 },
   ],
-  // fanfara di fine lezione
   victory: [
-    { f: 523.3, at: 0, len: 0.14, type: "triangle" },
-    { f: 659.3, at: 0.12, len: 0.14, type: "triangle" },
-    { f: 784, at: 0.24, len: 0.14, type: "triangle" },
-    { f: 1046.5, at: 0.36, len: 0.45, type: "triangle" },
-    { f: 784, at: 0.36, len: 0.45, type: "sine", gain: 0.5 },
+    { f: 523.3, at: 0, len: 0.12, type: "sine", gain: 0.6 },
+    { f: 659.3, at: 0.1, len: 0.12, type: "sine", gain: 0.6 },
+    { f: 784, at: 0.2, len: 0.12, type: "sine", gain: 0.7 },
+    { f: 1046.5, at: 0.3, len: 0.5, type: "sine", gain: 0.8 },
+    { f: 784, at: 0.3, len: 0.5, type: "sine", gain: 0.35 },
+    { f: 523.3, at: 0.3, len: 0.5, type: "sine", gain: 0.25 },
   ],
   defeat: [
-    { f: 392, at: 0, len: 0.25, type: "sawtooth", gain: 0.25 },
-    { f: 349.2, at: 0.22, len: 0.25, type: "sawtooth", gain: 0.25 },
-    { f: 311.1, at: 0.44, len: 0.6, type: "sawtooth", gain: 0.25, slide: 280 },
+    { f: 440, at: 0, len: 0.2, type: "triangle", gain: 0.5, slide: 370 },
+    { f: 370, at: 0.18, len: 0.2, type: "triangle", gain: 0.5, slide: 311 },
+    { f: 311, at: 0.36, len: 0.5, type: "triangle", gain: 0.4, slide: 247 },
   ],
-  // fiammata: glissando verso l'alto
   streak: [
-    { f: 300, at: 0, len: 0.35, type: "sawtooth", gain: 0.2, slide: 1200 },
-    { f: 1200, at: 0.3, len: 0.3, type: "triangle", gain: 0.6 },
-    { f: 1600, at: 0.42, len: 0.35, type: "triangle", gain: 0.5 },
+    { f: 440, at: 0, len: 0.1, type: "sine", gain: 0.5 },
+    { f: 554.4, at: 0.08, len: 0.1, type: "sine", gain: 0.5 },
+    { f: 659.3, at: 0.16, len: 0.1, type: "sine", gain: 0.6 },
+    { f: 880, at: 0.24, len: 0.35, type: "sine", gain: 0.7 },
+    { f: 1108.7, at: 0.32, len: 0.3, type: "sine", gain: 0.4 },
   ],
   levelUp: [
-    { f: 587.3, at: 0, len: 0.1, type: "square", gain: 0.3 },
-    { f: 784, at: 0.08, len: 0.1, type: "square", gain: 0.3 },
-    { f: 987.8, at: 0.16, len: 0.1, type: "square", gain: 0.3 },
-    { f: 1174.7, at: 0.24, len: 0.4, type: "triangle" },
+    { f: 523.3, at: 0, len: 0.08, type: "sine", gain: 0.5 },
+    { f: 659.3, at: 0.07, len: 0.08, type: "sine", gain: 0.5 },
+    { f: 784, at: 0.14, len: 0.08, type: "sine", gain: 0.6 },
+    { f: 1046.5, at: 0.21, len: 0.08, type: "sine", gain: 0.6 },
+    { f: 1318.5, at: 0.28, len: 0.4, type: "sine", gain: 0.7 },
+    { f: 1046.5, at: 0.28, len: 0.4, type: "sine", gain: 0.3 },
   ],
   quest: [
-    { f: 1046.5, at: 0, len: 0.08, type: "sine" },
-    { f: 1568, at: 0.07, len: 0.25, type: "sine" },
+    { f: 784, at: 0, len: 0.1, type: "sine", gain: 0.6 },
+    { f: 988, at: 0.08, len: 0.1, type: "sine", gain: 0.6 },
+    { f: 1318.5, at: 0.16, len: 0.25, type: "sine", gain: 0.7 },
   ],
-  ui: [{ f: 660, at: 0, len: 0.05, type: "sine", gain: 0.4 }],
+  ui: [
+    { f: 880, at: 0, len: 0.06, type: "sine", gain: 0.3 },
+  ],
 };
 
 let ctx: AudioContext | null = null;
 
-/** Suona l'effetto della categoria al volume scelto dall'utente. */
+function getCtx(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  if (!ctx) {
+    try { ctx = new AudioContext(); } catch { return null; }
+  }
+  if (ctx.state === "suspended") void ctx.resume();
+  return ctx;
+}
+
+// Ensure AudioContext can start after first user gesture
+if (typeof window !== "undefined") {
+  const unlock = () => {
+    getCtx();
+    window.removeEventListener("pointerdown", unlock, true);
+    window.removeEventListener("keydown", unlock, true);
+  };
+  window.addEventListener("pointerdown", unlock, true);
+  window.addEventListener("keydown", unlock, true);
+}
+
 export function sfx(cat: SfxCategory) {
-  if (typeof window === "undefined") return;
+  const ac = getCtx();
+  if (!ac) return;
   const { master, volumes } = useSettings.getState();
   const vol = master * (volumes[cat] ?? 0.8);
   if (vol <= 0.001) return;
   try {
-    ctx ??= new AudioContext();
-    if (ctx.state === "suspended") void ctx.resume();
-    const now = ctx.currentTime + 0.01;
-    const out = ctx.createGain();
-    out.gain.value = vol * 0.3;
-    out.connect(ctx.destination);
+    const now = ac.currentTime + 0.005;
+    const masterGain = ac.createGain();
+    masterGain.gain.value = vol;
+    masterGain.connect(ac.destination);
     for (const n of SOUNDS[cat]) {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = n.type ?? "sine";
-      o.frequency.setValueAtTime(n.f, now + n.at);
-      if (n.slide) o.frequency.exponentialRampToValueAtTime(n.slide, now + n.at + n.len);
-      g.gain.setValueAtTime(0, now + n.at);
-      g.gain.linearRampToValueAtTime(n.gain ?? 1, now + n.at + 0.012);
-      g.gain.exponentialRampToValueAtTime(0.0001, now + n.at + n.len);
-      o.connect(g).connect(out);
-      o.start(now + n.at);
-      o.stop(now + n.at + n.len + 0.05);
+      const osc = ac.createOscillator();
+      const env = ac.createGain();
+      osc.type = n.type ?? "sine";
+      osc.frequency.setValueAtTime(n.f, now + n.at);
+      if (n.detune) osc.detune.value = n.detune;
+      if (n.slide) osc.frequency.exponentialRampToValueAtTime(n.slide, now + n.at + n.len);
+      // ADSR-like envelope: quick attack, sustain, smooth release
+      env.gain.setValueAtTime(0, now + n.at);
+      env.gain.linearRampToValueAtTime(n.gain ?? 0.7, now + n.at + 0.008);
+      env.gain.setValueAtTime(n.gain ?? 0.7, now + n.at + n.len * 0.6);
+      env.gain.exponentialRampToValueAtTime(0.001, now + n.at + n.len);
+      osc.connect(env).connect(masterGain);
+      osc.start(now + n.at);
+      osc.stop(now + n.at + n.len + 0.02);
     }
   } catch {
-    /* audio non disponibile */
+    /* audio unavailable */
   }
 }
