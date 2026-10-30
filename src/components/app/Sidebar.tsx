@@ -21,7 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/learn", label: "learn", icon: BookOpen, color: "#9999ff" },
   { href: "/practice", label: "practice", icon: Clapperboard, color: "#2d8ceb" },
   { href: "/goals", label: "goals", icon: Target, color: "#d291ff" },
-  { href: "/friends", label: "friends", icon: Users, color: "#5ce1e6" },
+  { href: "/profile", label: "profile", icon: Users, color: "#5ce1e6" },
 ];
 
 function usePendingRequests() {
@@ -103,7 +103,7 @@ export function Sidebar() {
             key={item.href}
             item={item}
             active={pathname.startsWith(item.href) || (item.href === "/goals" && pathname.startsWith("/quests"))}
-            badge={item.href === "/goals" ? claimable : item.href === "/friends" ? pendingFriends : 0}
+            badge={item.href === "/goals" ? claimable : item.href === "/profile" ? pendingFriends : 0}
           />
         ))}
 

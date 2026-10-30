@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { BookOpen, Clapperboard, ScrollText, Sparkles, Users, CircleUserRound, type LucideIcon } from "lucide-react";
+import { BookOpen, Clapperboard, CircleUserRound, ScrollText, Sparkles, type LucideIcon } from "lucide-react";
 import { AppIcon } from "@/components/brand/Mascot";
 import { features } from "@/config/features";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
@@ -12,8 +12,6 @@ import { useHydrated } from "@/lib/hooks/useHydrated";
 import { todayState, useProgress } from "@/lib/progress/store";
 import { useAuth } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
-import { ProfileModal } from "@/components/profile/ProfileModal";
-import { SettingsModal } from "@/components/settings/SettingsModal";
 
 type Item = { href: string; icon: LucideIcon; color: string; activeColor: string };
 
@@ -24,7 +22,7 @@ const LEFT_ITEMS: Item[] = [
 
 const RIGHT_ITEMS: Item[] = [
   { href: "/quests", icon: ScrollText, color: "#c080ee", activeColor: "#d291ff" },
-  { href: "/friends", icon: Users, color: "#4cc8cc", activeColor: "#5ce1e6" },
+  { href: "/profile", icon: CircleUserRound, color: "#e88a5a", activeColor: "#f09a6a" },
 ];
 
 function usePendingRequests() {
@@ -71,7 +69,8 @@ function DockItem({ item, active, badge }: { item: Item; active: boolean; badge?
       <span className="relative grid h-11 w-11 place-items-center">
         <Icon
           size={25}
-          strokeWidth={2.4}
+          strokeWidth={1.8}
+          fill="currentColor"
           style={{ color: active ? item.activeColor : item.color }}
           className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
         />
@@ -85,30 +84,6 @@ function DockItem({ item, active, badge }: { item: Item; active: boolean; badge?
         <span className="h-1 w-5 rounded-full" style={{ background: item.activeColor }} />
       )}
     </Link>
-  );
-}
-
-function ProfileTab() {
-  const [modal, setModal] = useState<"profile" | "settings" | null>(null);
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setModal("profile")}
-        className="group relative flex flex-1 flex-col items-center justify-center py-2"
-      >
-        <span className="grid h-11 w-11 place-items-center">
-          <CircleUserRound
-            size={25}
-            strokeWidth={2.4}
-            className="text-[#e88a5a] drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
-          />
-        </span>
-      </button>
-      {modal === "profile" && <ProfileModal onClose={() => setModal(null)} />}
-      {modal === "settings" && <SettingsModal onClose={() => setModal(null)} />}
-    </>
   );
 }
 
@@ -163,11 +138,9 @@ export function Dock() {
           key={item.href}
           item={item}
           active={pathname.startsWith(item.href)}
-          badge={item.href === "/quests" ? claimable : item.href === "/friends" ? pendingFriends : 0}
+          badge={item.href === "/quests" ? claimable : item.href === "/profile" ? pendingFriends : 0}
         />
       ))}
-
-      <ProfileTab />
     </nav>
   );
 }

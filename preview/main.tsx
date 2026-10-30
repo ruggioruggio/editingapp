@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import AppLayout from "@/app/(app)/layout";
 import AiPage from "@/app/(app)/ai/page";
-import FriendsPage from "@/app/(app)/friends/page";
+import { ProfileView } from "@/components/profile/ProfileView";
 import LearnPage from "@/app/(app)/learn/page";
 import PracticePage from "@/app/(app)/practice/page";
 import PricingPage from "@/app/(app)/pricing/page";
@@ -65,7 +65,8 @@ const APP_PAGES: Record<string, () => React.ReactNode> = {
   // in Next /goals reindirizza alle quest con la scheda Obiettivi
   "/goals": () => <QuestsPage />,
   "/practice": () => <PracticePage />,
-  "/friends": () => <FriendsPage />,
+  "/friends": () => <ProfileView />,
+  "/profile": () => <ProfileView />,
   "/pricing": () => <PricingPage />,
   "/ai": () => <AiPage />,
 };
