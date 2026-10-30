@@ -39,38 +39,58 @@ const KIND_ICON: Record<LessonKind, LucideIcon> = {
 };
 
 function TreasureChest({ unlocked }: { unlocked: boolean }) {
+  const wood1 = unlocked ? "#c47a29" : "#5a5a64";
+  const wood2 = unlocked ? "#a0621e" : "#44444e";
+  const wood3 = unlocked ? "#8b5218" : "#3a3a44";
+  const woodLight = unlocked ? "#dea04a" : "#6e6e7a";
+  const metal = unlocked ? "#f5d67b" : "#9e9eaa";
+  const metalDark = unlocked ? "#c9a23c" : "#6e6e7a";
+  const shadow = unlocked ? "rgba(139,82,24,0.5)" : "rgba(0,0,0,0.4)";
+
   return (
     <div className="flex flex-col items-center py-2">
-      <div
-        className={clsx(
-          "relative grid h-16 w-16 place-items-center rounded-2xl transition-transform hover:scale-105",
-          unlocked ? "bg-gradient-to-b from-amber-400 to-amber-600" : "bg-gradient-to-b from-zinc-500 to-zinc-700",
-        )}
-        style={{
-          boxShadow: unlocked
-            ? "0 6px 0 #92400e, 0 8px 20px rgba(245,158,11,0.3)"
-            : "0 6px 0 #27272a, 0 8px 16px rgba(0,0,0,0.3)",
-        }}
-      >
-        {/* glossy highlight */}
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-1/2 rounded-t-2xl bg-gradient-to-b from-white/30 to-transparent" />
-        <svg viewBox="0 0 40 40" className="h-9 w-9" fill="none">
-          {/* chest body */}
-          <rect x="4" y="16" width="32" height="18" rx="3" fill={unlocked ? "#92400e" : "#3f3f46"} />
-          <rect x="4" y="16" width="32" height="9" rx="3" fill={unlocked ? "#b45309" : "#52525b"} />
-          {/* lid */}
-          <path d="M2 16 C2 10, 38 10, 38 16 L38 18 L2 18 Z" fill={unlocked ? "#d97706" : "#71717a"} />
-          <path d="M2 16 C2 10, 38 10, 38 16 L38 14 C38 8, 2 8, 2 14 Z" fill={unlocked ? "#f59e0b" : "#a1a1aa"} />
-          {/* clasp */}
-          <rect x="16" y="14" width="8" height="10" rx="2" fill={unlocked ? "#fbbf24" : "#d4d4d8"} />
-          <circle cx="20" cy="20" r="2" fill={unlocked ? "#92400e" : "#3f3f46"} />
-        </svg>
-        {unlocked && (
-          <div className="absolute -right-1 -top-1">
-            <Star size={16} className="text-yellow-300 drop-shadow" fill="currentColor" />
-          </div>
-        )}
-      </div>
+      <svg viewBox="0 0 80 72" className="h-[72px] w-[80px] drop-shadow-lg transition-transform hover:scale-105" fill="none">
+        {/* shadow on ground */}
+        <ellipse cx="40" cy="68" rx="32" ry="4" fill={shadow} />
+
+        {/* chest body - bottom half */}
+        <rect x="8" y="36" width="64" height="28" rx="4" fill={wood2} />
+        {/* wood planks on body */}
+        <rect x="8" y="36" width="64" height="7" rx="4" fill={wood1} />
+        <rect x="8" y="43" width="64" height="7" fill={wood2} />
+        <rect x="8" y="50" width="64" height="7" fill={wood3} />
+        <rect x="8" y="57" width="64" height="7" rx="4" fill={wood2} />
+        {/* body highlight (left edge) */}
+        <rect x="8" y="36" width="4" height="28" rx="2" fill={woodLight} opacity="0.3" />
+
+        {/* metal bands on body */}
+        <rect x="6" y="44" width="68" height="4" rx="2" fill={metalDark} />
+        <rect x="6" y="44" width="68" height="2" rx="1" fill={metal} />
+
+        {/* lid - top half (rounded/domed) */}
+        <path d={`M8 36 Q8 16, 40 14 Q72 16, 72 36 Z`} fill={wood1} />
+        {/* lid highlight */}
+        <path d={`M12 34 Q12 20, 40 18 Q68 20, 68 34 Z`} fill={woodLight} opacity="0.25" />
+        {/* lid plank line */}
+        <path d={`M10 30 Q10 22, 40 20 Q70 22, 70 30`} stroke={wood3} strokeWidth="1" fill="none" opacity="0.5" />
+
+        {/* metal band on lid */}
+        <path d={`M6 36 Q6 18, 40 16 Q74 18, 74 36`} stroke={metalDark} strokeWidth="3.5" fill="none" />
+        <path d={`M6 35 Q6 17, 40 15 Q74 17, 74 35`} stroke={metal} strokeWidth="1.5" fill="none" />
+
+        {/* side metal brackets */}
+        <rect x="6" y="32" width="5" height="12" rx="2" fill={metalDark} />
+        <rect x="6" y="32" width="3" height="12" rx="1.5" fill={metal} opacity="0.7" />
+        <rect x="69" y="32" width="5" height="12" rx="2" fill={metalDark} />
+        <rect x="71" y="32" width="3" height="12" rx="1.5" fill={metal} opacity="0.7" />
+
+        {/* center clasp / lock */}
+        <rect x="33" y="32" width="14" height="16" rx="3" fill={metalDark} />
+        <rect x="34" y="33" width="12" height="14" rx="2.5" fill={metal} />
+        <circle cx="40" cy="42" r="3.5" fill={metalDark} />
+        <circle cx="40" cy="42" r="2" fill={unlocked ? "#f59e0b" : "#52525b"} />
+        {unlocked && <circle cx="40" cy="42" r="1" fill="#fef3c7" />}
+      </svg>
     </div>
   );
 }
