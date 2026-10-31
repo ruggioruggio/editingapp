@@ -229,6 +229,7 @@ function LessonNode({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const lang = useSettings((s) => s.lang);
   const soon = lesson.status === "soon";
   const locked = soon || (!unlocked && !done);
   const Icon = locked ? Lock : done ? Star : KIND_ICON[lesson.kind];
@@ -276,7 +277,7 @@ function LessonNode({
               className="duo-btn w-full"
               style={{ ["--face" as string]: color, ["--shade" as string]: `color-mix(in srgb, ${color} 55%, black)`, ["--ink" as string]: "#121212" }}
             >
-              {done ? "Ripeti" : "Inizia"} +{getLesson(lesson.id)?.xp ?? 0} XP
+              {done ? "Ripeti" : "Inizia"} +{getLesson(lesson.id, lang)?.xp ?? 0} XP
             </Link>
           )}
         </div>

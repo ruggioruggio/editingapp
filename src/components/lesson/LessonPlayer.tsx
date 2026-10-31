@@ -9,6 +9,7 @@ import { Mascot } from "@/components/brand/Mascot";
 import { SqueakReaction } from "@/components/brand/Reactions";
 import { features } from "@/config/features";
 import { getLesson } from "@/content/lessons";
+import { loadLessonTranslations } from "@/content/lessons/i18n";
 import { canStartLesson, planOf, PLANS } from "@/lib/billing/plans";
 import { todayKey } from "@/lib/date";
 import { useHydrated } from "@/lib/hooks/useHydrated";
@@ -42,8 +43,14 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
   const completeLesson = useProgress((s) => s.completeLesson);
   const completeLessons = useProgress((s) => s.completeLessons);
 
+  const lang = useSettings((s) => s.lang);
+  const [, forceUpdate] = useState(0);
+  useEffect(() => {
+    if (lang === "it") return;
+    void loadLessonTranslations(lang).then(() => forceUpdate((n) => n + 1));
+  }, [lang]);
   const [test, setTest] = useState<{ lesson: Lesson; skipped: string[] } | null>(null);
-  const lesson = unitTestId ? test?.lesson : lessonId ? getLesson(lessonId) : undefined;
+  const lesson = unitTestId ? test?.lesson : lessonId ? getLesson(lessonId, lang) : undefined;
   const [access, setAccess] = useState<Access>(null);
   const [hearts, setHearts] = useState<number | null>(unitTestId ? UNIT_TEST_HEARTS : null);
   const [stepIndex, setStepIndex] = useState(0);

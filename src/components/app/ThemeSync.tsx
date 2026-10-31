@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { preloadLessonTranslations } from "@/content/lessons/i18n";
 import { resolvedTheme, useSettings } from "@/lib/settings/store";
 
 export function ThemeSync() {
@@ -19,6 +20,7 @@ export function ThemeSync() {
   }, [theme]);
   useEffect(() => {
     document.documentElement.lang = lang;
+    preloadLessonTranslations(lang);
   }, [lang]);
   return null;
 }

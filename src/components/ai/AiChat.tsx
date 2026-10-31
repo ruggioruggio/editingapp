@@ -15,6 +15,7 @@ import type { AiHistoryItem, AiStreamEvent } from "@/lib/ai/types";
 import { hasAiAssistant, planOf } from "@/lib/billing/plans";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useProgress } from "@/lib/progress/store";
+import { useSettings } from "@/lib/settings/store";
 import { Markdown } from "./Markdown";
 import { PracticeModal } from "./PracticeModal";
 
@@ -47,7 +48,8 @@ export function AiChat() {
   const hydrated = useHydrated();
   const plan = useProgress((s) => planOf(s));
   const params = useSearchParams();
-  const lesson = getLesson(params.get("lesson") ?? "");
+  const lang = useSettings((s) => s.lang);
+  const lesson = getLesson(params.get("lesson") ?? "", lang);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");

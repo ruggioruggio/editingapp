@@ -9,6 +9,7 @@ import { ResendEmail } from "@/components/auth/ResendEmail";
 import { authErrorMessage } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/supabase/config";
+import { useSettings } from "@/lib/settings/store";
 
 export function LoginForm() {
   const router = useRouter();
@@ -47,6 +48,7 @@ export function LoginForm() {
       setNeedConfirm(err.code === "email_not_confirmed");
       return setError(authErrorMessage(err));
     }
+    useSettings.getState().set({ onboardingDone: true });
     const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
     if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
       const { data: f } = await sb.auth.mfa.listFactors();

@@ -25,6 +25,7 @@ export interface OnboardingData {
   level: EditingLevel;
   software: string[];
   goal: string;
+  referral?: string;
 }
 
 interface SettingsState {
