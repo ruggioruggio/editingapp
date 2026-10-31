@@ -104,6 +104,14 @@ export function ProfileView() {
     ? new Date(profile.created_at).toLocaleDateString("it-IT", { month: "long", year: "numeric" })
     : null;
 
+  if (status !== "user") {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-6">
+        <FriendsPanel />
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Profile header — Instagram style */}
