@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { Construction } from "lucide-react";
 import { brand } from "@/config/brand";
 import { graceActive, useAdmin } from "@/lib/admin/client";
 import { useHydrated } from "@/lib/hooks/useHydrated";
@@ -47,7 +48,9 @@ export function MaintenanceGate() {
     <div className="fixed inset-0 z-[280] flex flex-col items-center justify-center gap-4 overflow-y-auto bg-app p-6 text-center">
       {/* toccando 7 volte il cantiere si apre il pannello admin */}
       <div data-admin-tap className="w-full max-w-md touch-manipulation select-none">
-        <SiteScene name="maintenance" className="aspect-[4/3] w-full" />
+        <Suspense fallback={<Construction size={80} className="mx-auto text-cheese" />}>
+          <SiteScene name="maintenance" className="aspect-[4/3] w-full" />
+        </Suspense>
       </div>
       <h1 className="text-3xl font-black">Siamo in manutenzione</h1>
       <p className="max-w-md text-ink-dim">{m.message || `${brand.appName} torna tra poco più bello di prima. Grazie della pazienza!`}</p>

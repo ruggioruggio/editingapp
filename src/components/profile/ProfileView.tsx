@@ -62,12 +62,14 @@ export function ProfileView() {
   const loadCounts = useCallback(async () => {
     const sb = getSupabase();
     if (!sb || !userId) return;
-    const [{ count: followers }, { count: following }] = await Promise.all([
-      sb.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
-      sb.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
-    ]);
-    setFollowerCount(followers ?? 0);
-    setFollowingCount(following ?? 0);
+    try {
+      const [{ count: followers }, { count: following }] = await Promise.all([
+        sb.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
+        sb.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
+      ]);
+      setFollowerCount(followers ?? 0);
+      setFollowingCount(following ?? 0);
+    } catch {}
   }, [userId]);
 
   useEffect(() => { void loadCounts(); }, [loadCounts]);
@@ -75,7 +77,7 @@ export function ProfileView() {
   const saveBio = async () => {
     setEditingBio(false);
     const sb = getSupabase();
-    if (sb && userId) await sb.from("profiles").update({ bio }).eq("id", userId);
+    if (sb && userId) await sb.from("profiles").update({ bio }).eq("id", userId).catch(() => {});
   };
 
   const uploadAvatar = async (file: File) => {
@@ -83,16 +85,19 @@ export function ProfileView() {
     if (!sb || !userId) return;
     if (file.size > 2 * 1024 * 1024) { alert("Max 2 MB"); return; }
     if (!file.type.startsWith("image/")) { alert("Solo immagini"); return; }
-    const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `avatars/${userId}.${ext}`;
-    const { error } = await sb.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
-    if (error) { alert("Upload non riuscito"); return; }
-    const { data } = sb.storage.from("avatars").getPublicUrl(path);
-    const url = `${data.publicUrl}?t=${Date.now()}`;
-    await sb.from("profiles").update({ avatar_url: url }).eq("id", userId);
-    setAvatarUrl(url);
-    // flag for admin review
-    await sb.from("avatar_reviews").upsert({ user_id: userId, avatar_url: url, status: "pending" }).select();
+    try {
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const path = `${userId}.${ext}`;
+      const { error } = await sb.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) { alert("Upload non riuscito: " + error.message); return; }
+      const { data } = sb.storage.from("avatars").getPublicUrl(path);
+      const url = `${data.publicUrl}?t=${Date.now()}`;
+      await sb.from("profiles").update({ avatar_url: url }).eq("id", userId);
+      setAvatarUrl(url);
+      await sb.from("avatar_reviews").upsert({ user_id: userId, avatar_url: url, status: "pending" }).select().catch(() => {});
+    } catch {
+      alert("Upload non riuscito. Verifica che il bucket 'avatars' esista su Supabase Storage.");
+    }
   };
 
   const joinDate = profile?.created_at

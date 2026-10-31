@@ -18,7 +18,6 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { Mascot } from "@/components/brand/Mascot";
 import { getTranslatedSections } from "@/content/course";
 import { useSettings } from "@/lib/settings/store";
 import { getLesson } from "@/content/lessons";
@@ -237,9 +236,7 @@ function LessonNode({
   return (
     <div data-lesson-node className="flex flex-col items-center">
       {current && !selected && (
-        <div className="animate-pop mb-2 flex items-center gap-1 rounded-xl border border-line bg-panel-2 px-3 py-1 text-xs font-black">
-          <Mascot size={30} idle /> INIZIA
-        </div>
+        <div className="mb-2 h-3 w-3 animate-bounce rounded-full" style={{ background: color }} />
       )}
       <button
         type="button"
@@ -259,10 +256,10 @@ function LessonNode({
               ? "linear-gradient(180deg, #fbbf24 0%, #d97706 100%)"
               : `linear-gradient(180deg, color-mix(in srgb, ${color} 85%, white) 0%, ${color} 100%)`,
           boxShadow: locked
-            ? "0 6px 0 var(--color-line)"
+            ? "0 6px 0 0 var(--color-line)"
             : done
-              ? "0 6px 0 #92400e"
-              : `0 6px 0 color-mix(in srgb, ${color} 40%, black)`,
+              ? "0 6px 0 0 #92400e"
+              : `0 6px 0 0 color-mix(in srgb, ${color} 40%, black)`,
         }}
       >
         {!locked && (

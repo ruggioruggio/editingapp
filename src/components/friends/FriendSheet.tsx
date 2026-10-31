@@ -111,12 +111,12 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
     loadConversation(sb, me, friend.id)
       .then((list) => alive && setMessages(list))
       .catch(() => alive && setError("Non riesco a caricare la chat."));
-    void markRead(sb, me, friend.id).then(onRead);
+    void markRead(sb, me, friend.id).then(onRead).catch(() => {});
 
     const stop = subscribeIncoming(sb, me, (m) => {
       if (m.sender_id !== friend.id) return;
       setMessages((list) => (list && !list.some((x) => x.id === m.id) ? [...list, m] : list));
-      void markRead(sb, me, friend.id);
+      void markRead(sb, me, friend.id).catch(() => {});
     });
     return () => {
       alive = false;
@@ -186,7 +186,7 @@ function FriendGoals({ friend }: { friend: FriendProfile }) {
 
   useEffect(() => {
     let alive = true;
-    loadFriendAchievements(sb, friend.id).then((l) => alive && setLevels(l));
+    loadFriendAchievements(sb, friend.id).then((l) => alive && setLevels(l)).catch(() => alive && setLevels({}));
     return () => {
       alive = false;
     };

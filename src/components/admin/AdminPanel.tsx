@@ -8,6 +8,7 @@ import { todayKey } from "@/lib/date";
 import { adminAction, adminLogin, adminLogout, markGrace, useAdmin, type Announcement } from "@/lib/admin/client";
 import { useProgress } from "@/lib/progress/store";
 import { useAuth, ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
+import { getSupabase } from "@/lib/supabase/client";
 import { ModSqueakScene } from "@/components/three/lazy";
 
 // Pannello di amministrazione: Pro regalato, sospensioni, amicizie forzate,
@@ -343,21 +344,32 @@ function MaintenanceTab() {
   const [message, setMessage] = useState(st.localMaintenance?.message ?? "");
   const { msg, busy, run } = useAsync();
   useEffect(() => {
-    if (st.mode === "server" && st.database)
-      void adminAction<{ settings: Record<string, { on?: boolean; message?: string }> }>("getSettings")
-        .then((r) => {
+    const loadRemote = async () => {
+      if (st.mode === "server" && st.database) {
+        try {
+          const r = await adminAction<{ settings: Record<string, { on?: boolean; message?: string }> }>("getSettings");
           const m = r.settings.maintenance;
-          if (m) {
-            setOn(!!m.on);
-            setMessage(m.message ?? "");
-          }
-        })
-        .catch(() => {});
+          if (m) { setOn(!!m.on); setMessage(m.message ?? ""); }
+        } catch {}
+      } else {
+        const sb = getSupabase();
+        if (sb) {
+          const { data } = await sb.from("app_settings").select("value").eq("key", "maintenance").maybeSingle<{ value: { on: boolean; message?: string } }>();
+          if (data?.value) { setOn(!!data.value.on); setMessage(data.value.message ?? ""); }
+        }
+      }
+    };
+    void loadRemote();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const apply = (next: boolean) =>
     run(async () => {
-      if (st.mode === "server" && st.database) await adminAction("maintenance", { on: next, message });
+      if (st.mode === "server" && st.database) {
+        await adminAction("maintenance", { on: next, message });
+      } else {
+        const sb = getSupabase();
+        if (sb) await sb.from("app_settings").upsert({ key: "maintenance", value: { on: next, message } }).select();
+      }
       st.set({ localMaintenance: { on: next, message } });
       setOn(next);
     }, next ? "Manutenzione attivata: gli utenti vedono il cantiere" : "Manutenzione disattivata: l'app è di nuovo aperta");
