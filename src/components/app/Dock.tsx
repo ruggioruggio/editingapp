@@ -31,12 +31,14 @@ function usePendingRequests() {
   const refresh = useCallback(async () => {
     const sb = getSupabase();
     if (!sb || !me) return;
-    const { count: n } = await sb
-      .from("friendships")
-      .select("id", { count: "exact", head: true })
-      .eq("addressee_id", me)
-      .eq("status", "pending");
-    setCount(n ?? 0);
+    try {
+      const { count: n } = await sb
+        .from("friendships")
+        .select("id", { count: "exact", head: true })
+        .eq("addressee_id", me)
+        .eq("status", "pending");
+      setCount(n ?? 0);
+    } catch {}
   }, [me]);
   useEffect(() => {
     if (status !== "user") return;

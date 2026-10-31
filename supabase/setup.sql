@@ -33,7 +33,7 @@ create policy "Ognuno aggiorna solo il proprio profilo"
 -- il client non può toccare piano, Pro regalato né sospensioni
 revoke all on public.profiles from anon, authenticated;
 grant select on public.profiles to authenticated;
-grant update (username, display_name, xp, streak_count, streak_last_day, updated_at) on public.profiles to authenticated;
+grant update (username, display_name, xp, streak_count, streak_last_day, updated_at, bio, avatar_url) on public.profiles to authenticated;
 
 create or replace function public.handle_new_user()
 returns trigger

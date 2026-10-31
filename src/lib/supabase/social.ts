@@ -60,9 +60,10 @@ export async function loadUnread(sb: SupabaseClient, me: string): Promise<Record
   return out;
 }
 
+let _inboxSeq = 0;
 export function subscribeIncoming(sb: SupabaseClient, me: string, onMessage: (m: ChatMessage) => void): () => void {
   const channel: RealtimeChannel = sb
-    .channel(`inbox-${me}`)
+    .channel(`inbox-${me}-${++_inboxSeq}`)
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `recipient_id=eq.${me}` }, (payload) =>
       onMessage(payload.new as ChatMessage),
     )

@@ -69,8 +69,8 @@ function GuestFriends({ disabled }: { disabled: boolean }) {
 }
 
 function SignedInFriends() {
-  const sb = getSupabase()!;
-  const me = useAuth((s) => s.userId)!;
+  const sb = getSupabase();
+  const me = useAuth((s) => s.userId);
   const profile = useAuth((s) => s.profile);
   const myXp = useProgress((s) => s.xp);
   const myStreak = useProgress((s) => currentStreak(s.streak));
@@ -88,6 +88,7 @@ function SignedInFriends() {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
+    if (!sb || !me) return;
     try {
       const [friends, streaks, unreadCounts, events] = await Promise.all([
         loadFriends(sb, me),
@@ -112,13 +113,12 @@ function SignedInFriends() {
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
 
-  useEffect(
-    () =>
-      subscribeIncoming(sb, me, (m) => {
-        if (m.sender_id !== openId) setUnread((u) => ({ ...u, [m.sender_id]: (u[m.sender_id] ?? 0) + 1 }));
-      }),
-    [sb, me, openId],
-  );
+  useEffect(() => {
+    if (!sb || !me) return;
+    return subscribeIncoming(sb, me, (m) => {
+      if (m.sender_id !== openId) setUnread((u) => ({ ...u, [m.sender_id]: (u[m.sender_id] ?? 0) + 1 }));
+    });
+  }, [sb, me, openId]);
 
   const clearUnread = useCallback(() => {
     if (openId) setUnread((u) => ({ ...u, [openId]: 0 }));
@@ -135,6 +135,7 @@ function SignedInFriends() {
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (!sb || !me) return;
     const name = input.trim().replace(/^@/, "").toLowerCase();
     if (!USERNAME_RE.test(name)) return setMessage({ tone: "error", text: "Nome utente non valido." });
     setBusy(true);

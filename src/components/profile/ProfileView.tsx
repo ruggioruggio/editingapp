@@ -63,12 +63,12 @@ export function ProfileView() {
     const sb = getSupabase();
     if (!sb || !userId) return;
     try {
-      const [{ count: followers }, { count: following }] = await Promise.all([
+      const [r1, r2] = await Promise.all([
         sb.from("follows").select("id", { count: "exact", head: true }).eq("following_id", userId),
         sb.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", userId),
       ]);
-      setFollowerCount(followers ?? 0);
-      setFollowingCount(following ?? 0);
+      if (!r1.error) setFollowerCount(r1.count ?? 0);
+      if (!r2.error) setFollowingCount(r2.count ?? 0);
     } catch {}
   }, [userId]);
 
