@@ -235,9 +235,6 @@ function LessonNode({
 
   return (
     <div data-lesson-node className="flex flex-col items-center">
-      {current && !selected && (
-        <div className="mb-2 h-3 w-3 animate-bounce rounded-full" style={{ background: color }} />
-      )}
       <button
         type="button"
         onClick={onSelect}
@@ -262,9 +259,6 @@ function LessonNode({
               : `0 6px 0 0 color-mix(in srgb, ${color} 40%, black)`,
         }}
       >
-        {!locked && (
-          <div className="pointer-events-none absolute inset-x-[6px] top-[4px] h-[38%] rounded-full bg-gradient-to-b from-white/35 to-transparent" />
-        )}
         <Icon size={done ? 30 : 28} strokeWidth={2.4} fill={done ? "currentColor" : "none"} />
       </button>
 
