@@ -1,9 +1,6 @@
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useSettings, type Lang } from "./store";
 
-// Traduzioni dell'interfaccia (menu, impostazioni, profilo, pulsanti delle
-// lezioni). I testi delle lezioni per ora restano in italiano.
-
 export const LANGS: { id: Lang; label: string; flag: string }[] = [
   { id: "it", label: "Italiano", flag: "🇮🇹" },
   { id: "en", label: "English", flag: "🇬🇧" },
@@ -401,11 +398,9 @@ export function translate(lang: Lang, key: TKey): string {
   return DICTS[lang]?.[key] ?? it[key];
 }
 
-/** Funzione di traduzione che si aggiorna quando cambia la lingua. */
 export function useT() {
   const hydrated = useHydrated();
   const saved = useSettings((s) => s.lang);
-  // prima dell'idratazione come il server (italiano), poi la lingua salvata
   const lang = hydrated ? saved : "it";
   return (key: TKey) => translate(lang, key);
 }

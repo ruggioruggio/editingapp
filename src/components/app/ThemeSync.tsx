@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { resolvedTheme, useSettings } from "@/lib/settings/store";
 
-/** Applica tema (anche "sistema", seguendo i cambi del sistema) e lingua alla pagina. */
 export function ThemeSync() {
   const theme = useSettings((s) => s.theme);
   const lang = useSettings((s) => s.lang);

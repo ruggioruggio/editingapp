@@ -3,10 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { BookOpen, Clapperboard, Sparkles, Target, Users, type LucideIcon } from "lucide-react";
-import { AppIcon } from "@/components/brand/Mascot";
+import { BookOpen, Clapperboard, Target, Users, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
-import { features } from "@/config/features";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { todayState, useProgress } from "@/lib/progress/store";
@@ -86,8 +84,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const claimable = useClaimableQuests();
   const pendingFriends = usePendingRequests();
-  const aiActive = pathname.startsWith("/ai");
-
   return (
     <nav
       aria-label="Navigazione principale"
@@ -106,21 +102,6 @@ export function Sidebar() {
             badge={item.href === "/goals" ? claimable : item.href === "/profile" ? pendingFriends : 0}
           />
         ))}
-
-        <Link
-          href="/ai"
-          aria-current={aiActive ? "page" : undefined}
-          className={clsx(
-            "group flex items-center gap-3 rounded-2xl px-4 py-3 text-[15px] font-black uppercase tracking-wide transition-colors",
-            aiActive ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white",
-          )}
-        >
-          <span className="relative h-[22px] w-[22px]">
-            <AppIcon size={22} />
-            {features.squeakAi && <Sparkles size={10} className="absolute -right-1 -top-1 text-cheese" fill="currentColor" />}
-          </span>
-          <span>Squeak AI</span>
-        </Link>
       </div>
     </nav>
   );

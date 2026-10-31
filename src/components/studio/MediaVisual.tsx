@@ -1,8 +1,5 @@
 import type { Subject } from "@/lib/studio/media";
 
-// Filmati finti ma "vivi": ogni soggetto si anima in base al tempo della clip,
-// così scorrendo la timeline si vede davvero il video cambiare.
-
 const wave = (t: number, speed: number, amp: number) => Math.sin(t * speed) * amp;
 
 export function MediaVisual({ subject, hue, t, text, thumb }: { subject: Subject; hue: number; t: number; text?: string; thumb?: boolean }) {

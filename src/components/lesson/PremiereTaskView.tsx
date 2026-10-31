@@ -10,7 +10,6 @@ import { RichText } from "./RichText";
 
 const fpsText = (f: number) => String(f).replace(".", ",");
 
-/** Tutorial nella finestra di Premiere: si può cambiare tutto, si controlla solo l'obiettivo. */
 export function PremiereTaskView({ step, onDone, onMistake }: { step: PremiereStep; onDone: () => void; onMistake: () => void }) {
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -49,7 +48,6 @@ export function PremiereTaskView({ step, onDone, onMistake }: { step: PremiereSt
       fail(problems);
       return false;
     }
-    // si festeggia a fine barra di avanzamento
     setError(null);
     setTimeout(succeed, 1200);
     return true;

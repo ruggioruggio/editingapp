@@ -6,10 +6,8 @@ import { EditorTaskView } from "@/components/lesson/StepViews";
 import { PRACTICE_SCENARIOS, type PracticeScenarioId } from "@/content/practice";
 import type { EditorTaskResult } from "@/lib/lessons/types";
 
-/** L'editor "temporaneo" stile Premiere aperto da Squeak AI per provare la soluzione. */
 export function PracticeModal({ scenario, task, onClose }: { scenario: PracticeScenarioId; task: string; onClose: () => void }) {
   const [result, setResult] = useState<EditorTaskResult>({ done: false });
-  // oggetto stabile: EditorTaskView ricarica la timeline quando lo step cambia
   const step = useMemo(() => ({ ...PRACTICE_SCENARIOS[scenario].step, instructions: task }), [scenario, task]);
 
   useEffect(() => {

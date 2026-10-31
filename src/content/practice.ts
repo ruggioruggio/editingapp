@@ -1,10 +1,6 @@
 import type { EditorStep } from "@/lib/lessons/types";
 import { primoTaglio } from "./lessons/primo-taglio";
 
-// Esercizi che Squeak AI può aprire nel mini-editor per far provare la
-// soluzione. Si allarga insieme alle capacità dell'editor: ogni nuovo
-// strumento (trim, transizioni, colore…) aggiunge qui il suo scenario.
-
 const editorSteps = primoTaglio.steps.filter((s): s is EditorStep => s.kind === "editor");
 
 export const PRACTICE_SCENARIOS = {

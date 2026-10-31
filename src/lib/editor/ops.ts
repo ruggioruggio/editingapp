@@ -1,8 +1,5 @@
 import type { Clip, Sequence, TrackId } from "./types";
 
-// Operazioni pure sulla sequenza: niente React, così sono riusabili
-// nei validatori degli esercizi, nei test e (in futuro) lato server.
-
 const EPS = 1e-6;
 let counter = 0;
 export const uid = (prefix = "c") => `${prefix}${++counter}${Math.random().toString(36).slice(2, 6)}`;
@@ -23,14 +20,12 @@ export function clipAt(seq: Sequence, track: TrackId, t: number): Clip | undefin
   return seq.clips.find((c) => c.track === track && t >= c.start - EPS && t < clipEnd(c) - EPS);
 }
 
-/** La clip e tutte quelle collegate (video+audio con lo stesso linkId). */
 export function linkedGroup(seq: Sequence, clipId: string): Clip[] {
   const clip = seq.clips.find((c) => c.id === clipId);
   if (!clip) return [];
   return clip.linkId ? seq.clips.filter((c) => c.linkId === clip.linkId) : [clip];
 }
 
-/** Strumento Lama: divide la clip (e le collegate) al tempo t. */
 export function razor(seq: Sequence, clipId: string, t: number): Sequence {
   const minLen = frame(seq);
   const cuttable = linkedGroup(seq, clipId).filter(
@@ -51,7 +46,6 @@ export function razor(seq: Sequence, clipId: string, t: number): Sequence {
   return { ...seq, clips };
 }
 
-/** Elimina (Canc) o elimina con increspatura (Shift+Canc) chiudendo il vuoto. */
 export function deleteClips(seq: Sequence, clipIds: string[], ripple: boolean): Sequence {
   const ids = new Set(clipIds.flatMap((id) => linkedGroup(seq, id).map((c) => c.id)));
   const removed = seq.clips.filter((c) => ids.has(c.id));
@@ -66,9 +60,6 @@ export function deleteClips(seq: Sequence, clipIds: string[], ripple: boolean): 
   return { ...seq, clips };
 }
 
-// --- Analisi, usate dai validatori degli esercizi ---
-
-/** Punti di montaggio: dove una clip inizia esattamente alla fine della precedente. */
 export function editPoints(seq: Sequence, track: TrackId): number[] {
   const clips = trackClips(seq, track);
   const points: number[] = [];
@@ -78,7 +69,6 @@ export function editPoints(seq: Sequence, track: TrackId): number[] {
   return points;
 }
 
-/** C'è nero (un vuoto) tra l'inizio della sequenza e l'ultima clip? */
 export function hasGaps(seq: Sequence, track: TrackId): boolean {
   const clips = trackClips(seq, track);
   const half = frame(seq) / 2;
@@ -87,7 +77,6 @@ export function hasGaps(seq: Sequence, track: TrackId): boolean {
   return clips.some((c, i) => i > 0 && c.start - clipEnd(clips[i - 1]) > half);
 }
 
-/** Quanti secondi dell'intervallo sorgente [from, to] sono ancora in timeline. */
 export function sourceCoverage(seq: Sequence, track: TrackId, mediaId: string, from: number, to: number): number {
   return seq.clips
     .filter((c) => c.track === track && c.mediaId === mediaId)

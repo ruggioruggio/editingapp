@@ -8,7 +8,6 @@ import { THEME_BOOT } from "@/lib/settings/store";
 import { brand } from "@/config/brand";
 import "./globals.css";
 
-// Font arrotondato e amichevole, nello spirito di Duolingo
 const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", weight: ["400", "600", "700", "800", "900"] });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
 

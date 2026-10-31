@@ -4,10 +4,6 @@ import { useId, type ReactNode } from "react";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { DEFAULT_AVATAR, useSettings, type Avatar } from "@/lib/settings/store";
 
-// Avatar del giocatore: Squeak in versione chibi (testone come l'icona
-// dell'app, corpo piccolo), con occhi in stile anime/kaomoji, magliette,
-// muscoli, accessori (anche anime) e sfondi sfumati come l'icona.
-
 export const FURS = [
   { name: "Grigio", light: "#ffffff", main: "#e4e6ee", dark: "#a9aebd" },
   { name: "Nocciola", light: "#f3dcc4", main: "#c99a6e", dark: "#8f6640" },
@@ -42,7 +38,6 @@ export const ACCESSORIES = [
   "Coprifronte ninja",
 ];
 
-/** Sfondi: sfumatura in diagonale come l'icona, con macchie di luce sfocate. */
 export const BACKGROUNDS: { name: string; stops: [string, string, string]; blob: string }[] = [
   { name: "Notte", stops: ["#4a4a58", "#18181c", "#030304"], blob: "#9999ff" },
   { name: "Viola", stops: ["#b9a8ff", "#6b4fe0", "#2a1460"], blob: "#ff8ad8" },
@@ -56,7 +51,6 @@ export const BACKGROUNDS: { name: string; stops: [string, string, string]; blob:
   { name: "Ghiaccio", stops: ["#ffffff", "#a6c1ee", "#3b4a7a"], blob: "#fbc2eb" },
 ];
 
-/** Lo stesso sfondo in CSS (per i campioni da scegliere). */
 export const bgCss = (i: number) => {
   const b = BACKGROUNDS[i % BACKGROUNDS.length];
   return `radial-gradient(circle at 22% 20%, ${b.blob}aa 0, transparent 45%), radial-gradient(circle at 85% 90%, ${b.stops[0]}88 0, transparent 40%), linear-gradient(135deg, ${b.stops.join(", ")})`;
@@ -73,7 +67,6 @@ const EYE_L = 76;
 const EYE_R = 124;
 const EYE_Y = 94;
 
-/** Il disegno dell'avatar (SVG quadrato, si adatta al contenitore). */
 export function AvatarArt({ avatar, size = 96, round = true }: { avatar: Avatar; size?: number; round?: boolean }) {
   const uid = useId().replace(/:/g, "");
   const a = { ...DEFAULT_AVATAR, ...avatar };
@@ -84,8 +77,8 @@ export function AvatarArt({ avatar, size = 96, round = true }: { avatar: Avatar;
   const m = Math.max(0, Math.min(3, a.muscles));
   const shirtC = shirt === 6 ? "#8a5a3c" : shirt === 7 ? "#ff8a1f" : SHIRT_COLORS[a.shirtColor % SHIRT_COLORS.length];
   const shirtD = darker(shirtC);
-  const sw = [30, 36, 44, 54][m]; // mezza larghezza delle spalle
-  const bw = [sw + 4, sw + 2, sw * 0.85, sw * 0.74][m]; // più muscoli = busto a V
+  const sw = [30, 36, 44, 54][m];
+  const bw = [sw + 4, sw + 2, sw * 0.85, sw * 0.74][m];
   const arm = [9, 11, 15, 20][m];
   const torso = `M${100 - bw} 215 L${100 - sw} 158 Q${100 - sw} 136 ${100 - sw + 18} 134 L${100 + sw - 18} 134 Q${100 + sw} 136 ${100 + sw} 158 L${100 + bw} 215 Z`;
   const bareArms = shirt === 2 || shirt === 5;
@@ -243,7 +236,6 @@ export function AvatarArt({ avatar, size = 96, round = true }: { avatar: Avatar;
   );
 }
 
-/** Occhi in stile anime / kaomoji (vedi la lista EYES). */
 function Eyes({ kind }: { kind: number }) {
   const both = (f: (x: number, s: number) => ReactNode) => (
     <>
@@ -253,62 +245,61 @@ function Eyes({ kind }: { kind: number }) {
   );
   const line = { fill: "none", stroke: INK, strokeWidth: 4, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   switch (kind) {
-    case 1: // ^ ^
+    case 1:
       return both((x) => <path key={x} d={`M${x - 9} ${EYE_Y + 3} L${x} ${EYE_Y - 7} L${x + 9} ${EYE_Y + 3}`} {...line} />);
-    case 2: // > <
+    case 2:
       return (
         <>
           <path d={`M${EYE_L - 8} ${EYE_Y - 8} L${EYE_L + 8} ${EYE_Y} L${EYE_L - 8} ${EYE_Y + 8}`} {...line} />
           <path d={`M${EYE_R + 8} ${EYE_Y - 8} L${EYE_R - 8} ${EYE_Y} L${EYE_R + 8} ${EYE_Y + 8}`} {...line} />
         </>
       );
-    case 3: // O O
+    case 3:
       return both((x) => <circle key={x} cx={x} cy={EYE_Y} r="8" fill="#fff" stroke={INK} strokeWidth="4" />);
-    case 4: // ◉ ◉
+    case 4:
       return both((x) => (
         <g key={x}>
           <circle cx={x} cy={EYE_Y} r="10" fill="#fff" stroke={INK} strokeWidth="3.5" />
           <circle cx={x} cy={EYE_Y} r="5" fill={INK} />
         </g>
       ));
-    case 5: // @ @
+    case 5:
       return both((x) => <path key={x} d={`M${x} ${EYE_Y} m-1 0 a1.5 1.5 0 1 1 3 0 a4 4 0 1 1 -7 -1 a6.5 6.5 0 1 1 12 2 a9 9 0 1 1 -17 -3`} fill="none" stroke={INK} strokeWidth="2.6" strokeLinecap="round" />);
-    case 6: // chiusi, con le ciglia
+    case 6:
       return both((x, s) => (
         <g key={x}>
           <path d={`M${x - 10} ${EYE_Y - 1} Q${x} ${EYE_Y + 7} ${x + 10} ${EYE_Y - 1}`} {...line} />
           <path d={`M${x + 10 * s} ${EYE_Y - 1} l${4 * s} -4`} {...line} strokeWidth={3} />
         </g>
       ));
-    case 7: // T T
+    case 7:
       return both((x) => (
         <g key={x}>
           <path d={`M${x - 9} ${EYE_Y - 6} H${x + 9} M${x} ${EYE_Y - 6} V${EYE_Y + 6}`} {...line} />
           <path d={`M${x - 3} ${EYE_Y + 9} q3 10 0 18 q-3 -8 0 -18`} fill="#7fd0ff" opacity="0.9" />
         </g>
       ));
-    case 8: // occhiolino
+    case 8:
       return (
         <>
           <path d={`M${EYE_L - 8} ${EYE_Y - 7} L${EYE_L + 7} ${EYE_Y} L${EYE_L - 8} ${EYE_Y + 7}`} {...line} />
           <AnimeEye x={EYE_R} />
         </>
       );
-    case 9: // decisi, col taglio affilato verso il naso
+    case 9:
       return both((x, s) => (
         <g key={x}>
           <path d={`M${x + 11 * s} ${EYE_Y - 9} L${x - 11 * s} ${EYE_Y - 2} Q${x} ${EYE_Y + 12} ${x + 11 * s} ${EYE_Y - 9} Z`} fill={INK} />
           <circle cx={x + 3 * s} cy={EYE_Y - 1} r="2.2" fill="#fff" />
         </g>
       ));
-    case 10: // • •
+    case 10:
       return both((x) => <circle key={x} cx={x} cy={EYE_Y + 2} r="4.5" fill={INK} />);
     default:
       return both((x) => <AnimeEye key={x} x={x} />);
   }
 }
 
-/** Occhione lucido da anime (come nell'icona dell'app). */
 function AnimeEye({ x }: { x: number }) {
   return (
     <g>
@@ -321,7 +312,6 @@ function AnimeEye({ x }: { x: number }) {
 }
 
 function RyukHair() {
-  // ciuffi neri spettinati che spuntano in tutte le direzioni
   const spikes = [
     [30, 70, 2, 40],
     [36, 40, 18, 12],
@@ -345,7 +335,6 @@ function RyukHair() {
 }
 
 function OdmGear({ sw, bw }: { sw: number; bw: number }) {
-  // imbracatura a X, cintura e bombole di gas sui fianchi
   return (
     <g>
       <path d={`M${100 - sw + 6} 140 L${100 + bw - 8} 212 M${100 + sw - 6} 140 L${100 - bw + 8} 212`} stroke="#3a2a20" strokeWidth="5" strokeLinecap="round" />
@@ -373,7 +362,7 @@ function Scarf() {
 
 function Accessory({ kind }: { kind: number }) {
   switch (kind) {
-    case 1: // fiocco sull'orecchio
+    case 1:
       return (
         <g transform="translate(150 38) rotate(18)">
           <path d="M0 0 L-20 -12 Q-24 0 -20 12 Z" fill="#ff6fa8" />
@@ -382,7 +371,7 @@ function Accessory({ kind }: { kind: number }) {
           <path d="M-16 -6 L-8 -2 M16 -6 L8 -2" stroke="#fff" strokeWidth="1.6" opacity="0.6" strokeLinecap="round" />
         </g>
       );
-    case 2: // occhiali tondi
+    case 2:
       return (
         <g fill="rgba(255,255,255,0.15)" stroke="#3a2a20" strokeWidth="3">
           <circle cx={EYE_L} cy={EYE_Y} r="16" />
@@ -390,7 +379,7 @@ function Accessory({ kind }: { kind: number }) {
           <path d={`M${EYE_L + 16} ${EYE_Y} Q100 ${EYE_Y - 6} ${EYE_R - 16} ${EYE_Y}`} fill="none" />
         </g>
       );
-    case 3: // occhiali da sole
+    case 3:
       return (
         <g>
           <rect x={EYE_L - 19} y={EYE_Y - 12} width="36" height="24" rx="10" fill="#15151c" />
@@ -399,7 +388,7 @@ function Accessory({ kind }: { kind: number }) {
           <path d={`M${EYE_L - 12} ${EYE_Y - 4} l10 -4 M${EYE_R - 10} ${EYE_Y - 4} l10 -4`} stroke="#fff" strokeWidth="3" opacity="0.5" strokeLinecap="round" />
         </g>
       );
-    case 4: // cuffie
+    case 4:
       return (
         <g>
           <path d="M42 96 Q40 26 100 24 Q160 26 158 96" fill="none" stroke="#2b2b36" strokeWidth="9" strokeLinecap="round" />
@@ -411,7 +400,7 @@ function Accessory({ kind }: { kind: number }) {
           ))}
         </g>
       );
-    case 5: // corona
+    case 5:
       return (
         <g transform="translate(100 34) rotate(-8)">
           <path d="M-26 10 L-28 -14 L-14 -2 L0 -20 L14 -2 L28 -14 L26 10 Z" fill="#ffd25e" stroke="#c99323" strokeWidth="2.5" strokeLinejoin="round" />
@@ -420,14 +409,14 @@ function Accessory({ kind }: { kind: number }) {
           <circle cx="15" cy="5" r="3" fill="#3ecf8e" />
         </g>
       );
-    case 6: // aureola
+    case 6:
       return (
         <g>
           <ellipse cx="100" cy="22" rx="34" ry="9" fill="none" stroke="#ffe27a" strokeWidth="6" />
           <ellipse cx="100" cy="22" rx="34" ry="9" fill="none" stroke="#fff6c9" strokeWidth="2" />
         </g>
       );
-    case 7: // cerchietto con orecchie da gatto
+    case 7:
       return (
         <g>
           <path d="M50 66 Q100 22 150 66" fill="none" stroke="#2b2b36" strokeWidth="6" strokeLinecap="round" />
@@ -439,7 +428,7 @@ function Accessory({ kind }: { kind: number }) {
           ))}
         </g>
       );
-    case 8: // berretto con pompon
+    case 8:
       return (
         <g>
           <path d="M46 70 Q46 18 100 16 Q154 18 154 70 Z" fill="#9999ff" />
@@ -448,7 +437,7 @@ function Accessory({ kind }: { kind: number }) {
           <circle cx="100" cy="14" r="11" fill="#fff" />
         </g>
       );
-    case 9: // bandana
+    case 9:
       return (
         <g>
           <path d="M44 66 Q100 44 156 66 L156 78 Q100 58 44 78 Z" fill="#e0353f" />
@@ -458,7 +447,7 @@ function Accessory({ kind }: { kind: number }) {
           <circle cx="134" cy="62" r="1.8" fill="#fff" />
         </g>
       );
-    case 10: // cappello di paglia
+    case 10:
       return (
         <g>
           <ellipse cx="100" cy="50" rx="76" ry="15" fill="#f0cf6a" />
@@ -467,7 +456,7 @@ function Accessory({ kind }: { kind: number }) {
           <path d="M40 52 Q100 66 160 52" fill="none" stroke="#d9b24c" strokeWidth="2" />
         </g>
       );
-    case 11: // capelli alla Goku
+    case 11:
       return (
         <g fill="#16161c">
           <path d="M42 74 Q42 32 100 30 Q158 32 158 74 Q100 50 42 74 Z" />
@@ -475,14 +464,14 @@ function Accessory({ kind }: { kind: number }) {
           <path d="M60 56 L74 84 L82 58 L94 82 L100 56 L112 80 L118 58 L132 78 L140 56 Q100 40 60 56 Z" />
         </g>
       );
-    case 12: // capelli di Ryuk: ciuffo davanti (il resto è dietro la testa)
+    case 12:
       return (
         <g fill="#141418">
           <path d="M42 74 Q42 32 100 30 Q158 32 158 74 Q100 50 42 74 Z" />
           <path d="M48 64 L60 86 L68 60 L80 90 L88 58 L100 88 L110 58 L120 90 L130 60 L140 86 L152 64 Q100 30 48 64 Z" />
         </g>
       );
-    case 13: // il quaderno nero in mano
+    case 13:
       return (
         <g transform="translate(58 176) rotate(-12)">
           <rect x="-22" y="-28" width="44" height="56" rx="3" fill="#121216" stroke="#3a3a46" strokeWidth="2" />
@@ -495,7 +484,7 @@ function Accessory({ kind }: { kind: number }) {
           <circle cx="15" cy="15" r="5" fill="#ffc9d6" />
         </g>
       );
-    case 16: // coprifronte ninja
+    case 16:
       return (
         <g>
           <path d="M42 64 Q100 46 158 64 L158 80 Q100 62 42 80 Z" fill="#26407a" />
@@ -510,7 +499,6 @@ function Accessory({ kind }: { kind: number }) {
   }
 }
 
-/** Avatar dell'utente corrente (dalle impostazioni salvate). */
 export function MyAvatar({ size = 36, round = true }: { size?: number; round?: boolean }) {
   const hydrated = useHydrated();
   const avatar = useSettings((s) => s.avatar);

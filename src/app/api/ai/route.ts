@@ -16,7 +16,6 @@ const MODEL = "claude-opus-5-5";
 const MAX_QUESTION_CHARS = 4000;
 const MAX_HISTORY = 30;
 
-// Limite semplice per istanza: 20 richieste ogni 10 minuti per utente.
 const RATE_WINDOW_MS = 10 * 60 * 1000;
 const RATE_MAX = 20;
 const hits = new Map<string, number[]>();
@@ -31,7 +30,6 @@ function rateLimited(key: string) {
 
 const fail = (status: number, message: string) => NextResponse.json({ error: message }, { status });
 
-/** Squeak AI è una funzione Pro: il piano si legge dal database, mai dal client. */
 async function checkAccess(): Promise<{ key: string } | NextResponse> {
   if (process.env.SQUEAK_AI_DEV_UNLOCK === "true") return { key: "dev" };
   if (!isSupabaseConfigured) return fail(403, "Squeak AI richiede un account Pro.");
@@ -59,7 +57,6 @@ function parseHistory(raw: FormDataEntryValue | null): Anthropic.Beta.BetaMessag
     .slice(-MAX_HISTORY)
     .filter((m) => (m.role === "user" || m.role === "assistant") && typeof m.text === "string" && m.text.trim())
     .map((m) => ({ role: m.role, content: m.text.slice(0, 8000) }));
-  // la conversazione deve iniziare con l'utente
   while (messages[0]?.role === "assistant") messages.shift();
   return messages;
 }
@@ -69,7 +66,6 @@ function errorMessage(err: unknown): string {
   if (err instanceof Anthropic.RateLimitError) return "Squeak AI è molto richiesto in questo momento: riprova tra poco.";
   if (err instanceof Anthropic.BadRequestError) return "Non riesco a leggere questa richiesta. Prova con file più piccoli o meno allegati.";
   if (err instanceof Anthropic.APIError) return "Squeak AI non risponde, riprova tra qualche secondo.";
-  // errori dell'SDK prima della chiamata, tipicamente credenziali assenti
   if (err instanceof Anthropic.AnthropicError) return "Squeak AI non è configurato: manca la chiave API sul server.";
   return "Qualcosa è andato storto. Riprova.";
 }
@@ -104,7 +100,6 @@ export async function POST(request: NextRequest) {
 
   let client: Anthropic;
   try {
-    // le chiavi di organizzazione (non legate a un workspace) richiedono di indicarlo
     const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID;
     client = new Anthropic(workspaceId ? { defaultHeaders: { "anthropic-workspace-id": workspaceId } } : undefined);
   } catch {
@@ -115,7 +110,6 @@ export async function POST(request: NextRequest) {
     {
       model: MODEL,
       max_tokens: 16000,
-      // se il modello rifiuta, l'API riprova da sola su un modello di riserva
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
       output_config: { effort: "medium" },
@@ -137,7 +131,6 @@ export async function POST(request: NextRequest) {
         if (final.stop_reason === "refusal") {
           send({ type: "error", message: "Su questa richiesta non posso aiutarti. Prova a riformularla." });
         } else if (final.stop_reason !== "max_tokens") {
-          // l'input dello strumento arriva in streaming: va validato prima di usarlo
           const call = final.content.find((b) => b.type === "tool_use" && b.name === PRACTICE_TOOL.name);
           if (call?.type === "tool_use") {
             const input = call.input as { scenario?: unknown; task?: unknown };

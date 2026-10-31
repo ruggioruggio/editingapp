@@ -5,9 +5,6 @@ import clsx from "clsx";
 import { Check, ChevronRight, Menu as MenuIcon, X } from "lucide-react";
 import type { MenuItemLike } from "@/lib/studio/premiere";
 
-// Pezzi comuni ai simulatori, disegnati come l'interfaccia Adobe: barra dei
-// menu con sottomenu, menu contestuali, pannelli con schede, finestre, avvisi.
-
 export type { MenuItemLike };
 export type Menu = { label: string; items: MenuItemLike[] };
 
@@ -20,7 +17,6 @@ export function timecode(t: number, fps: number, sep = ":") {
   return `${p(Math.floor(s / 3600))}${sep}${p(Math.floor(s / 60) % 60)}${sep}${p(s % 60)}${sep}${p(ff)}`;
 }
 
-/** Elenco di voci di menu (barra dei menu, menu contestuali e sottomenu). */
 export function MenuList({ items, onClose, className, style }: { items: MenuItemLike[]; onClose: () => void; className?: string; style?: React.CSSProperties }) {
   const [sub, setSub] = useState<number | null>(null);
   const ref = useRef<HTMLDivElement>(null);
@@ -68,7 +64,6 @@ export function MenuList({ items, onClose, className, style }: { items: MenuItem
   );
 }
 
-/** Barra dei menu in alto, come quella del sistema su Mac. */
 export function MenuBar({ app, menus, right }: { app: string; menus: Menu[]; right?: ReactNode }) {
   const [open, setOpen] = useState<number | null>(null);
   const [left, setLeft] = useState(0);
@@ -110,7 +105,6 @@ export function MenuBar({ app, menus, right }: { app: string; menus: Menu[]; rig
   );
 }
 
-/** Menu contestuale (tasto destro) nel punto cliccato. */
 export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; items: MenuItemLike[]; onClose: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ x, y });
@@ -135,7 +129,6 @@ export function ContextMenu({ x, y, items, onClose }: { x: number; y: number; it
   );
 }
 
-/** Pannello con schede (sottolineata quella attiva, menu ≡ accanto). */
 export function Panel<T extends string>({
   tabs,
   tab,
@@ -202,7 +195,6 @@ export function Modal({ children, onClose, width = 560 }: { children: ReactNode;
   );
 }
 
-/** Finestra di dialogo in stile Adobe con titolo e pulsanti OK/Annulla. */
 export function Dialog({
   title,
   children,
@@ -283,13 +275,11 @@ export function KeysHelp({ title, rows, onClose }: { title: string; rows: [strin
   );
 }
 
-/** true se l'evento da tastiera arriva da un campo di testo (allora le scorciatoie tacciono). */
 export const typing = (e: KeyboardEvent) => {
   const el = e.target as HTMLElement | null;
   return !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable);
 };
 
-/** Avanza il tempo con requestAnimationFrame finché `active` è vero. */
 export function usePlayback(active: boolean, tick: (dt: number) => void) {
   const cb = useRef(tick);
   useEffect(() => {
@@ -309,7 +299,6 @@ export function usePlayback(active: boolean, tick: (dt: number) => void) {
   }, [active]);
 }
 
-/** true su schermi larghi (layout a pannelli affiancati come nel programma vero). */
 export function useWide() {
   return useSyncExternalStore(
     (cb) => {
@@ -322,7 +311,6 @@ export function useWide() {
   );
 }
 
-/** Divisore trascinabile tra pannelli. */
 export function Gutter({ dir, onDrag }: { dir: "x" | "y"; onDrag: (delta: number) => void }) {
   return (
     <div
@@ -347,7 +335,6 @@ export function Gutter({ dir, onDrag }: { dir: "x" | "y"; onDrag: (delta: number
   );
 }
 
-/** Valore blu trascinabile (come nei Controlli effetti): trascina o clicca per scrivere. */
 export function Scrub({
   value,
   onChange,

@@ -9,7 +9,6 @@ import { QuestBoard } from "./QuestBoard";
 
 type Tab = "quest" | "obiettivi";
 
-/** Quest giornaliere e obiettivi in un'unica pagina, con un selettore in alto. */
 export function QuestsAndGoals() {
   const params = useSearchParams();
   const [tab, setTab] = useState<Tab>(params.get("tab") === "obiettivi" ? "obiettivi" : "quest");

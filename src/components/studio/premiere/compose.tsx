@@ -9,9 +9,6 @@ import { clipAt, mediaTime, transRange, videoTracks, audioTracks, type Clip, typ
 import { FxWrap, MediaContent, SyncedAudio, boxTransform } from "../render";
 import { timecode } from "../chrome";
 
-// Composizione del fotogramma di una sequenza: tracce video dal basso verso
-// l'alto, effetti, livelli di regolazione, transizioni e grafica.
-
 export function GraphicLayers({ layers }: { layers: GraphicLayer[] }) {
   return (
     <>
@@ -43,7 +40,6 @@ export function motionAt(c: Clip, lt: number) {
   return { position: valueAt(c.motion.position, lt), scale: [sw, s], rotation: valueAt(c.motion.rotation, lt)[0], anchor: valueAt(c.motion.anchor, lt) };
 }
 
-/** Un livello (clip video) all'istante T della sequenza. */
 export function ClipLayer({ c, seq, project, T, playing, style }: { c: Clip; seq: Sequence; project: Project; T: number; playing: boolean; style?: CSSProperties }) {
   const m = project.media[c.mediaId];
   if (!m) return null;
@@ -67,13 +63,11 @@ export function ClipLayer({ c, seq, project, T, playing, style }: { c: Clip; seq
   );
 }
 
-/** Fotogramma completo della sequenza al tempo t. */
 export function SequenceFrame({ seq, project, t, playing = false }: { seq: Sequence; project: Project; t: number; playing?: boolean }) {
   let below: ReactNode[] = [];
   for (const track of videoTracks(seq)) {
     if (track.off) continue;
     const onTrack = seq.clips.filter((c) => c.track === track.id && c.enabled);
-    // transizione in corso su questa traccia?
     let done = false;
     for (const c of onTrack) {
       for (const side of ["in", "out"] as const) {
@@ -86,7 +80,6 @@ export function SequenceFrame({ seq, project, t, playing = false }: { seq: Seque
         const B = side === "in" ? c : undefined;
         const a = A && <ClipLayer key={A.id + "a"} c={A} seq={seq} project={project} T={t} playing={playing} />;
         const b = B && <ClipLayer key={B.id + "b"} c={B} seq={seq} project={project} T={Math.max(B.start, t)} playing={playing} />;
-        // con una sola clip la transizione va da/verso trasparente
         const aStyle: CSSProperties = { ...(fx.a ?? {}), ...(side === "out" ? { opacity: 1 - p } : {}) };
         const bStyle: CSSProperties = { ...(fx.b ?? {}), ...(side === "in" && !r.prev && !fx.b?.opacity && !fx.b?.clipPath && !fx.b?.transform && !fx.b?.maskImage ? { opacity: p } : {}) };
         const aEl = a && (
@@ -115,7 +108,6 @@ export function SequenceFrame({ seq, project, t, playing = false }: { seq: Seque
     if (!c || !c.enabled) continue;
     const m = project.media[c.mediaId];
     if (m?.kind === "adjustment") {
-      // il livello di regolazione applica i suoi effetti a tutto ciò che sta sotto
       const lt = t - c.start;
       const out = runEffects(c.effects.filter((e) => !getEffect(e.defId)?.audio), { w: seq.width, h: seq.height, t: lt, fps: seq.fps, id: c.id, name: c.name, timecode: timecode(t, seq.fps) });
       const op = valueAt(c.opacity, lt)[0] / 100;
@@ -133,7 +125,6 @@ export function SequenceFrame({ seq, project, t, playing = false }: { seq: Seque
   return <>{below}</>;
 }
 
-/** Audio dei file importati che stanno suonando. */
 export function SequenceAudio({ seq, project, t, playing }: { seq: Sequence; project: Project; t: number; playing: boolean }) {
   if (!playing) return null;
   const solo = audioTracks(seq).some((a) => a.solo);
@@ -151,7 +142,6 @@ export function SequenceAudio({ seq, project, t, playing }: { seq: Sequence; pro
   return <>{els}</>;
 }
 
-/** Livello audio (dB) per gli indicatori: segue clip, volume, effetti e un andamento finto del suono. */
 export function meterLevels(seq: Sequence, project: Project, t: number, playing: boolean): [number, number] {
   const solo = audioTracks(seq).some((a) => a.solo);
   let sum = 0;

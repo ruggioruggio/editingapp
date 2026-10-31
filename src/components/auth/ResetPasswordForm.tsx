@@ -6,10 +6,6 @@ import { authErrorMessage, useAuth } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { FormMessage, NotConfigured, SubmitButton, fieldClass } from "./AuthShell";
 
-/**
- * Due fasi nella stessa pagina: da non loggato chiede l'email e manda il link;
- * tornando dal link (sessione attiva) permette di scegliere la nuova password.
- */
 export function ResetPasswordForm() {
   const router = useRouter();
   const status = useAuth((s) => s.status);

@@ -6,10 +6,6 @@ import { ChevronRight, Folder, FolderOpen, Film } from "lucide-react";
 import type { SequenceSettings } from "@/lib/lessons/types";
 import { P, PButton, PCheck, PNumber, PSelect, PTabs, Row } from "./controls";
 
-// Finestra "Nuova sequenza" (File > Nuovo > Sequenza, Ctrl+N), riprodotta con
-// le stesse schede, gli stessi preset e la stessa regola di Premiere:
-// la dimensione del fotogramma si cambia solo in Modalità di modifica "Personalizzato".
-
 interface Preset {
   name: string;
   mode: EditingMode;
@@ -69,7 +65,7 @@ const TREE: PresetFolder[] = [
   { name: "XDCAM HD422", presets: [preset("XDCAM HD422 1080p25", "XDCAM HD422 1080p", 1920, 1080, 25)] },
 ];
 
-const DEFAULT = TREE[3].folders![0].presets![1]; // DSLR 1080p25
+const DEFAULT = TREE[3].folders![0].presets![1];
 
 function aspectLabel(w: number, h: number) {
   const g = (a: number, b: number): number => (b ? g(b, a % b) : a);
@@ -161,7 +157,6 @@ export function SequenceDialog({
     setWidth(p.width);
     setHeight(p.height);
   };
-  // in Premiere cambiare un'impostazione trasforma il preset in "Personalizzato"
   const customize = () => setSelected("");
 
   const custom = mode === "Personalizzato";

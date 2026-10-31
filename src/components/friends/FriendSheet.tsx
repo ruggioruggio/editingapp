@@ -19,7 +19,6 @@ import {
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
 
-/** Scheda di un amico: chat in tempo reale e obiettivi che ha sbloccato. */
 export function FriendSheet({
   me,
   friend,

@@ -2,10 +2,6 @@ import "server-only";
 import { createHmac, scryptSync, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 
-// Accesso al pannello admin: la password non è mai nel codice né nel browser.
-// In .env.local ci sono solo il suo hash (scrypt) e il segreto per firmare il
-// cookie di sessione, che dura poche ore.
-
 export const ADMIN_COOKIE = "sq_admin";
 const SESSION_HOURS = 6;
 
@@ -40,7 +36,6 @@ export async function isAdminSession(): Promise<boolean> {
   return want.length === have.length && timingSafeEqual(want, have);
 }
 
-// Limite ai tentativi: 5 errori ogni 15 minuti per indirizzo
 const attempts = new Map<string, { n: number; until: number }>();
 export function tooManyAttempts(ip: string) {
   const a = attempts.get(ip);

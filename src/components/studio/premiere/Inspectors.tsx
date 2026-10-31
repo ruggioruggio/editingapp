@@ -11,9 +11,6 @@ import { fmtSize } from "@/lib/studio/media";
 import { Scrub, field, timecode } from "../chrome";
 import * as A from "./actions";
 
-// Pannelli di ispezione: Controlli effetti (con mini timeline dei keyframe),
-// Proprietà, Grafica essenziale, Mixer clip audio e Metadati.
-
 const KIND_LABEL: [KeyKind, string][] = [
   ["linear", "Lineare"],
   ["ease", "Bézier"],
@@ -61,7 +58,6 @@ type Editor = {
   go: (t: number) => void;
 };
 
-/** Riga di una proprietà animabile: cronometro, nome, valori, navigatore e keyframe nella mini timeline. */
 function PropRow({
   label,
   p,
@@ -309,8 +305,6 @@ export function EffectRows({ list, onChange, ed, depth = 1 }: { list: EffectInst
   );
 }
 
-// ---- Controlli effetti ------------------------------------------------------------------------------
-
 export function EffectControls() {
   const st = usePremiere();
   const seq = seqOf(st);
@@ -319,7 +313,6 @@ export function EffectControls() {
   const [tlw, setTlw] = useState(240);
   const clip = seq?.clips.find((c) => st.selection.includes(c.id) && isVideoTrack(seq, c.track)) ?? seq?.clips.find((c) => st.selection.includes(c.id));
 
-  // Canc con il pannello attivo elimina i keyframe selezionati
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (usePremiere.getState().focus !== "effectControls" || !selKeys.length || (e.key !== "Delete" && e.key !== "Backspace")) return;
@@ -470,8 +463,6 @@ export function EffectControls() {
     </div>
   );
 }
-
-// ---- Proprietà / Grafica essenziale ---------------------------------------------------------------
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (

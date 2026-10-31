@@ -6,10 +6,6 @@ import { Gavel, X } from "lucide-react";
 import { adminAction, checkSession, graceActive, useAdmin } from "@/lib/admin/client";
 import { AdminPanel } from "./AdminPanel";
 
-// Apre il pannello admin con Alt + L (il tasto Fn non arriva al browser, quindi
-// funziona anche Alt + Fn + L) o toccando 7 volte il logo. Gestisce anche il ban rapido.
-
-// nei 10 minuti dopo l'ultimo uso non chiede la password; poi sì
 export const openPanel = () => {
   if (graceActive()) {
     useAdmin.setState({ open: true });
@@ -25,7 +21,6 @@ export function AdminGate() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // Alt + L (su Mac Opzione + L): si guarda il tasto fisico, non la lettera prodotta
       if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === "KeyL") {
         e.preventDefault();
         openPanel();
@@ -38,8 +33,6 @@ export function AdminGate() {
         else openPanel();
       }
     };
-    // 7 tocchi sul logo entro 4 secondi (contati alla pressione: i doppi tocchi
-    // veloci su telefono non generano tutti i "click")
     let taps: number[] = [];
     const onTap = (e: PointerEvent) => {
       if (!(e.target as HTMLElement | null)?.closest?.("[data-admin-tap]")) {
@@ -119,7 +112,6 @@ function QuickBan({ username: initial = "" }: { username?: string }) {
   );
 }
 
-/** Martello accanto a un utente (solo con le scorciatoie di moderazione attive). */
 export function ModHammer({ username }: { username: string }) {
   const { modShortcuts } = useAdmin();
   if (!modShortcuts) return null;

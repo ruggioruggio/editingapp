@@ -4,14 +4,6 @@ import { keyedValue, setExpressionEngine, type ExprCtx, type Key, type Prop } fr
 import { getEffect } from "./effects";
 import { getProp, layerProps, type AeProject, type Comp, type Layer } from "./ae";
 
-// Motore delle espressioni di After Effects. Il codice viene analizzato con un
-// parser JavaScript vero (acorn) e riscritto in modo che + - * / funzionino
-// anche sui vettori come in After Effects ([1,2] + [3,4] = [4,6]). Poi gira in
-// un ambiente con tutta la libreria di AE: time, value, thisComp, thisLayer,
-// key(), nearestKey(), valueAtTime(), velocityAtTime(), wiggle(), loopOut(),
-// linear()/ease(), random()/seedRandom(), noise(), effect()(), matematica dei
-// vettori, conversioni di tempo e colore e molto altro.
-
 export interface ExprHost {
   project: AeProject;
   comp: Comp;
@@ -21,10 +13,6 @@ export interface ExprHost {
 
 type Vec = number[];
 type Val = number | Vec;
-
-// ---------------------------------------------------------------------------
-// 1. Riscrittura del codice: operatori sui vettori
-// ---------------------------------------------------------------------------
 
 const OPS: Record<string, string> = { "+": "__add", "-": "__sub", "*": "__mul", "/": "__div", "%": "__mod" };
 type Node = { type: string; [k: string]: unknown };
@@ -62,16 +50,10 @@ function compile(code: string) {
   return c;
 }
 
-// with + eval diretto: le variabili non dichiarate (amp = 5) finiscono nello
-// scope dell'espressione e il risultato è il valore dell'ultima istruzione.
 // eslint-disable-next-line @typescript-eslint/no-implied-eval
 const RUN = new Function("__scope", "__src", "with (__scope) { return eval(__src); }") as (scope: object, src: string) => unknown;
 
 const GLOBALS = new Set(["Math", "Number", "String", "Array", "Object", "JSON", "Boolean", "Date", "parseInt", "parseFloat", "isNaN", "isFinite", "NaN", "Infinity", "undefined", "eval", "__scope", "__src", "console"]);
-
-// ---------------------------------------------------------------------------
-// 2. Matematica dei vettori
-// ---------------------------------------------------------------------------
 
 class PropRef {
   constructor(
@@ -119,10 +101,6 @@ const vlength = (a: unknown, b?: unknown) => {
   return Math.hypot(...v);
 };
 
-// ---------------------------------------------------------------------------
-// 3. Rumore e numeri casuali
-// ---------------------------------------------------------------------------
-
 function hash(n: number) {
   let x = Math.imul(n | 0, 0x9e3779b1) ^ 0x85ebca6b;
   x ^= x >>> 15;
@@ -135,7 +113,6 @@ function hash(n: number) {
 function grad(i: number, seed: number) {
   return hash(i * 7919 + seed * 104729) * 2 - 1;
 }
-/** Rumore di Perlin 1D, tra -1 e 1. */
 function perlin(x: number, seed = 0) {
   const i = Math.floor(x);
   const f = x - i;
@@ -155,10 +132,6 @@ function mulberry(seed: number) {
   };
 }
 
-// ---------------------------------------------------------------------------
-// 4. Valutazione
-// ---------------------------------------------------------------------------
-
 let depth = 0;
 let timeStack: number[] = [];
 const currentTime = () => timeStack[timeStack.length - 1] ?? 0;
@@ -175,7 +148,6 @@ const PROP_NAMES: Record<string, string> = {
   audioLevels: "a.level",
 };
 
-/** Valore (con espressione) di una proprietà di un livello qualsiasi. */
 function propValue(r: PropRef, t: number): Val {
   if (depth > 12) throw new Error("Riferimento circolare tra espressioni");
   if (!r.p.expr) return scalarize(keyedValue(r.p, t));
@@ -186,7 +158,6 @@ function keyObj(k: Key, i: number) {
   return { time: k.t, value: scalarize(k.v), index: i + 1 };
 }
 
-/** Oggetto proprietà come in AE: value, valueAtTime(), key(), numKeys… */
 function propObject(r: PropRef): unknown {
   const ks = r.p.keys ?? [];
   const api = {
@@ -222,7 +193,6 @@ function propObject(r: PropRef): unknown {
       return isVec(v) ? v[0] : v;
     },
   };
-  // permette position[0] e position.length come in AE
   return new Proxy(api, {
     get(target, k) {
       if (typeof k === "string" && /^\d+$/.test(k)) {
@@ -336,7 +306,6 @@ function compObject(host: ExprHost, comp: Comp): Record<string, unknown> {
 }
 
 function interp(kind: "linear" | "ease" | "easeIn" | "easeOut", args: unknown[]) {
-  // linear(t, tMin, tMax, v1, v2) oppure linear(t, v1, v2) con t tra 0 e 1
   let t = num(unwrap(args[0]));
   let tMin = 0;
   let tMax = 1;
@@ -485,7 +454,6 @@ export function runExpression(p: Prop, t: number, host: ExprHost): { value: numb
       return compObject(host, c2);
     },
     footage: (name: string) => ({ name, width: 1920, height: 1080, duration: 10, frameDuration: 1 / fps }),
-    // proprietà di questa
     numKeys: ks.length,
     key: (n: number) => {
       const k = ks[num(n) - 1];
@@ -531,12 +499,10 @@ export function runExpression(p: Prop, t: number, host: ExprHost): { value: numb
     loopIn: (type = "cycle", n = 0) => loop(p, scope.time, "in", String(type), num(n), null),
     loopOutDuration: (type = "cycle", d = 0) => loop(p, scope.time, "out", String(type), 0, num(d)),
     loopInDuration: (type = "cycle", d = 0) => loop(p, scope.time, "in", String(type), 0, num(d)),
-    // interpolazione
     linear: (...a: unknown[]) => interp("linear", a),
     ease: (...a: unknown[]) => interp("ease", a),
     easeIn: (...a: unknown[]) => interp("easeIn", a),
     easeOut: (...a: unknown[]) => interp("easeOut", a),
-    // vettori
     add: vadd,
     sub: vsub,
     mul: vmul,
@@ -560,7 +526,6 @@ export function runExpression(p: Prop, t: number, host: ExprHost): { value: numb
     },
     degreesToRadians: (d: number) => (num(unwrap(d)) * Math.PI) / 180,
     radiansToDegrees: (r: number) => (num(unwrap(r)) * 180) / Math.PI,
-    // tempo
     timeToFrames: (tt?: number, f = fps) => Math.floor((tt === undefined ? scope.time : num(tt)) * f),
     framesToTime: (frames: number, f = fps) => num(frames) / f,
     timeToTimecode: (tt?: number) => {
@@ -578,7 +543,6 @@ export function runExpression(p: Prop, t: number, host: ExprHost): { value: numb
       rand = rng();
       return f;
     },
-    // casualità
     random: randomFn,
     gaussRandom: (a?: unknown, b?: unknown) => {
       const g = gauss();
@@ -595,14 +559,12 @@ export function runExpression(p: Prop, t: number, host: ExprHost): { value: numb
       const a = toVec(v);
       return perlin(a[0] ?? 0, 3) * 0.5 + (a.length > 1 ? perlin((a[1] ?? 0) + 37.1, 5) * 0.3 : 0) + (a.length > 2 ? perlin((a[2] ?? 0) + 91.7, 9) * 0.2 : 0);
     },
-    // colore
     rgbToHsl,
     hslToRgb,
     hexToRgb: (hex: string) => {
       const h = String(hex).replace("#", "");
       return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).concat(1);
     },
-    // proprietà del livello come variabili dirette (position, scale…)
     index: comp.layers.indexOf(layer) + 1,
     name: layer.name,
     inPoint: layer.inPoint,
@@ -611,7 +573,6 @@ export function runExpression(p: Prop, t: number, host: ExprHost): { value: numb
     width: layer.w,
     height: layer.h,
     effect: (which: unknown) => effectLookup(layer, host, which),
-    // operatori sui vettori
     __add: vadd,
     __sub: vsub,
     __mul: vmul,

@@ -1,7 +1,6 @@
 import type { MetadataRoute } from "next";
 import { brand } from "@/config/brand";
 
-// PWA: l'app si installa su telefono/desktop dalla barra del browser
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: brand.appName,

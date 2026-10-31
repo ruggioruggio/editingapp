@@ -5,10 +5,6 @@ import { fileUrl, type Media } from "@/lib/studio/media";
 import type { FxOut } from "@/lib/studio/effects";
 import { MediaVisual } from "./MediaVisual";
 
-// Pezzi di disegno comuni: il contenuto di un file a un certo istante (anche i
-// video veri, tenuti sincronizzati con l'indicatore), gli effetti applicati a
-// un livello e il "palco" che scala la sequenza dentro al monitor.
-
 export function SyncedVideo({ src, t, playing, rate = 1 }: { src: string; t: number; playing: boolean; rate?: number }) {
   const ref = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -26,7 +22,6 @@ export function SyncedVideo({ src, t, playing, rate = 1 }: { src: string; t: num
   return <video ref={ref} src={src} muted playsInline preload="auto" className="h-full w-full object-fill" />;
 }
 
-/** Audio di un file importato: suona solo durante la riproduzione. */
 export function SyncedAudio({ src, t, playing, volume, rate = 1 }: { src: string; t: number; playing: boolean; volume: number; rate?: number }) {
   const ref = useRef<HTMLAudioElement>(null);
   useEffect(() => {
@@ -96,7 +91,6 @@ export function Offline({ name }: { name: string }) {
   );
 }
 
-/** Contenuto visivo di un file al tempo t (in secondi del file). */
 export function MediaContent({ media, t, playing = false, rate = 1 }: { media: Media; t: number; playing?: boolean; rate?: number }) {
   if (media.file) {
     const url = fileUrl(media.id);
@@ -123,7 +117,6 @@ export function MediaContent({ media, t, playing = false, rate = 1 }: { media: M
   }
 }
 
-/** Miniatura per i pannelli progetto (con scacchiera dietro la grafica trasparente). */
 export function Thumb({ media, t = 1 }: { media: Media; t?: number }) {
   if (media.kind === "adjustment") return <div className="grid h-full w-full place-items-center bg-[#3d3d52] text-[9px] text-white/70">Regolazione</div>;
   if (media.kind === "audio" && !media.subject) return <div className="h-full w-full bg-[#12261b]" />;
@@ -135,7 +128,6 @@ export function Thumb({ media, t = 1 }: { media: Media; t?: number }) {
   return <MediaContent media={media} t={t} />;
 }
 
-/** Applica il risultato degli effetti a un livello. `render(t)` disegna il contenuto (serve per Eco). */
 export function FxWrap({ out, w, h, t, render, style }: { out: FxOut; w: number; h: number; t: number; render: (t: number) => ReactNode; style?: CSSProperties }) {
   const lt = out.time ? out.time(t) : t;
   const mask = out.mask.length ? out.mask.join(", ") : undefined;
@@ -196,10 +188,6 @@ export function FxWrap({ out, w, h, t, render, style }: { out: FxOut; w: number;
   );
 }
 
-/**
- * Palco: un riquadro grande quanto la sequenza (in pixel veri) scalato per
- * stare nel monitor. `zoom` = "fit" oppure percentuale.
- */
 export function Stage({
   w,
   h,
@@ -255,7 +243,6 @@ export function Stage({
   );
 }
 
-/** Geometria di un livello: ancoraggio, posizione, scala, rotazione (anche 3D). */
 export function boxTransform(o: { anchor: number[]; position: number[]; scale: number[]; rotation: number; rotX?: number; rotY?: number; z?: number }) {
   const [ax, ay] = o.anchor;
   const [px, py] = o.position;

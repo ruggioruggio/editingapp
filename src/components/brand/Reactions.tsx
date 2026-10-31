@@ -4,9 +4,6 @@ import { useState, type CSSProperties, type ReactNode } from "react";
 import clsx from "clsx";
 import { MouseFigure, type MascotMood } from "./Mascot";
 
-// Le reazioni di Squeak a risposte giuste e sbagliate: 5 per tipo, scelte a
-// caso ogni volta. Animazioni in CSS (classi rx-* in globals.css).
-
 const CONFETTI = ["#ffc93c", "#9999ff", "#3ecf8e", "#ff6f9a", "#2d8ceb", "#ff9a5c"];
 
 function Stage({ children, className, size }: { children: ReactNode; className?: string; size: number }) {
@@ -26,8 +23,6 @@ const Squeak = ({ mood, className }: { mood: MascotMood; className?: string }) =
 );
 
 const vars = (o: Record<string, string | number>) => o as CSSProperties;
-
-// --- vittorie ---
 
 function WinJump() {
   return (
@@ -112,8 +107,6 @@ function WinTrophy() {
   );
 }
 
-// --- sconfitte ---
-
 function LoseRain() {
   return (
     <>
@@ -184,7 +177,6 @@ function LoseDeflate() {
 const WINS = [WinJump, WinSpin, WinCheese, WinDance, WinTrophy];
 const LOSSES = [LoseRain, LoseDizzy, LoseTear, LoseShake, LoseDeflate];
 
-/** Reazione casuale di Squeak: ogni volta che il componente appare ne sceglie una. */
 export function SqueakReaction({ outcome, size = 96, className }: { outcome: "win" | "lose"; size?: number; className?: string }) {
   const list = outcome === "win" ? WINS : LOSSES;
   const [index] = useState(() => Math.floor(Math.random() * list.length));

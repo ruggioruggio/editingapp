@@ -19,9 +19,7 @@ const APP = {
   ae: { name: "After Effects", short: "Ae", fg: "#d291ff", bg: "#1f0040" },
 } as const;
 
-/** Stato degli obiettivi, ricalcolato a ogni modifica del progetto nel simulatore. */
 function useGoals(step: StudioStep, ready: boolean): boolean[] {
-  // l'app di un esercizio non cambia mai, quindi l'hook usato resta sempre lo stesso
   const state = (step.app === "premiere" ? usePremiere : useAe)() as never;
   if (!ready) return step.goals.map(() => false);
   return (step.goals as Goal<never>[]).map((g) => {
@@ -33,10 +31,6 @@ function useGoals(step: StudioStep, ready: boolean): boolean[] {
   });
 }
 
-/**
- * Esercizio nel simulatore vero. Il progetto dell'utente viene messo da
- * parte finché la lezione resta su questo passo, poi torna com'era.
- */
 export function StudioTaskView({ step, onDone }: { step: StudioStep; onDone: () => void }) {
   const app = APP[step.app];
   const [ready, setReady] = useState(false);
@@ -116,9 +110,7 @@ function GoalList({ step, goals, compact }: { step: StudioStep; goals: boolean[]
   );
 }
 
-/** Scheda dell'esercizio sopra al simulatore: obiettivi, aiuto, ricomincia, torna alla lezione. */
 function TaskPanel({ step, goals, done, onClose, onRestart }: { step: StudioStep; goals: boolean[]; done: boolean; onClose: () => void; onRestart: () => void }) {
-  // sul telefono parte ridotta, per non coprire la timeline
   const [min, setMin] = useState(() => typeof window !== "undefined" && window.innerWidth < 700);
   const [hint, setHint] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);

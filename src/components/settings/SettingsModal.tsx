@@ -12,7 +12,6 @@ import { SFX_CATEGORIES, useSettings, type Theme } from "@/lib/settings/store";
 
 type Tab = "general" | "sounds" | "security";
 
-/** Finestra a schede con lingua, tema, volumi e sicurezza dell'account. */
 export function SettingsModal({ onClose }: { onClose: () => void }) {
   const t = useT();
   const [tab, setTab] = useState<Tab>("general");
@@ -43,7 +42,6 @@ export function Modal({ onClose, title, children, wide }: { onClose: () => void;
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  // nel body: l'header sfocato creerebbe un contenitore per "fixed"
   return createPortal(
     <div className="fixed inset-0 z-[80] grid place-items-center bg-black/60 p-3 backdrop-blur-sm" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={clsx("animate-pop flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-3xl border-2 border-line bg-app shadow-2xl", wide ? "max-w-3xl" : "max-w-lg")}>
@@ -279,7 +277,6 @@ function SecurityTab({ onClose }: { onClose: () => void }) {
                   if (error) return setMfaMsg(["Per disattivarla esci e rientra usando il codice 2FA, poi riprova.", false]);
                   return setFactor(null);
                 }
-                // via eventuali tentativi non completati
                 const { data: list } = await sb.auth.mfa.listFactors();
                 for (const f of list?.all ?? []) if (f.status !== "verified") await sb.auth.mfa.unenroll({ factorId: f.id });
                 const { data, error } = await sb.auth.mfa.enroll({ factorType: "totp", friendlyName: `SqueakEdit ${Date.now()}` });

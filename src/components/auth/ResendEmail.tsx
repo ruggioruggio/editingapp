@@ -4,10 +4,6 @@ import { useEffect, useState } from "react";
 import { getSupabase } from "@/lib/supabase/client";
 import { fieldClass } from "./AuthShell";
 
-/**
- * "Rimanda l'email": se il link è scaduto o l'email non è arrivata in tempo,
- * ne manda un'altra (al massimo una al minuto, come chiede Supabase).
- */
 export function ResendEmail({ email: initial = "", askEmail = false }: { email?: string; askEmail?: boolean }) {
   const [email, setEmail] = useState(initial);
   const [wait, setWait] = useState(0);

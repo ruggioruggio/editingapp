@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { Check, Flame, Heart, Target, X, Zap } from "lucide-react";
-import { AiAssistantButton } from "@/components/ai/AiAssistantButton";
+import { AlertTriangle, Check, Flame, Heart, Target, X, Zap } from "lucide-react";
 import { Mascot } from "@/components/brand/Mascot";
 import { SqueakReaction } from "@/components/brand/Reactions";
 import { features } from "@/config/features";
@@ -27,7 +26,6 @@ import { EditorTaskView, MatchView, QuizView, TheoryView } from "./StepViews";
 
 const pick = <T,>(list: T[]) => list[Math.floor(Math.random() * list.length)];
 
-/** Ultima lezione mancante della sua unità: si "sale di livello". */
 function finishesUnit(lessonId: string, completed: Record<string, unknown>) {
   const unit = sections.flatMap((s) => s.units).find((u) => u.lessons.some((l) => l.id === lessonId));
   return !!unit && unit.lessons.every((l) => l.id === lessonId || completed[l.id]);
@@ -37,10 +35,6 @@ type Feedback = { outcome: "win" | "lose"; title: string; text?: string; id: num
 
 type Access = "ok" | "limit" | "locked" | "missing" | null;
 
-/**
- * Player di una lezione. Con `unitTestId` diventa il test per saltare
- * all'unità indicata: domande sulle lezioni saltate e solo 3 vite.
- */
 export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unitTestId?: string }) {
   const hydrated = useHydrated();
   const t = useT();
@@ -61,8 +55,8 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
   const [mistakes, setMistakes] = useState(0);
   const [startedAt] = useState(() => Date.now());
   const [finished, setFinished] = useState<{ xp: number; accuracy: number; seconds: number; streakBefore: number } | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  // Controlli all'apertura: ordine delle lezioni, limite giornaliero, test di salto.
   useEffect(() => {
     if (!hydrated) return;
     const s = useProgress.getState();
@@ -83,7 +77,6 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
   const isLast = lesson ? stepIndex === lesson.steps.length - 1 : false;
   const [outOfHearts, setOutOfHearts] = useState(false);
 
-  /** Un errore: conta per la precisione e, nei test, costa una vita. */
   const miss = useCallback(() => {
     sfx("wrong");
     setMistakes((m) => m + 1);
@@ -135,7 +128,6 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
     setFeedback({ outcome: "lose", title: t("correctAnswer"), text: step.options[step.correctIndex], id: Date.now() });
   };
 
-  // esercizio nell'editor, finestra di Premiere o coppie completate: festeggia
   const practical = step?.kind === "editor" || step?.kind === "premiere" || step?.kind === "studio";
   useEffect(() => {
     if (!feedback && practical && editorResult.done) {
@@ -150,12 +142,10 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, practical, editorResult.done, matchDone, feedback]);
 
-  // Invio = verifica / continua, come in Duolingo
   const primary = feedback ? next : step?.kind === "quiz" ? check : step?.kind === "theory" ? next : undefined;
   const primaryDisabled = !feedback && ((step?.kind === "quiz" && selected === null) || practical || step?.kind === "match");
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // con il simulatore aperto Invio serve al simulatore, non alla lezione
       const typing = (e.target as HTMLElement | null)?.closest?.("input, textarea, [contenteditable=true]");
       if (e.key === "Enter" && primary && !primaryDisabled && !typing && !document.body.dataset.studioOpen) {
         e.preventDefault();
@@ -185,19 +175,31 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
 
   return (
     <div className="flex min-h-dvh flex-col">
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="animate-pop w-full max-w-sm rounded-2xl bg-panel-2 p-6 text-center shadow-2xl">
+            <AlertTriangle size={48} className="mx-auto mb-3 text-cheese" />
+            <h2 className="text-xl font-black">Vuoi uscire?</h2>
+            <p className="mt-2 text-sm text-ink-dim">Tutti i progressi di questa lezione andranno persi.</p>
+            <div className="mt-5 flex gap-3">
+              <button type="button" onClick={() => setShowExitConfirm(false)} className="duo-btn duo-ghost flex-1">Resta</button>
+              <Link href="/learn" className="duo-btn duo-red flex-1">Esci</Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="mx-auto flex h-20 w-full max-w-5xl items-center gap-4 px-4">
-        <Link href="/learn" aria-label="Esci dalla lezione" className="text-ink-mute hover:text-ink">
+        <button type="button" onClick={() => setShowExitConfirm(true)} aria-label="Esci dalla lezione" className="text-ink-mute hover:text-ink">
           <X size={26} strokeWidth={2.6} />
-        </Link>
+        </button>
         <div className="duo-progress flex-1">
           <div style={{ width: `${Math.max(4, (stepIndex / lesson.steps.length) * 100)}%` }} />
         </div>
-        {hearts !== null ? (
+        {hearts !== null && (
           <span className="flex items-center gap-1.5 text-lg font-black text-danger" aria-label={`${hearts} vite`}>
             <Heart size={26} fill="currentColor" /> {hearts}
           </span>
-        ) : (
-          <AiAssistantButton lessonId={lesson.id} />
         )}
       </header>
 
@@ -265,7 +267,6 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
   );
 }
 
-/** Schermata finale: reazione di vittoria a caso e le statistiche a schede. */
 function LessonComplete({ xp, accuracy, seconds, streakBefore }: { xp: number; accuracy: number; seconds: number; streakBefore: number }) {
   const router = useRouter();
   const t = useT();
@@ -314,9 +315,7 @@ function LessonComplete({ xp, accuracy, seconds, streakBefore }: { xp: number; a
 
 const DAY_LETTERS = ["D", "L", "M", "M", "G", "V", "S"];
 
-/** Schermata della serie: fiamma, numero di giorni e settimana con i giorni fatti. */
 function StreakScreen({ streak, onContinue }: { streak: number; onContinue: () => void }) {
-  // 5 giorni: quelli già fatti della serie (fino a oggi) e poi i prossimi
   const today = new Date();
   const days = Array.from({ length: 5 }, (_, i) => {
     const d = new Date(today);
@@ -376,7 +375,6 @@ function Blocked({ text }: { text: string }) {
   );
 }
 
-/** Test di salto: finite le 3 vite si torna al percorso (e si può riprovare). */
 function OutOfHearts() {
   return (
     <div className="animate-pop mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-5 px-4 text-center">
@@ -401,7 +399,7 @@ function Paywall() {
         <>
           <p className="text-ink-dim">
             Il piano Free include {PLANS.free.dailyLessonLimit} lezioni al giorno. Torna domani, oppure passa a Pro per
-            lezioni illimitate e l&apos;assistente AI.
+            lezioni illimitate.
           </p>
           <Link href="/pricing" className="duo-btn duo-violet w-full">
             Passa a Pro

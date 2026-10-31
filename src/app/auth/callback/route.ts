@@ -2,7 +2,6 @@ import { NextResponse, type NextRequest } from "next/server";
 import { safeNext } from "@/lib/supabase/config";
 import { createSupabaseServer } from "@/lib/supabase/server";
 
-// Ritorno da Google/Apple, dal link di conferma email e dal reset password.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");

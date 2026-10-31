@@ -8,10 +8,6 @@ interface InstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-/**
- * Installa SqueakEdit come app desktop (PWA) da Chrome/Edge.
- * Quando avremo la build nativa (Tauri) qui arriverà il link al .exe/.dmg.
- */
 export function InstallButton() {
   const [prompt, setPrompt] = useState<InstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);

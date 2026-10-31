@@ -19,7 +19,6 @@ export interface Achievement {
   icon: LucideIcon;
   color: string;
   metric: keyof AchievementInput;
-  /** ogni soglia è un livello da sbloccare */
   tiers: number[];
 }
 
@@ -34,7 +33,6 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "socievole", title: "Socievole", description: (n) => `Invia ${n} richieste di amicizia`, icon: UserPlus, color: "#5ce1e6", metric: "friendRequests", tiers: [1, 5, 10] },
 ];
 
-/** Livello raggiunto (0 = nessuno) e prossima soglia. */
 export function achievementLevel(a: Achievement, value: number) {
   const level = a.tiers.filter((t) => value >= t).length;
   const next = a.tiers[level] ?? null;
@@ -43,7 +41,6 @@ export function achievementLevel(a: Achievement, value: number) {
 
 export const totalTiers = ACHIEVEMENTS.reduce((sum, a) => sum + a.tiers.length, 0);
 
-/** Valori da cui si calcolano gli obiettivi, a partire dallo store dei progressi. */
 export function achievementInput(s: {
   xp: number;
   bestStreak: number;

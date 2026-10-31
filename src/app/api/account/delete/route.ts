@@ -4,10 +4,6 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
 
-// Eliminazione dell'account: l'utente è letto dal cookie di sessione (mai da
-// un id mandato dal client), poi la chiave service_role cancella l'utente.
-// Profilo, progressi, amicizie e messaggi spariscono a cascata.
-
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as { confirm?: string };
   if (body.confirm !== "ELIMINA") return NextResponse.json({ error: "Conferma mancante" }, { status: 400 });

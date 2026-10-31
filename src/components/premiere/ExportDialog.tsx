@@ -6,9 +6,6 @@ import { ChevronDown, Film, Monitor, Share2 } from "lucide-react";
 import type { ExportSettings } from "@/lib/lessons/types";
 import { P, PButton, PNumber, PSelect, Row } from "./controls";
 
-// Modalità "Esporta" di Premiere (File > Esporta > Media, Ctrl+M):
-// destinazioni a sinistra, impostazioni al centro, anteprima e riepilogo a destra.
-
 const FORMATS = ["H.264", "HEVC (H.265)", "QuickTime", "MPEG2", "AAC Audio", "GIF animata", "Sequenza PNG"] as const;
 const FPS = [23.976, 24, 25, 29.97, 30, 50, 59.94, 60] as const;
 const ENCODINGS = ["CBR", "VBR, 1 passaggio", "VBR, 2 passaggi"] as const;
@@ -53,7 +50,6 @@ export function ExportDialog({
   error,
   fileName = "Sequenza 01",
 }: {
-  /** impostazioni della sequenza da esportare (per "Corrispondenza sorgente") */
   source: { width: number; height: number; fps: number; seconds: number };
   onExport: (s: ExportSettings) => boolean;
   onCancel?: () => void;

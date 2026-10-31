@@ -6,7 +6,6 @@ import { Monitor } from "lucide-react";
 import { Mascot } from "@/components/brand/Mascot";
 import { SiteScene } from "@/components/three/lazy";
 
-/** Schermata mostrata dal telefono al posto dei simulatori completi. */
 export function DesktopOnly({ app }: { app: string }) {
   return (
     <div className="fixed inset-0 grid place-items-center bg-app p-6 text-center">

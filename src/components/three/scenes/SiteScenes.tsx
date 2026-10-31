@@ -20,12 +20,8 @@ import {
 } from "../props";
 import { createRig, easeInOut, easeOut, lerp, phase, resetRig, Shadow, SqueakModel, walkCycle } from "../SqueakModel";
 
-// Scene del sito: "diorami" in 3D visti di lato, con la camera che oscilla
-// piano per dare profondità. Squeak si muove di profilo e si gira verso di noi.
+const PROFILE_RIGHT = Math.PI / 2;
 
-const PROFILE_RIGHT = Math.PI / 2; // guarda verso +x
-
-/** Gruppo radice che ondeggia lentamente: rende evidente la prospettiva 3D. */
 function Diorama({ children, tilt = -0.22 }: { children: ReactNode; tilt?: number }) {
   const ref = useRef<THREE.Group>(null);
   useFrame((state) => {
@@ -34,11 +30,6 @@ function Diorama({ children, tilt = -0.22 }: { children: ReactNode; tilt?: numbe
   return <group ref={ref}>{children}</group>;
 }
 
-// 1. Braccio di gomma: Squeak col cappello di paglia e il mantello rosso allunga
-// il braccio, che diventa la curva del grafico di velocità di After Effects, e
-// ci sfreccia sopra come su uno scivolo.
-
-/** Cappello di paglia con la fascia rossa (coordinate della testa). */
 function StrawHat() {
   const straw = "#f0cf6a";
   return (
@@ -63,7 +54,6 @@ function StrawHat() {
   );
 }
 
-/** Mantello rosso continuo con bordo dorato (coordinate del corpo). */
 const Cape = forwardRef<THREE.Group>(function Cape(_props, ref) {
   return (
     <group ref={ref} position={[0, 1.55, -0.55]}>
@@ -87,7 +77,6 @@ const Cape = forwardRef<THREE.Group>(function Cape(_props, ref) {
 });
 
 function SlideScene() {
-  // il "grafico di velocità": sale piano, picco, ridiscende (come un easy ease)
   const curve = useMemo(
     () =>
       new THREE.CatmullRomCurve3([
@@ -129,16 +118,13 @@ function SlideScene() {
     };
     let fistAt = 0;
     let flap = 0.15;
-    // Gear 5: corpo elastico, sobbalza e ondeggia
     const wobble = Math.sin(t * 18) * 0.04;
     const bounce = Math.abs(Math.sin(t * 7)) * 0.06;
 
     if (t < 1.3) {
-      // si gira di profilo saltellando, carica il pugno indietro con esagerazione
       const hop = Math.abs(Math.sin(t * 8));
       b.position.set(START.x - 0.35, 0.2 + hop * 0.3, 0);
       b.rotation.z = wobble;
-      // squash/stretch gommoso mentre saltella
       const sq = 1 - hop * 0.15;
       if (r.body) r.body.scale.set(1 + (1 - sq) * 0.6, sq, 1 + (1 - sq) * 0.6);
       y.rotation.y = lerp(0.25, PROFILE_RIGHT, easeInOut(phase(t, 0.2, 0.9)));
@@ -147,12 +133,10 @@ function SlideScene() {
       if (r.head) r.head.rotation.z = Math.sin(t * 11) * 0.12;
       show(0, 0);
     } else if (t < 2.5) {
-      // GOMU GOMU: braccio si allunga, corpo ondeggia all'indietro
       const p = easeOut(phase(t, 1.3, 2.2));
       b.position.set(START.x - 0.35, 0.2 + bounce, 0);
       b.rotation.z = -0.06 * Math.sin(t * 14);
       y.rotation.y = PROFILE_RIGHT;
-      // si piega indietro mentre tira
       if (r.body) r.body.rotation.x = 0.15 * Math.sin(phase(t, 1.3, 2.2) * Math.PI);
       if (r.armR) r.armR.scale.setScalar(0.001);
       if (r.armL) r.armL.rotation.set(-0.6 + Math.sin(t * 16) * 0.4, 0, -0.6);
@@ -161,21 +145,17 @@ function SlideScene() {
       fistAt = p;
       flap = 0.6;
     } else if (t < 4.4) {
-      // vola lungo la curva gommosamente: si allunga, rimbalza, gambe che svolazzano
       const raw = phase(t, 2.5, 4.2);
       const p = raw ** 1.4;
       const pos = curve.getPointAt(Math.min(1, p));
       const tan = curve.getTangentAt(Math.min(1, p));
       const tAngle = Math.atan2(tan.y, tan.x);
       b.position.set(pos.x - 0.1, pos.y - 1.15, 0);
-      // il corpo segue la curva ma con un'ondulazione comica
       b.rotation.z = tAngle * 0.8 + Math.sin(t * 20) * 0.08;
       y.rotation.y = PROFILE_RIGHT;
-      // stretch nella direzione del moto (Gear 5!)
       const speed = Math.abs(tan.y) + 0.3;
       if (r.body) r.body.scale.set(1 / Math.sqrt(1 + speed * 0.2), 1 + speed * 0.2, 1);
       if (r.armR) r.armR.scale.setScalar(0.001);
-      // braccio sinistro e gambe svolazzano
       if (r.armL) r.armL.rotation.set(-2.7 + Math.sin(t * 22) * 0.5, 0, -0.3 + Math.sin(t * 18) * 0.2);
       if (r.footL) r.footL.position.set(-0.42, 0.1, 0.45 + Math.sin(t * 24) * 0.3);
       if (r.footR) r.footR.position.set(0.42, 0.1, 0.45 - Math.sin(t * 24) * 0.3);
@@ -184,20 +164,17 @@ function SlideScene() {
       fistAt = 1;
       flap = 1.3;
     } else {
-      // atterra con rimbalzo gommoso, si gira e fa una posa buffa
       const end = curve.getPointAt(1);
       const land = easeOut(phase(t, 4.4, 4.7));
       const landBounce = t < 5.2 ? Math.abs(Math.sin((t - 4.7) * 12)) * 0.2 * (1 - phase(t, 4.7, 5.2)) : 0;
       b.position.set(end.x + 0.15 * land, lerp(end.y - 1.15, 0.2, land) + landBounce, 0);
       b.rotation.z = lerp(b.rotation.z, wobble, 0.15);
-      // squash all'atterraggio
       if (r.body && t < 5.0) {
         const sq2 = 1 - landBounce * 0.6;
         r.body.scale.set(1 + (1 - sq2) * 0.8, sq2, 1 + (1 - sq2) * 0.8);
       }
       y.rotation.y = lerp(PROFILE_RIGHT, 0.2, easeInOut(phase(t, 4.8, 5.3)));
       if (t > 5.2) {
-        // posa Gear 5: braccia su e giù, testa che ciondola
         if (r.armR) r.armR.rotation.set(-2.9 + Math.sin(t * 10) * 0.2, 0, 0.15 + Math.sin(t * 7) * 0.15);
         if (r.armL) r.armL.rotation.set(-2.5 + Math.sin(t * 8) * 0.3, 0, -0.3 - Math.sin(t * 6) * 0.15);
         if (r.head) r.head.rotation.set(0, Math.sin(t * 5) * 0.15, Math.sin(t * 8) * 0.1);
@@ -276,7 +253,6 @@ function SlideScene() {
   );
 }
 
-// 2. Ciak: Squeak alza il ciak, lo batte e guarda verso di noi
 function ClapScene() {
   const mouse = useRef<THREE.Group>(null);
   const stick = useRef<THREE.Group>(null);
@@ -314,7 +290,6 @@ function ClapScene() {
   );
 }
 
-// 3. Merenda: tre morsi al formaggio, poi si gira soddisfatto
 function CheeseScene() {
   const mouse = useRef<THREE.Group>(null);
   const cheese = useRef<THREE.Group>(null);
@@ -359,7 +334,6 @@ function CheeseScene() {
   );
 }
 
-// 4. Keyframe: salta da un rombo all'altro e li accende
 function KeyframeScene() {
   const xs = [-1.8, -0.6, 0.6, 1.8];
   const mouse = useRef<THREE.Group>(null);
@@ -373,7 +347,6 @@ function KeyframeScene() {
     if (!m || !r.body) return;
     resetRig(r);
 
-    // salto "da cartone": carica schiacciandosi, vola allungato, atterra con un rimbalzo elastico
     const HOP = 0.9;
     const squash = (k: number) => r.body!.scale.set(1 + (1 - k) * 0.8, k, 1 + (1 - k) * 0.8);
     const hopIndex = Math.min(2, Math.floor(t / HOP));
@@ -393,7 +366,7 @@ function KeyframeScene() {
         y = 4 * 1.25 * g * (1 - g);
         const stretch = 1 + 0.18 * Math.abs(1 - 2 * g);
         r.body.scale.set(1 / Math.sqrt(stretch), stretch, 1 / Math.sqrt(stretch));
-        r.body.rotation.x = (0.5 - g) * 0.5; // si sporge in avanti salendo, indietro scendendo
+        r.body.rotation.x = (0.5 - g) * 0.5;
         if (r.armL && r.armR) {
           r.armL.rotation.set(-2.3 * Math.sin(g * Math.PI), 0, -0.3);
           r.armR.rotation.set(-2.3 * Math.sin(g * Math.PI), 0, 0.3);
@@ -405,7 +378,6 @@ function KeyframeScene() {
       }
       m.rotation.y = PROFILE_RIGHT;
     } else {
-      // arrivato: si gira verso di noi e fa un saltello di gioia
       m.rotation.y = lerp(PROFILE_RIGHT, 0, easeInOut(phase(t, 2.7, 3.1)));
       const joy = phase(t, 3.2, 3.75);
       if (joy > 0 && joy < 1) {
@@ -454,7 +426,6 @@ function KeyframeScene() {
 
 const TRACK_COLORS = ["#6f66e0", "#2f8a57", "#2d8ceb"];
 
-// 5. Corsa: Squeak insegue il playhead lungo la timeline
 function RunScene() {
   const runner = useRef<THREE.Group>(null);
   const rig = useRef(createRig());
@@ -498,7 +469,6 @@ function RunScene() {
   );
 }
 
-// 6. Pro in arrivo: Squeak al cantiere, col caschetto, martella il cartello
 function ConstructionScene({ lines = ["SQUEAKEDIT PRO", "IN ARRIVO"] }: { lines?: [string, string] }) {
   const mouse = useRef<THREE.Group>(null);
   const rig = useRef(createRig());
@@ -512,7 +482,6 @@ function ConstructionScene({ lines = ["SQUEAKEDIT PRO", "IN ARRIVO"] }: { lines?
 
     if (t < 2.4) {
       mouse.current.rotation.y = PROFILE_RIGHT * 0.85;
-      // martellate: carica il colpo, poi giù veloce
       let arm = -1.3;
       for (const h of hits) {
         if (t > h - 0.4 && t <= h) arm = lerp(-1.3, -2.8, easeOut(phase(t, h - 0.4, h - 0.1)));
@@ -522,7 +491,6 @@ function ConstructionScene({ lines = ["SQUEAKEDIT PRO", "IN ARRIVO"] }: { lines?
     } else {
       mouse.current.rotation.y = lerp(PROFILE_RIGHT * 0.85, 0.1, easeInOut(phase(t, 2.4, 2.8)));
       if (t > 2.8 && t < 4.4) {
-        // si asciuga la fronte e saluta
         if (r.armL) r.armL.rotation.set(-2.6, 0, -0.3 - Math.sin(t * 12) * 0.35);
         if (r.head) r.head.rotation.z = Math.sin(t * 3) * 0.1;
       }
@@ -564,7 +532,6 @@ function ConstructionScene({ lines = ["SQUEAKEDIT PRO", "IN ARRIVO"] }: { lines?
   );
 }
 
-// 7. Community: Squeak tiene in mano il logo di Discord in 3D
 function DiscordScene() {
   const mouse = useRef<THREE.Group>(null);
   const logo = useRef<THREE.Group>(null);
@@ -576,7 +543,6 @@ function DiscordScene() {
     const r = rig.current;
     if (!mouse.current || !logo.current) return;
     resetRig(r);
-    // ogni tanto lo alza sopra la testa, passando davanti al muso (mai attraverso)
     const lift = u > 2.6 && u < 4.0 ? Math.sin(phase(u, 2.6, 4.0) * Math.PI) : 0;
     if (r.armL && r.armR) {
       r.armL.rotation.set(-1.45 - lift * 1.2, 0, -0.35);
@@ -606,9 +572,6 @@ function DiscordScene() {
 
 type V3 = [number, number, number];
 
-
-// 9. Arrabbiato: dal telefono il simulatore non si apre. Squeak pesta i
-// piedi, scuote il telefono e gli esce il vapore dalle orecchie.
 function AngryScene() {
   const mouse = useRef<THREE.Group>(null);
   const phoneRef = useRef<THREE.Group>(null);
@@ -621,13 +584,11 @@ function AngryScene() {
     if (!mouse.current) return;
     resetRig(r);
     const c = t % 2.4;
-    // pestoni alternati
     const stomp = Math.abs(Math.sin(c * Math.PI * 2.5));
     if (r.footL) r.footL.position.y = 0.1 + (Math.sin(c * Math.PI * 5) > 0 ? stomp * 0.25 : 0);
     if (r.footR) r.footR.position.y = 0.1 + (Math.sin(c * Math.PI * 5) < 0 ? stomp * 0.25 : 0);
     if (r.body) r.body.position.y = Math.abs(Math.sin(c * Math.PI * 5)) * 0.08;
     mouse.current.rotation.y = 0.15 + Math.sin(t * 9) * 0.04;
-    // scuote il telefono con la destra, pugno chiuso a sinistra
     if (r.armR) r.armR.rotation.set(-1.9 + Math.sin(t * 22) * 0.25, 0, 0.3);
     if (r.armL) r.armL.rotation.set(-0.5 + Math.sin(t * 11) * 0.3, 0, -0.6);
     if (r.head) {
@@ -635,7 +596,6 @@ function AngryScene() {
       r.head.rotation.x = -0.12;
     }
     if (phoneRef.current) phoneRef.current.rotation.z = Math.sin(t * 22) * 0.35;
-    // nuvolette di vapore che salgono dalle orecchie
     puffs.current.forEach((p, i) => {
       if (!p) return;
       const k = (t * 0.9 + i / 6) % 1;

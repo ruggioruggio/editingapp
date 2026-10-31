@@ -13,11 +13,6 @@ const FADE_EDGES: CSSProperties = {
   WebkitMaskComposite: "source-in",
 };
 
-/**
- * Contenitore delle scene 3D. Il canvas WebGL esiste solo quando la scena è
- * vicina allo schermo: con tante scene nella stessa pagina il browser non
- * terrebbe aperti tutti i contesti grafici (e consumerebbe batteria).
- */
 export function Stage({
   children,
   className,
@@ -32,14 +27,10 @@ export function Stage({
   camera?: [number, number, number];
   target?: [number, number, number];
   fov?: number;
-  /** monta subito, senza aspettare che sia visibile (hero, splash) */
   eager?: boolean;
-  /** sfuma i bordi: ciò che esce dall'inquadratura svanisce invece di essere tagliato */
   fade?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  // la scena si monta subito (così è già pronta quando ci arrivi scorrendo);
-  // fuori dallo schermo si mette solo in pausa, senza smontarla
   const [visible, setVisible] = useState(true);
   void eager;
 

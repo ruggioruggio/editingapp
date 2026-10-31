@@ -3,7 +3,6 @@ import { Sparkles } from "lucide-react";
 import { brand } from "@/config/brand";
 import { features } from "@/config/features";
 
-/** Dalla lezione apre Squeak AI sapendo su quale lezione sei. */
 export function AiAssistantButton({ lessonId }: { lessonId?: string }) {
   return (
     <Link

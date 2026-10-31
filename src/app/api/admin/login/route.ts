@@ -4,7 +4,6 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
 
-/** Stato della sessione admin (il pannello lo chiede all'apertura). */
 export async function GET() {
   return NextResponse.json({ ok: await isAdminSession(), configured: adminConfigured(), database: !!getServiceSupabase() });
 }

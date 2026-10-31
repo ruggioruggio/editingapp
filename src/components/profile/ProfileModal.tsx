@@ -14,7 +14,6 @@ import { ACCESSORIES, AvatarArt, BACKGROUNDS, EYES, FURS, MUSCLES, SHIRT_COLORS,
 
 type Part = "fur" | "eyes" | "shirt" | "muscles" | "accessory" | "bg";
 
-/** Profilo: avatar personalizzabile (stile Duolingo) e statistiche. */
 export function ProfileModal({ onClose }: { onClose: () => void }) {
   const t = useT();
   const avatar = useSettings((s) => s.avatar);
@@ -28,7 +27,6 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
   const [part, setPart] = useState<Part>("shirt");
   const [start] = useState(avatar);
 
-  // alla chiusura l'avatar si salva anche nel profilo online
   const close = () => {
     const sb = getSupabase();
     const cur = useSettings.getState().avatar;
@@ -36,7 +34,6 @@ export function ProfileModal({ onClose }: { onClose: () => void }) {
     onClose();
   };
   useEffect(() => {
-    // l'ultima versione viene salvata anche se si chiude la pagina
     const onHide = () => {
       const sb = getSupabase();
       if (sb && userId) void sb.from("profiles").update({ avatar: useSettings.getState().avatar }).eq("id", userId);

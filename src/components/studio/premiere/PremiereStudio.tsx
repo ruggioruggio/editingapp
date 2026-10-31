@@ -23,11 +23,6 @@ import { handlePremiereKey } from "./keys";
 import { meterLevels } from "./compose";
 import * as A from "./actions";
 
-// Simulatore di Premiere Pro: stessa disposizione dell'area di lavoro
-// Modifica (Sorgente | Programma | Proprietà sopra, Progetto | Strumenti |
-// Timeline | Indicatori audio sotto), menu, scorciatoie e modalità
-// Importa / Modifica / Esporta.
-
 const PANEL_LABEL: Record<string, string> = {
   source: "Sorgente",
   effectControls: "Controlli effetti",
@@ -45,15 +40,12 @@ const PANEL_LABEL: Record<string, string> = {
   history: "Cronologia",
   timeline: "Timeline",
 };
-// solo i pannelli che servono davvero (niente browser multimediale, librerie,
-// metadati, mixer e indicatori audio): gli altri si chiudono e riaprono da Finestra
 const DESK_ZONES: Zones = {
   TL: { tabs: ["source", "effectControls"], active: "source" },
   TC: { tabs: ["program"], active: "program" },
   TR: { tabs: ["properties", "graphics"], active: "properties" },
   BL: { tabs: ["project", "effects", "history"], active: "project" },
   BR: { tabs: ["timeline"], active: "timeline" },
-  // zone libere: compaiono solo mentre si trascina una scheda
   T0: { tabs: [], active: "" },
   TX: { tabs: [], active: "" },
   BC: { tabs: [], active: "" },
@@ -302,11 +294,9 @@ export function PremiereStudio() {
   const phone = useIsPhone();
   useEffect(() => recoverSandbox("premiere"), []);
   if (!hydrated) return <div className="fixed inset-0 bg-[#121212]" />;
-  // dal telefono i simulatori completi sono inutilizzabili: restano negli esercizi delle lezioni
   return phone ? <DesktopOnly app="Premiere Pro" /> : <PremiereInner />;
 }
 
-/** Premiere dentro una lezione: anche da telefono, con il layout compatto. */
 export function PremiereStudioEmbedded() {
   return <PremiereInner />;
 }
@@ -340,7 +330,6 @@ function PremiereInner() {
     };
   }, []);
 
-  // il menu Finestra porta in primo piano il pannello, ovunque sia agganciato
   const focusPanel = (p: PanelId) => {
     st.set({ focus: p, maximized: null });
     layout.show(p);
@@ -471,7 +460,6 @@ function PremiereInner() {
     {
       label: "Finestra",
       items: [
-        // ogni pannello si apre/chiude da qui (con la spunta se è aperto)
         ...windowMenu(layout, { ...PANEL_LABEL, timeline: "Timeline", program: "Programma" }),
       ],
     },
@@ -670,7 +658,6 @@ function PremiereInner() {
       </div>
     );
   } else if (wide) {
-    // disposizione libera: le zone vuote spariscono, le schede vanno ovunque
     body = (
       <DockRows
         layout={layout}
@@ -691,7 +678,6 @@ function PremiereInner() {
       />
     );
   } else {
-    // telefono: due zone compatte con gli strumenti in mezzo
     body = (
       <div className="flex min-h-[600px] flex-1 flex-col">
       <DockRows

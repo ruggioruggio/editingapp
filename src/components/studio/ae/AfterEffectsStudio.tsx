@@ -21,10 +21,6 @@ import { AeDialogs } from "./AeDialogs";
 import { handleAeKey } from "./aeKeys";
 import * as A from "./actions";
 
-// Simulatore di After Effects: barra degli strumenti in alto, Progetto ed
-// effetti a sinistra, Composizione a destra, Timeline sotto (come l'area di
-// lavoro Standard).
-
 const PANEL_LABEL: Record<string, string> = {
   project: "Progetto",
   effectControls: "Controlli effetti",
@@ -41,7 +37,6 @@ const DESK_ZONES: Zones = {
   LEFT: { tabs: ["project", "effectControls", "effects", "properties", "character", "align"], active: "project" },
   RIGHT: { tabs: ["composition"], active: "composition" },
   BOTTOM: { tabs: ["timeline"], active: "timeline" },
-  // zone libere: compaiono solo mentre si trascina una scheda
   L0: { tabs: [], active: "" },
   MID: { tabs: [], active: "" },
   R2: { tabs: [], active: "" },
@@ -178,11 +173,9 @@ export function AfterEffectsStudio() {
   const phone = useIsPhone();
   useEffect(() => recoverSandbox("ae"), []);
   if (!hydrated) return <div className="fixed inset-0 bg-[#121212]" />;
-  // dal telefono i simulatori completi sono inutilizzabili: restano negli esercizi delle lezioni
   return phone ? <DesktopOnly app="After Effects" /> : <AeInner />;
 }
 
-/** After Effects dentro una lezione: anche da telefono, con il layout compatto. */
 export function AeStudioEmbedded() {
   return <AeInner />;
 }
@@ -424,7 +417,6 @@ function AeInner() {
 
   let body: ReactNode;
   if (wide) {
-    // disposizione libera: le zone vuote spariscono, le schede vanno ovunque
     body = <DockRows layout={layout} rows={DESK_ROWS} storageKey="ae-dock-sizes-v3" defaults={DESK_WEIGHTS} zone={zone} />;
   } else {
     body = (

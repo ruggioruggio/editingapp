@@ -9,7 +9,6 @@ import { useT } from "@/lib/settings/i18n";
 import { useAuth } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 
-/** Avatar con menu (profilo, impostazioni, esci) oppure "Accedi" per gli ospiti. */
 export function AccountMenu() {
   const router = useRouter();
   const t = useT();
@@ -35,7 +34,6 @@ export function AccountMenu() {
     setModal(m);
   };
 
-  // ospite: solo "Accedi" (avatar e impostazioni arrivano con l'account)
   if (status === "guest") {
     return (
       <Link href="/login?next=/learn" className="rounded-xl border-2 border-line px-3 py-1.5 text-xs font-black uppercase text-pr hover:bg-panel-2">

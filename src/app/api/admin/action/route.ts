@@ -4,9 +4,6 @@ import { getServiceSupabase } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
 
-// Azioni del pannello admin. Ogni chiamata verifica il cookie di sessione e
-// solo dopo usa la chiave service_role; ogni modifica finisce nel registro.
-
 const FOREVER = "9999-12-31T00:00:00Z";
 const until = (days: unknown) => (typeof days === "number" && days > 0 ? new Date(Date.now() + days * 86_400_000).toISOString() : FOREVER);
 const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
@@ -106,7 +103,6 @@ export async function POST(req: NextRequest) {
         if (typeof body.streak === "number" && body.streak >= 0) patch.streak_count = Math.round(body.streak);
         const { error } = await sb.from("profiles").update({ ...patch, ...(patch.streak_count !== undefined ? { streak_last_day: new Date().toISOString().slice(0, 10) } : {}) }).eq("id", userId);
         if (error) throw error;
-        // anche nei progressi salvati, altrimenti il prossimo salvataggio del client li riporterebbe indietro
         const { data: row } = await sb.from("progress").select("data").eq("user_id", userId).maybeSingle<{ data: Record<string, unknown> }>();
         if (row?.data) {
           const d = { ...row.data };
@@ -199,7 +195,6 @@ export async function POST(req: NextRequest) {
     }
   } catch (e) {
     const msg = e instanceof Error ? e.message : (e as { message?: string })?.message ?? "Errore";
-    // tabelle o colonne mancanti: il file 0003_admin.sql non è stato ancora eseguito
     const hint = /column|relation|does not exist|schema cache/i.test(msg) ? " (esegui tutte le migration SQL mancanti: supabase/migrations/ nel SQL Editor di Supabase)" : "";
     return NextResponse.json({ error: msg + hint }, { status: 500 });
   }

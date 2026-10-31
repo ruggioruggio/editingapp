@@ -10,13 +10,11 @@ export interface Plan {
   name: string;
   priceMonthlyEur: number;
   priceYearlyEur: number;
-  /** null = illimitate */
   dailyLessonLimit: number | null;
   aiAssistant: boolean;
   features: string[];
 }
 
-// Prezzi segnaposto: si decidono lato marketing, qui cambia solo il numero.
 export const PLANS: Record<PlanId, Plan> = {
   free: {
     id: "free",
@@ -47,17 +45,14 @@ export function lessonsUsedToday(daily: DailyUsage): number {
   return daily.day === todayKey() ? daily.lessonIds.length : 0;
 }
 
-/** Finché i pagamenti sono spenti, tutti sono sul piano gratuito. */
 export const effectivePlan = (plan: PlanId): PlanId => (features.payments ? plan : "free");
 
-/** Piano reale: Pro se pagato oppure regalato da un admin (anche a tempo). */
 export function planOf(s: { plan: PlanId; proUntil?: string | null; adminPro?: boolean }): PlanId {
   if (s.adminPro) return "pro";
   if (s.proUntil && new Date(s.proUntil).getTime() > Date.now()) return "pro";
   return effectivePlan(s.plan);
 }
 
-/** Rifare una lezione già iniziata oggi non consuma un altro slot. */
 export function canStartLesson(plan: PlanId, daily: DailyUsage, lessonId: string): boolean {
   const limit = PLANS[plan].dailyLessonLimit;
   if (limit === null) return true;

@@ -16,13 +16,11 @@ function shouldPlay(): boolean {
     if (sessionStorage.getItem(SESSION_KEY) === "1") return false;
     sessionStorage.setItem(SESSION_KEY, "1");
   } catch {
-    /* storage non disponibile */
   }
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
   return true;
 }
 
-/** Animazione d'apertura: Squeak fa una piroetta e saluta, una volta per sessione. */
 export function Splash() {
   const [phase, setPhase] = useState<"pending" | "play" | "exit" | "done">("pending");
 

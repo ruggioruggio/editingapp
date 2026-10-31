@@ -3,10 +3,6 @@ import type { Lang } from "@/lib/settings/store";
 import { getCourseLang } from "./courseI18n";
 import { lessons } from "./lessons";
 
-// Mappa completa del corso: sezioni → unità → lezioni.
-// Ogni lezione ha già il suo obiettivo; diventa giocabile appena il suo
-// contenuto esiste in content/lessons (lo status si calcola da solo).
-
 type Row = [id: string, title: string, goal: string, kind?: LessonKind];
 
 const unit = (id: string, title: string, description: string, rows: Row[]): Unit => ({

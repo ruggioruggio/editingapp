@@ -5,9 +5,6 @@ import { createSupabaseServer } from "@/lib/supabase/server";
 
 const TYPES: EmailOtpType[] = ["signup", "email", "recovery", "email_change", "invite", "magiclink"];
 
-// Link delle email personalizzate (supabase/templates): verifica il token e
-// apre la sessione. A differenza del flusso con "code", funziona anche se
-// l'email viene aperta su un altro dispositivo o browser.
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");

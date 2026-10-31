@@ -3,8 +3,6 @@ import { typing } from "../chrome";
 import * as A from "./actions";
 import { openImport } from "./ProjectPanels";
 
-// Scorciatoie da tastiera di Premiere Pro (come in "Scorciatoie da tastiera…").
-
 export const PR_KEYS: [string, string][] = [
   ["Ctrl+N", "Nuova sequenza"],
   ["Ctrl+/", "Nuovo raccoglitore"],

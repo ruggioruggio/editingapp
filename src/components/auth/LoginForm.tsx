@@ -38,7 +38,6 @@ export function LoginForm() {
       setNeedConfirm(err.code === "email_not_confirmed");
       return setError(authErrorMessage(err));
     }
-    // verifica in due passaggi attiva: serve il codice dell app di autenticazione
     const { data: aal } = await sb.auth.mfa.getAuthenticatorAssuranceLevel();
     if (aal && aal.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
       const { data: f } = await sb.auth.mfa.listFactors();

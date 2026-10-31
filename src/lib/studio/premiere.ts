@@ -5,12 +5,6 @@ import { newEffect, type EffectInstance } from "./effects";
 import { SAMPLE_LIBRARY, isStill, type Media } from "./media";
 import { defaultTextStyle, type TextStyle } from "./text";
 
-// Motore del simulatore di Premiere Pro: progetto con raccoglitori, più
-// sequenze, tracce video/audio aggiungibili, clip collegate, velocità,
-// transizioni sui punti di modifica, effetti con keyframe e tutte le
-// operazioni di montaggio (inserisci, sovrascrivi, lama, increspatura,
-// rotazione, scorrimento, scivolamento, solleva, estrai, appunti…).
-
 export const EPS = 1e-6;
 
 export const LABELS: [string, string][] = [
@@ -33,9 +27,9 @@ export interface Track {
   kind: "video" | "audio";
   name: string;
   locked: boolean;
-  off: boolean; // occhio spento / audio disattivato
+  off: boolean;
   solo: boolean;
-  sync: boolean; // blocco sincronizzazione
+  sync: boolean;
   target: boolean;
   height: number;
 }
@@ -101,7 +95,6 @@ export interface Clip {
   tIn?: Trans;
   tOut?: Trans;
   graphic?: GraphicLayer[];
-  /** fermo immagine: mostra sempre questo istante del file sorgente */
   freeze?: number;
 }
 
@@ -111,7 +104,7 @@ export interface Sequence {
   width: number;
   height: number;
   fps: number;
-  tracks: Track[]; // video da V1 in su, poi audio da A1 in giù
+  tracks: Track[];
   clips: Clip[];
   markers: Marker[];
   inPoint: number | null;
@@ -126,7 +119,7 @@ export interface ProjectItem {
   name: string;
   type: "bin" | "media" | "sequence";
   parent: string | null;
-  ref?: string; // id del media o della sequenza
+  ref?: string;
   label: number;
 }
 
@@ -136,8 +129,6 @@ export interface Project {
   media: Record<string, Media>;
   sequences: Record<string, Sequence>;
 }
-
-// ---- utilità ------------------------------------------------------------------------
 
 export const clipDur = (c: Clip) => (c.out - c.in) / c.speed;
 export const clipEnd = (c: Clip) => c.start + clipDur(c);
@@ -154,7 +145,6 @@ export const trackLabel = (s: Sequence, id: string) => {
   return (t.kind === "video" ? "V" : "A") + (list.indexOf(t) + 1);
 };
 
-/** Tempo nel file sorgente che corrisponde al tempo T della sequenza. */
 export function mediaTime(c: Clip, T: number) {
   if (c.freeze !== undefined) return c.freeze;
   const d = (T - c.start) * c.speed;
@@ -225,7 +215,6 @@ export function cloneClip(c: Clip, patch: Partial<Clip> = {}): Clip {
   };
 }
 
-/** I keyframe sono relativi all'inizio della clip: se cambia l'attacco vanno spostati. */
 export function shiftClipKeys(c: Clip, dt: number): Clip {
   if (!dt) return c;
   return {
@@ -238,7 +227,6 @@ export function shiftClipKeys(c: Clip, dt: number): Clip {
   };
 }
 
-/** Toglie da una traccia tutto ciò che sta tra from e to (accorciando o dividendo le clip). */
 function clearRange(clips: Clip[], track: string, from: number, to: number, keep: Set<string>): Clip[] {
   return clips.flatMap((c): Clip[] => {
     if (c.track !== track || keep.has(c.id)) return [c];
@@ -254,8 +242,6 @@ function clearRange(clips: Clip[], track: string, from: number, to: number, keep
     return parts;
   });
 }
-
-// ---- operazioni di montaggio ------------------------------------------------------------
 
 export function razor(s: Sequence, ids: string[], t: number): Sequence {
   const minLen = 1 / s.fps;
@@ -287,7 +273,6 @@ export function deleteClips(s: Sequence, ids: string[], ripple: boolean, linkedS
     const from = Math.min(...removed.map((c) => c.start));
     const to = Math.max(...removed.map(clipEnd));
     const len = to - from;
-    // si chiude il buco solo se le altre tracce non hanno clip in quel tratto
     const blocked = clips.some((c) => c.start < to - EPS && clipEnd(c) > from + EPS && syncOf(s, c.track));
     if (!blocked) clips = clips.map((c) => (c.start >= to - EPS && syncOf(s, c.track) && unlocked(s, c.track) ? { ...c, start: c.start - len } : c));
   }
@@ -308,14 +293,12 @@ export function gapAt(s: Sequence, track: string, t: number): { from: number; to
   return { from, to: Math.min(...nexts) };
 }
 
-/** Sposta in avanti le tracce con blocco sincronizzazione da `at` (per inserire). */
 function makeRoom(s: Sequence, at: number, len: number): Clip[] {
   const crossing = s.clips.filter((c) => at > c.start + EPS && at < clipEnd(c) - EPS && syncOf(s, c.track) && unlocked(s, c.track)).map((c) => c.id);
   const cut = razor(s, crossing, at).clips;
   return cut.map((c) => (c.start >= at - EPS && syncOf(s, c.track) && unlocked(s, c.track) ? { ...c, start: c.start + len } : c));
 }
 
-/** Inserisci (,) / Sovrascrivi (.) un file sulle tracce di destinazione. */
 export function placeMedia(s: Sequence, m: Media, at: number, a: number, b: number, mode: "insert" | "overwrite", vTrack: string | null, aTrack: string | null): { seq: Sequence; ids: string[] } {
   const dur = b - a;
   const wantsVideo = m.hasVideo && !!vTrack && unlocked(s, vTrack);
@@ -340,7 +323,6 @@ export function shiftTrack(s: Sequence, trackId: string, delta: number): string 
   return list[i].id;
 }
 
-/** Trascina clip (con le collegate): sovrascrive o, con Ctrl, inserisce. Alt = duplica. */
 export function moveClips(s: Sequence, ids: string[], dt: number, trackDelta: number, opts: { insert?: boolean; duplicate?: boolean; anchorVideo: boolean }): Sequence {
   const group = s.clips.filter((c) => ids.includes(c.id) && unlocked(s, c.track));
   if (!group.length) return s;
@@ -348,7 +330,6 @@ export function moveClips(s: Sequence, ids: string[], dt: number, trackDelta: nu
   const d = Math.max(dt, -minStart);
   const links = new Map<string, string>();
   const moved = group.map((c) => {
-    // il trascinamento verticale vale per le tracce dello stesso tipo della clip afferrata
     const tr = isVideoTrack(s, c.track) === opts.anchorVideo ? shiftTrack(s, c.track, opts.anchorVideo ? trackDelta : -trackDelta) : c.track;
     if (!opts.duplicate) return { ...c, start: c.start + d, track: tr };
     const nl = c.linkId ? links.get(c.linkId) ?? (links.set(c.linkId, uid("l")), links.get(c.linkId)!) : undefined;
@@ -368,10 +349,6 @@ export function moveClips(s: Sequence, ids: string[], dt: number, trackDelta: nu
   return { ...base, clips: [...base.clips, ...moved] };
 }
 
-/**
- * Rifila un bordo. Selezione: lascia un buco (o si ferma contro la clip
- * vicina). Increspatura (B): sposta tutto quello che segue.
- */
 export function trimEdge(s: Sequence, project: Project, id: string, edge: "in" | "out", time: number, ripple: boolean, linkedSel = true): Sequence {
   const group = linked(s, id, linkedSel).filter((c) => unlocked(s, c.track));
   const ref = group.find((c) => c.id === id);
@@ -421,7 +398,6 @@ export function trimEdge(s: Sequence, project: Project, id: string, edge: "in" |
   };
 }
 
-/** Modifica rotazione (N): sposta il punto tra due clip senza cambiare la durata totale. */
 export function rollEdit(s: Sequence, project: Project, leftId: string | null, rightId: string | null, delta: number): Sequence {
   const L = leftId ? s.clips.find((c) => c.id === leftId) : undefined;
   const R = rightId ? s.clips.find((c) => c.id === rightId) : undefined;
@@ -445,7 +421,6 @@ export function rollEdit(s: Sequence, project: Project, leftId: string | null, r
   };
 }
 
-/** Scorrimento (Y): cambia la parte del file mostrata senza spostare la clip. */
 export function slipClip(s: Sequence, project: Project, id: string, delta: number): Sequence {
   const c = s.clips.find((x) => x.id === id);
   if (!c) return s;
@@ -457,7 +432,6 @@ export function slipClip(s: Sequence, project: Project, id: string, delta: numbe
   return { ...s, clips: s.clips.map((x) => (ids.has(x.id) ? { ...x, in: x.in + d, out: x.out + d } : x)) };
 }
 
-/** Scivolamento (U): sposta la clip accorciando/allungando le vicine. */
 export function slideClip(s: Sequence, project: Project, id: string, delta: number): Sequence {
   const c = s.clips.find((x) => x.id === id);
   if (!c) return s;
@@ -484,7 +458,6 @@ export function slideClip(s: Sequence, project: Project, id: string, delta: numb
   };
 }
 
-/** Allunga velocità (R): trascinare il bordo cambia la velocità invece del contenuto. */
 export function rateStretch(s: Sequence, id: string, edge: "in" | "out", time: number): Sequence {
   const c = s.clips.find((x) => x.id === id);
   if (!c) return s;
@@ -496,7 +469,6 @@ export function rateStretch(s: Sequence, id: string, edge: "in" | "out", time: n
   return { ...s, clips: s.clips.map((x) => (ids.has(x.id) ? { ...x, speed, start: edge === "in" ? clipEnd(c) - newDur : x.start } : x)) };
 }
 
-/** Velocità/Durata (Ctrl+R). Con "Modifica con increspatura" sposta le clip che seguono. */
 export function setSpeed(s: Sequence, ids: string[], speed: number, reverse: boolean, ripple: boolean): Sequence {
   let out = s;
   for (const id of ids) {
@@ -521,7 +493,6 @@ export function setSpeed(s: Sequence, ids: string[], speed: number, reverse: boo
   return out;
 }
 
-/** Solleva (;) / Estrai ('): toglie il tratto tra attacco e uscita della sequenza dalle tracce di destinazione. */
 export function liftExtract(s: Sequence, extract: boolean): Sequence {
   if (s.inPoint === null || s.outPoint === null || s.outPoint <= s.inPoint) return s;
   const from = s.inPoint;
@@ -536,7 +507,6 @@ export function liftExtract(s: Sequence, extract: boolean): Sequence {
   return { ...s, clips, ...(extract ? { outPoint: null } : {}) };
 }
 
-/** Incolla le clip copiate all'indicatore (sovrascrive o inserisce). */
 export function pasteClips(s: Sequence, clips: Clip[], at: number, insert: boolean): { seq: Sequence; ids: string[]; end: number } {
   if (!clips.length) return { seq: s, ids: [], end: at };
   const base = Math.min(...clips.map((c) => c.start));
@@ -554,7 +524,7 @@ export function pasteClips(s: Sequence, clips: Clip[], at: number, insert: boole
     if (vi >= 0) return vt[Math.min(vt.length - 1, vi - srcV + lowV)].id;
     const ai = at_.findIndex((t) => t.id === c.track);
     if (ai >= 0) return at_[Math.min(at_.length - 1, ai - srcA + lowA)].id;
-    return wasVideo ? vt[lowV].id : at_[lowA].id; // copiata da un'altra sequenza
+    return wasVideo ? vt[lowV].id : at_[lowA].id;
   };
   const links = new Map<string, string>();
   const placed = clips.map((c) => {
@@ -566,7 +536,6 @@ export function pasteClips(s: Sequence, clips: Clip[], at: number, insert: boole
   return { seq: { ...s, clips: [...cl, ...placed] }, ids: placed.map((c) => c.id), end: at + len };
 }
 
-/** Applica una transizione al bordo di una clip: se c'è una clip vicina va sul punto di modifica. */
 export function setTransition(s: Sequence, clipId: string, side: "in" | "out", defId: string, dur: number): Sequence {
   const c = s.clips.find((x) => x.id === clipId);
   if (!c) return s;
@@ -578,7 +547,6 @@ export function setTransition(s: Sequence, clipId: string, side: "in" | "out", d
   return { ...s, clips: s.clips.map((x) => (x.id === clipId ? { ...x, [side === "in" ? "tIn" : "tOut"]: { defId, dur: d } } : x)) };
 }
 
-/** Intervallo in cui è attiva una transizione (centrata sul punto di modifica se c'è una clip prima). */
 export function transRange(s: Sequence, c: Clip, side: "in" | "out"): { from: number; to: number; prev?: Clip } | null {
   const tr = side === "in" ? c.tIn : c.tOut;
   if (!tr) return null;
@@ -586,8 +554,6 @@ export function transRange(s: Sequence, c: Clip, side: "in" | "out"): { from: nu
   const prev = s.clips.find((x) => x.track === c.track && Math.abs(clipEnd(x) - c.start) < 1e-3);
   return prev ? { from: c.start - tr.dur / 2, to: c.start + tr.dur / 2, prev } : { from: c.start, to: c.start + tr.dur };
 }
-
-// ---- progetto iniziale --------------------------------------------------------------
 
 function sampleProject(): Project {
   const media: Record<string, Media> = {};
@@ -613,7 +579,6 @@ function sampleProject(): Project {
   media[matte.id] = matte;
   items.push({ id: uid("it"), name: matte.name, type: "media", parent: bins.Grafica, ref: matte.id, label: 4 });
 
-  // la sequenza principale è un montaggio già avviato
   let main = newSequence("Main Edit", 1920, 1080, 25);
   const [v1, v2] = videoTracks(main);
   const [a1, a2] = audioTracks(main);
@@ -639,8 +604,6 @@ function sampleProject(): Project {
   items.push({ id: uid("it"), name: s2.name, type: "sequence", parent: seqBin, ref: s2.id, label: 0 });
   return { name: "Progetto senza titolo", items, media, sequences: { [main.id]: main, [s2.id]: s2 } };
 }
-
-// ---- store ------------------------------------------------------------------------------
 
 export type PrTool = "select" | "trackFwd" | "trackBack" | "ripple" | "roll" | "rate" | "razor" | "slip" | "slide" | "pen" | "rect" | "ellipse" | "hand" | "zoom" | "type";
 export type PanelId = "source" | "effectControls" | "mixer" | "metadata" | "program" | "properties" | "graphics" | "text" | "project" | "media" | "libraries" | "info" | "effects" | "history" | "tools" | "timeline" | "meters";
@@ -707,7 +670,6 @@ export interface PrState {
   toast: string | null;
   programZoom: "fit" | number;
   editingText: string | null;
-  /** impostazioni dell'ultima esportazione avviata (per gli esercizi delle lezioni) */
   lastExport: { format: string; width: number; height: number; fps: number; bitrateMbps: number; audioKbps: number } | null;
 
   commit: (fn: (p: Project) => Project, label: string, key?: string) => void;

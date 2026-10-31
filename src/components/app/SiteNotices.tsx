@@ -9,9 +9,6 @@ import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useProgress } from "@/lib/progress/store";
 import { getSupabase } from "@/lib/supabase/client";
 
-// Avvisi decisi dal pannello admin: l'annuncio per tutti in cima all'app e la
-// schermata di account sospeso.
-
 const DISMISS_KEY = "squeak-announcement-dismissed";
 
 export function AnnouncementBar() {
@@ -24,7 +21,6 @@ export function AnnouncementBar() {
     try {
       setDismissed(localStorage.getItem(DISMISS_KEY));
     } catch {
-      /* niente */
     }
     const sb = getSupabase();
     if (!sb) return;
@@ -50,7 +46,6 @@ export function AnnouncementBar() {
           try {
             localStorage.setItem(DISMISS_KEY, a.text);
           } catch {
-            /* niente */
           }
         }}
       >

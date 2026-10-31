@@ -3,10 +3,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-// Stato del pannello admin nel browser. La password si verifica sul server
-// (cookie httpOnly); solo l'anteprima a file unico, che non ha server, usa un
-// hash lento iniettato al momento della build e lavora in modalità locale.
-
 export interface Announcement {
   text: string;
   tone: "info" | "success" | "warning";
@@ -18,7 +14,6 @@ interface AdminState {
   mode: "server" | "local" | null;
   database: boolean;
   modShortcuts: boolean;
-  /** tutte le lezioni giocabili senza finire quelle prima (solo su questo dispositivo) */
   unlockAll: boolean;
   quickBan: boolean;
   quickBanUser: string | null;
@@ -61,14 +56,12 @@ async function verifyLocal(password: string): Promise<boolean> {
   return diff === 0;
 }
 
-// Dopo aver inserito la password, per 10 minuti il pannello si riapre senza chiederla.
 const GRACE_KEY = "squeak-admin-grace";
 const GRACE_MS = 10 * 60_000;
 export function markGrace() {
   try {
     localStorage.setItem(GRACE_KEY, String(Date.now() + GRACE_MS));
   } catch {
-    /* niente */
   }
 }
 export function graceActive() {
@@ -82,11 +75,9 @@ function clearGrace() {
   try {
     localStorage.removeItem(GRACE_KEY);
   } catch {
-    /* niente */
   }
 }
 
-/** Chiede al server se la sessione admin è ancora valida. */
 export async function checkSession() {
   try {
     const r = await fetch("/api/admin/login", { cache: "no-store" });
@@ -94,7 +85,6 @@ export async function checkSession() {
     const j = (await r.json()) as { ok: boolean; database: boolean };
     if (j.ok) useAdmin.setState({ unlocked: true, mode: "server", database: j.database });
   } catch {
-    /* anteprima senza server */
   }
 }
 
@@ -112,7 +102,6 @@ export async function adminLogin(password: string): Promise<string | null> {
       return j.error ?? "Accesso negato";
     }
   } catch {
-    /* nessun server: si prova la verifica locale dell'anteprima */
   }
   if (await verifyLocal(password)) {
     useAdmin.setState({ unlocked: true, mode: "local", database: false });
@@ -127,7 +116,6 @@ export async function adminLogout() {
   try {
     await fetch("/api/admin/login", { method: "DELETE" });
   } catch {
-    /* niente */
   }
   useAdmin.setState({ unlocked: false, mode: null, open: false });
 }

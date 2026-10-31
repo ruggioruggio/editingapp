@@ -1,8 +1,5 @@
 import { emptyStats, initialGameData, type GameData, type Stats, type TodayState } from "./store";
 
-// Fonde due versioni dei progressi (es. ospite su questo telefono + account sul
-// server) senza perdere nulla: si tiene sempre il valore "più avanti".
-
 const maxStats = (a: Stats, b: Stats): Stats => {
   const out = emptyStats();
   for (const k of Object.keys(out) as (keyof Stats)[]) out[k] = Math.max(a[k] ?? 0, b[k] ?? 0);
@@ -20,7 +17,6 @@ function mergeToday(a: TodayState, b: TodayState): TodayState {
   };
 }
 
-/** Normalizza dati arrivati dal database (versioni vecchie o campi mancanti). */
 export function normalizeGameData(raw: unknown): GameData {
   const base = initialGameData();
   if (!raw || typeof raw !== "object") return base;

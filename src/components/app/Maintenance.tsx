@@ -8,9 +8,6 @@ import { useHydrated } from "@/lib/hooks/useHydrated";
 import { getSupabase } from "@/lib/supabase/client";
 import { SiteScene } from "@/components/three/lazy";
 
-// Manutenzione: quando l'admin la attiva, tutta l'app mostra il cantiere di
-// Squeak al posto delle pagine. Gli admin (con il pannello sbloccato) passano.
-
 export interface MaintenanceState {
   on: boolean;
   message?: string;

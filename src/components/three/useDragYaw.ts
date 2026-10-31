@@ -2,7 +2,6 @@
 
 import { useRef, type PointerEvent } from "react";
 
-/** Rotazione orizzontale di una scena trascinandola, con inerzia. */
 export function useDragYaw() {
   const state = useRef({ yaw: 0, velocity: 0, dragging: false, lastX: 0 });
 
@@ -28,7 +27,6 @@ export function useDragYaw() {
     },
   };
 
-  /** Da chiamare ogni fotogramma: applica l'inerzia e restituisce l'angolo. */
   const step = () => {
     const s = state.current;
     if (!s.dragging) {

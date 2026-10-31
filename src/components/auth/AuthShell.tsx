@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { X } from "lucide-react";
 import { Mascot } from "@/components/brand/Mascot";
 
-/** Cornice comune delle pagine di accesso, stile Duolingo. */
 export function AuthShell({
   title,
   corner,

@@ -4,11 +4,7 @@ import { clipDur, clipEnd } from "@/lib/studio/premiere";
 import { allClips, clipsOf, cutNear, graphicLayers, isVideo, noGaps, prSetup, seqLength, sequences, vClips, withFx } from "@/lib/lessons/studioKit";
 import { lesson as L, M, near, pr, Q, T } from "./s1-practice";
 
-// Sezione 2 "Raccontare con il montaggio": linguaggio, interviste,
-// velocità e titoli. Ogni lezione ha almeno un esercizio in Premiere.
-
 export const section2Lessons: Lesson[] = [
-  // ---------------- Unità 7 · Il linguaggio del montaggio ----------------
   L("inquadrature", "Piani e inquadrature", "Campo lungo, medio, primo piano e quando usarli.", [
     T("La scala dei piani", [
       "Le inquadrature si misurano su quanto **spazio** mostrano attorno al soggetto: **campo lunghissimo** (paesaggio), **campo lungo**, **figura intera**, **piano americano** (dalle ginocchia), **mezza figura**, **primo piano** (spalle e volto), **primissimo piano** e **dettaglio**.",
@@ -157,7 +153,6 @@ export const section2Lessons: Lesson[] = [
     ),
   ]),
 
-  // ---------------- Unità 8 · Interviste e multicamera ----------------
   L("b-roll", "Il B-roll", "Coprire i tagli con immagini di supporto.", [
     T("A-roll e B-roll", [
       "L'**A-roll** è il materiale principale (chi parla). Il **B-roll** sono le immagini di supporto: luoghi, dettagli, azioni di cui si sta parlando.",
@@ -311,7 +306,6 @@ export const section2Lessons: Lesson[] = [
     ),
   ]),
 
-  // ---------------- Unità 9 · Velocità e tempo ----------------
   L("rallenty", "Il rallentatore", "Frame rate di ripresa e slow motion fluido.", [
     T("Da dove nasce lo slow motion", [
       "Per un rallenty **fluido** bisogna **riprendere a più fotogrammi al secondo** di quelli della sequenza: ad esempio 50 fps in una sequenza a 25.",
@@ -441,7 +435,6 @@ export const section2Lessons: Lesson[] = [
     ),
   ]),
 
-  // ---------------- Unità 10 · Titoli e grafica base ----------------
   L("testi", "Testi essenziali", "Font, dimensioni e contrasto leggibili.", [
     T("Un testo si deve leggere", [
       "Tre regole: **font semplice** (sans serif per lo schermo), **dimensione** abbastanza grande (su 1080p almeno 60–80 px per i titoli), **contrasto** forte con lo sfondo.",

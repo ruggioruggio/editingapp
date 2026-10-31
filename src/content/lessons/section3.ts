@@ -4,10 +4,6 @@ import type { Clip, PrState } from "@/lib/studio/premiere";
 import { aeLayer, aeLayers, aeSetup, clipEffect, fxValue, prSetup, vClips, withFx } from "@/lib/lessons/studioKit";
 import { ae, lesson as L, M, pr, Q, T } from "./s1-practice";
 
-// Sezione 3 "Color": teoria, scopes, correzione primaria e grading
-// creativo. Gli esercizi partono da clip con problemi di colore veri.
-
-/** Patch che aggiunge effetti solo alle clip video. */
 const vfx =
   (...fx: (() => EffectInstance)[]) =>
   (c: Clip): Clip =>
@@ -16,13 +12,11 @@ const lumetri = (params: Record<string, number>) => () => withFx("lumetri", 1920
 
 const enabledLum = (c: Clip) => c.effects.filter((e) => e.defId === "lumetri" && e.enabled);
 const pv = (e: EffectInstance, k: string) => e.params[k]?.keys?.[0]?.v[0] ?? e.params[k]?.value[0] ?? 0;
-/** Valore complessivo di un parametro Lumetri sommando tutte le istanze (la saturazione si moltiplica). */
 export function lum(c: Clip, k: string): number {
   const list = enabledLum(c);
   if (k === "saturation") return list.reduce((m, e) => (m * pv(e, k)) / 100, 100);
   return list.reduce((m, e) => m + pv(e, k), 0);
 }
-/** La clip principale dell'esercizio (la prima su V1 del file indicato). */
 const main = (s: PrState, media: string) => vClips(s).find((c) => c.mediaId === media);
 const L1 = (s: PrState, media: string, k: string, ok: (v: number) => boolean) => {
   const c = main(s, media);
@@ -30,7 +24,6 @@ const L1 = (s: PrState, media: string, k: string, ok: (v: number) => boolean) =>
 };
 
 export const section3Lessons: Lesson[] = [
-  // ---------------- Unità 11 · Teoria del colore ----------------
   L("rec709", "Cos'è Rec.709", "Lo standard di colore dei video che guardi ogni giorno.", [
     T("Uno standard per tutti", [
       "**Rec.709** è lo standard dei video HD: definisce quali colori esistono (lo **spazio colore**), come si distribuisce la luminosità (la **gamma**) e dove stanno il bianco e il nero.",
@@ -149,7 +142,6 @@ export const section3Lessons: Lesson[] = [
     ),
   ]),
 
-  // ---------------- Unità 12 · Gli scopes ----------------
   L("waveform", "La waveform", "Leggere luci e ombre con precisione.", [
     T("Misurare la luce", [
       "La **waveform** (forma d'onda) mostra la luminosità dell'immagine da **0** (nero) a **100** (bianco), da sinistra a destra come l'immagine.",
@@ -254,7 +246,6 @@ export const section3Lessons: Lesson[] = [
     ),
   ]),
 
-  // ---------------- Unità 13 · Correzione primaria ----------------
   L("esposizione", "Esposizione", "Riportare luci e ombre nel range giusto.", [
     T("Il primo cursore", [
       "**Esposizione** in Lumetri alza o abbassa tutta l'immagine in **stop** (come sulla fotocamera): +1 raddoppia la luce, −1 la dimezza.",
@@ -365,7 +356,6 @@ export const section3Lessons: Lesson[] = [
     ),
   ]),
 
-  // ---------------- Unità 14 · Grading creativo ----------------
   L("lut", "Look e LUT", "Applicare una LUT nel punto giusto della catena.", [
     T("Cos'è una LUT", [
       "Una **LUT** (Look-Up Table) è una tabella che trasforma ogni colore in un altro. Ci sono LUT **tecniche** (da Log a Rec.709) e LUT **creative** (un look: teal & orange, pellicola…).",

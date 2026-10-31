@@ -112,7 +112,6 @@ function SignedInFriends() {
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
 
-  // nuovi messaggi in arrivo mentre sei sulla pagina: aggiorna i contatori
   useEffect(
     () =>
       subscribeIncoming(sb, me, (m) => {
@@ -163,7 +162,6 @@ function SignedInFriends() {
         setTimeout(() => setCopied(false), 1800);
       }
     } catch {
-      // condivisione annullata
     }
   };
 

@@ -2,9 +2,6 @@ import type { EditorStep, Lesson, LessonStep, MatchStep, QuizStep, TheoryStep } 
 import { PRACTICE_SCENARIOS } from "../practice";
 import { withPractice } from "./s1-practice";
 
-// Sezione 1 "Primi passi": tutte le lezioni dalla 2 alla 30.
-// Scorciatoie riferite a Premiere Pro su Windows (su Mac: Ctrl → Cmd, Alt → Option).
-
 const T = (title: string, body: string[], extra: Pick<TheoryStep, "terms" | "tip"> = {}): TheoryStep => ({
   kind: "theory",
   title,
@@ -19,20 +16,17 @@ const Q = (question: string, options: string[], correctIndex: number, explanatio
   explanation,
 });
 const M = (title: string, pairs: [string, string][]): MatchStep => ({ kind: "match", title, pairs });
-/** Riusa un esercizio dell'editor con istruzioni legate alla lezione. */
 const E = (scenario: keyof typeof PRACTICE_SCENARIOS, title: string, instructions: string): EditorStep => ({
   ...PRACTICE_SCENARIOS[scenario].step,
   title,
   instructions,
 });
-/** Lezione con i suoi esercizi nel simulatore (vedi s1-practice.ts). */
 const L = (id: string, title: string, summary: string, steps: LessonStep[], xp = 10): Lesson => {
   const all = withPractice(id, steps);
   return { id, title, summary, minutes: Math.max(4, Math.round(all.length * 0.6)), xp: xp + 5 * all.filter((x) => x.kind === "studio").length, steps: all };
 };
 
 export const section1Lessons: Lesson[] = [
-  // ---------------- Unità 1 · Fondamenti ----------------
   L("crea-sequenza", "Crea la tua prima sequenza", "La finestra Nuova sequenza, come in Premiere.", [
     T("Prima di tutto: la sequenza", [
       "Ogni montaggio in Premiere vive dentro una **sequenza**. Si crea da **File → Nuovo → Sequenza** oppure con **Ctrl+N**.",
@@ -128,7 +122,6 @@ export const section1Lessons: Lesson[] = [
     ]),
   ]),
 
-  // ---------------- Unità 2 · Rifinire ----------------
   L("trim", "Rifilare le clip (Trim)", "Accorciare e allungare una clip dal bordo.", [
     T("Il trim", [
       "Rifilare significa **spostare l'inizio o la fine** di una clip trascinandone il bordo con lo strumento Selezione (V).",
@@ -215,7 +208,6 @@ export const section1Lessons: Lesson[] = [
     Q("Vuoi tagliare sull'indicatore senza prendere la Lama. Che scorciatoia usi?", ["Ctrl+K", "Ctrl+M", "Ctrl+I", "Ctrl+D"], 0, "Ctrl+K aggiunge un punto di modifica dove si trova l'indicatore."),
   ]),
 
-  // ---------------- Unità 3 · Audio di base ----------------
   L("livelli-db", "Livelli e decibel", "Leggere i VU meter e restare sotto lo 0 dB.", [
     T("I misuratori audio", [
       "Accanto alla timeline ci sono i **misuratori audio**: barre che salgono con il volume. Si misura in **decibel (dBFS)**, dove **0 dB è il massimo**.",
@@ -304,7 +296,6 @@ export const section1Lessons: Lesson[] = [
     ]),
   ]),
 
-  // ---------------- Unità 4 · Transizioni ----------------
   L("taglio-netto", "Il taglio netto", "Perché il 90% dei passaggi è un semplice taglio.", [
     T("La transizione più usata del mondo", [
       "Il **taglio netto** (cut) passa da un'inquadratura all'altra senza effetti. È quello che vedi in quasi tutti i film e video professionali.",
@@ -385,7 +376,6 @@ export const section1Lessons: Lesson[] = [
     ]),
   ]),
 
-  // ---------------- Unità 5 · Keyframe ----------------
   L("keyframe", "Cos'è un keyframe", "Due punti nel tempo e il computer fa il resto.", [
     T("Il fotogramma chiave", [
       "Un **keyframe** fissa il valore di una proprietà (posizione, scala, opacità, volume…) in un istante preciso.",
@@ -474,7 +464,6 @@ export const section1Lessons: Lesson[] = [
     ]),
   ], 15),
 
-  // ---------------- Unità 6 · Export ----------------
   L("codec", "Codec e contenitori", "H.264, H.265, ProRes: la differenza.", [
     T("Contenitore e codec", [
       "Il **contenitore** è la \"scatola\" (l'estensione del file: .mp4, .mov). Il **codec** è il modo in cui il video è compresso **dentro** la scatola.",

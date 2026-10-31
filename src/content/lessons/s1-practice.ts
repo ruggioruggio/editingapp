@@ -24,10 +24,6 @@ import {
   videoClips,
 } from "@/lib/lessons/studioKit";
 
-// Esercizi nel simulatore (e schermate in più) per le lezioni della
-// sezione 1: almeno un esercizio per lezione, spesso due, sempre più
-// impegnativi man mano che si avanza nel corso.
-
 export type Extra = { mid?: LessonStep[]; end: LessonStep[] };
 type PrStep = Extract<StudioStep, { app: "premiere" }>;
 type AeStep = Extract<StudioStep, { app: "ae" }>;
@@ -41,15 +37,12 @@ export const M = (title: string, pairs: [string, string][]): MatchStep => ({ kin
 export const near = (a: number, b: number, tol = 0.3) => Math.abs(a - b) <= tol;
 export const music = (s: PrState) => clipsOf(s, "s-musica");
 export const voice = (s: PrState) => clipsOf(s, "s-intervista").filter((c) => !isVideo(s, c));
-/** Clip del logo (sopra al video) */
 export const logo = (s: PrState) => clipsOf(s, "s-logo");
 export const keysOf = (c: Clip, which: "position" | "scale" | "rotation") => c.motion[which].keys ?? [];
 export const linearKeys = (pairs: [number, number[]][]): Key[] => pairs.map(([t, v]) => ({ id: uid("k"), t, v, easeIn: false, easeOut: false, hold: false }));
-/** Logo piccolo sopra al drone, per gli esercizi di movimento. */
 export const logoOverDrone = (patch?: (c: Clip) => Clip) => prSetup({ clips: [{ media: "s-drone", at: 0, from: 0, to: 6 }, { media: "s-logo", at: 0, from: 0, to: 6, v: 2, a: null, patch: (c) => (patch ?? ((x) => x))({ ...c, motion: { ...c.motion, scale: prop(40) } }) }] });
 
 export const S1_PRACTICE: Record<string, Extra> = {
-  // ---------------- Unità 1 ----------------
   "crea-sequenza": {
     mid: [
       T("I formati che userai di più", [
@@ -170,7 +163,6 @@ export const S1_PRACTICE: Record<string, Extra> = {
     ],
   },
 
-  // ---------------- Unità 2 ----------------
   trim: {
     mid: [
       T("Trim con la tastiera", [
@@ -251,7 +243,6 @@ export const S1_PRACTICE: Record<string, Extra> = {
     ],
   },
 
-  // ---------------- Unità 3 · Audio ----------------
   "livelli-db": {
     mid: [Q("La voce deve stare circa tra…", ["−30 e −24 dB", "−12 e −6 dB", "0 e +6 dB", "+6 e +12 dB"], 1, "La voce intorno a −12/−6 dB lascia margine e resta chiara; mai sopra lo 0.")],
     end: [
@@ -346,7 +337,6 @@ export const S1_PRACTICE: Record<string, Extra> = {
     ],
   },
 
-  // ---------------- Unità 4 · Transizioni ----------------
   "taglio-netto": {
     end: [
       pr(
@@ -431,7 +421,6 @@ export const S1_PRACTICE: Record<string, Extra> = {
     ],
   },
 
-  // ---------------- Unità 5 · Keyframe ----------------
   keyframe: {
     end: [
       pr(
@@ -554,7 +543,6 @@ export const S1_PRACTICE: Record<string, Extra> = {
     ],
   },
 
-  // ---------------- Unità 6 · Export ----------------
   codec: {
     end: [
       pr(
@@ -631,7 +619,6 @@ export const S1_PRACTICE: Record<string, Extra> = {
   },
 };
 
-/** Aggiunge gli esercizi alla lezione: a metà (dopo la seconda schermata) e alla fine. */
 export function withPractice(id: string, steps: LessonStep[], table: Record<string, Extra> = S1_PRACTICE): LessonStep[] {
   const x = table[id];
   if (!x) return steps;
@@ -639,7 +626,6 @@ export function withPractice(id: string, steps: LessonStep[], table: Record<stri
   return [...steps.slice(0, mid), ...(x.mid ?? []), ...steps.slice(mid), ...x.end];
 }
 
-/** Lezione completa: durata e XP crescono con le schermate e gli esercizi nel simulatore. */
 export const lesson = (id: string, title: string, summary: string, steps: LessonStep[], xp = 15): Lesson => ({
   id,
   title,

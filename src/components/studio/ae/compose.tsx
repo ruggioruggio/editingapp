@@ -10,13 +10,8 @@ import "@/lib/studio/expressions";
 import { FxWrap, MediaContent, SyncedAudio } from "../render";
 import { timecode } from "../chrome";
 
-// Disegno di una composizione di After Effects: livelli dal basso verso
-// l'alto, genitori, 3D, maschere, effetti, livelli di regolazione e
-// composizioni nidificate.
-
 export function layerTransform(l: Layer, t: number, comp: Comp, index: number): { css: CSSProperties; opacity: number; pos: number[]; scale: number[]; rot: number; anchor: number[] } {
   const project = useAe.getState().project;
-  // ogni proprietà sa chi è (per thisProperty, value, key()… nelle espressioni)
   const ctx = (path: string) => ({ index, fps: comp.fps, width: comp.width, height: comp.height, host: { project, comp, layerId: l.id, path } });
   const T = l.transform;
   const anchor = valueAt(T.anchor, t, ctx("t.anchor"));
@@ -33,7 +28,6 @@ export function layerTransform(l: Layer, t: number, comp: Comp, index: number): 
   return { css: { transformOrigin: `${anchor[0]}px ${anchor[1]}px`, transform: tr, transformStyle: l.threeD ? "preserve-3d" : undefined }, opacity, pos, scale, rot, anchor };
 }
 
-/** Maschere come immagine SVG (canale alfa) da usare con mask-image. */
 export function maskImage(masks: Mask[], w: number, h: number, t: number): string | undefined {
   const act = masks.filter((m) => m.mode !== "none");
   if (!act.length || !w || !h) return undefined;
@@ -75,7 +69,6 @@ function LayerContent({ l, t, project, playing, depth, comp }: { l: Layer; t: nu
     case "solid":
       return <div className="absolute inset-0" style={{ background: l.color }} />;
     case "text": {
-      // animatore di testo: lettere visibili fino alla fine dell'intervallo, spaziatura animabile
       const full = l.text || " ";
       const ctx = (path: string) => ({ index: comp.layers.indexOf(l) + 1, fps: comp.fps, width: comp.width, height: comp.height, host: { project, comp, layerId: l.id, path } });
       const range = l.textRange ? Math.max(0, Math.min(100, valueAt(l.textRange, t, ctx("x.range"))[0])) : 100;
@@ -134,7 +127,6 @@ function LayerContent({ l, t, project, playing, depth, comp }: { l: Layer; t: nu
   }
 }
 
-/** Fotogramma di una composizione al tempo t. */
 export function CompFrame({ comp, project, t, playing = false, depth = 0, transparent, hideLayers }: { comp: Comp; project: AeProject; t: number; playing?: boolean; depth?: number; transparent?: boolean; hideLayers?: Set<string> }) {
   const solo = comp.layers.some((l) => l.solo);
   const byId = new Map(comp.layers.map((l) => [l.id, l]));
@@ -161,7 +153,6 @@ export function CompFrame({ comp, project, t, playing = false, depth = 0, transp
       ];
       continue;
     }
-    // catena dei genitori: le trasformazioni dei genitori avvolgono il livello
     const chain: Layer[] = [];
     let p = l.parent ? byId.get(l.parent) : undefined;
     let guard = 0;
@@ -195,7 +186,6 @@ export function CompFrame({ comp, project, t, playing = false, depth = 0, transp
   );
 }
 
-/** Audio dei livelli di file importati durante la riproduzione. */
 export function CompAudio({ comp, project, t, playing }: { comp: Comp; project: AeProject; t: number; playing: boolean }) {
   if (!playing) return null;
   return (

@@ -61,7 +61,6 @@ function getCtx(): AudioContext | null {
   return ctx;
 }
 
-// Ensure AudioContext can start after first user gesture
 if (typeof window !== "undefined") {
   const unlock = () => {
     getCtx();
@@ -94,7 +93,6 @@ export function sfx(cat: SfxCategory) {
       osc.frequency.setValueAtTime(n.f, now + n.at);
       if (n.detune) osc.detune.value = n.detune;
       if (n.slide) osc.frequency.exponentialRampToValueAtTime(n.slide, now + n.at + n.len);
-      // ADSR-like envelope: quick attack, sustain, smooth release
       env.gain.setValueAtTime(0, now + n.at);
       env.gain.linearRampToValueAtTime(n.gain ?? 0.7, now + n.at + 0.008);
       env.gain.setValueAtTime(n.gain ?? 0.7, now + n.at + n.len * 0.6);
@@ -104,6 +102,5 @@ export function sfx(cat: SfxCategory) {
       osc.stop(now + n.at + n.len + 0.02);
     }
   } catch {
-    /* audio unavailable */
   }
 }

@@ -5,9 +5,6 @@ import clsx from "clsx";
 import { MouseFigure } from "./Mascot";
 import { Squeak3D } from "./Squeak3DLazy";
 
-// Cinque scenette di Squeak (viewBox 400x240). Le animazioni sono in globals.css:
-// con loop=false durano una volta (splash), con loop=true girano all'infinito (sito).
-
 function Scene({ loop, className, children }: { loop: boolean; className?: string; children: ReactNode }) {
   const vars = { "--iter": loop ? "infinite" : "1", "--iter3": loop ? "infinite" : "3" } as CSSProperties;
   return (
@@ -17,7 +14,6 @@ function Scene({ loop, className, children }: { loop: boolean; className?: strin
   );
 }
 
-/** Topo con le animazioni idle sempre attive (ciglia, coda, orecchio). */
 function Squeak({ x, y, scale = 1, mood }: { x: number; y: number; scale?: number; mood?: "happy" | "wow" }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${scale})`}>
@@ -174,7 +170,6 @@ export function KeyframeScene({ loop = true }: { loop?: boolean }) {
   );
 }
 
-// Scene 3D: Squeak vero e proprio, che ruota nello spazio
 function Scene3D({ mode }: { mode: "flip" | "spin" }) {
   return (
     <div className="aspect-[5/3] w-full">
@@ -185,7 +180,6 @@ function Scene3D({ mode }: { mode: "flip" | "spin" }) {
 export const FlipScene3D = () => <Scene3D mode="flip" />;
 export const SpinScene3D = () => <Scene3D mode="spin" />;
 
-/** Le 5 aperture dell'app, una scelta a caso a ogni sessione (3 in 2D, 2 in 3D). */
 export const SCENES = [
   { id: "cut", caption: "Squeak sta tagliando il girato…", Component: CutScene },
   { id: "cheese", caption: "Squeak fa merenda prima del montaggio…", Component: CheeseScene },

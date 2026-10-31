@@ -3,10 +3,6 @@ import { brand } from "@/config/brand";
 
 export type MascotMood = "happy" | "sleepy" | "wow" | "sad" | "dizzy";
 
-/**
- * Squeak di profilo (guarda a destra), come gruppo SVG in coordinate 120x100.
- * Le classi sq-* servono alle animazioni definite in globals.css.
- */
 export function MouseFigure({ mood = "happy" }: { mood?: MascotMood }) {
   return (
     <g className="sq-whole">
@@ -72,7 +68,6 @@ export function MouseFigure({ mood = "happy" }: { mood?: MascotMood }) {
   );
 }
 
-/** Squeak a figura intera. `idle` attiva respiro, coda, orecchio e battito di ciglia. */
 export function Mascot({
   size = 64,
   mood = "happy",
@@ -101,11 +96,6 @@ export function Mascot({
   );
 }
 
-/**
- * Icona dell'app: Squeak con il muso sporgente che sbuca dall'angolo in basso
- * a destra, con un ciak accanto (si parla di montaggio), su gradiente scuro.
- * Stesso disegno di app/icon.svg.
- */
 export function AppIcon({ size = 32, className }: { size?: number; className?: string }) {
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className={clsx("shrink-0", className)} style={{ borderRadius: size * 0.24 }} aria-hidden>

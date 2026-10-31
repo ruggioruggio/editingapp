@@ -16,14 +16,12 @@ const ADMIN_POLL_MS = 60_000;
 const IS_ELECTRON_RT = typeof navigator !== "undefined" && /Electron/i.test(navigator.userAgent);
 const IS_CAPACITOR = !IS_ELECTRON_RT && !!process.env.SQUEAK_DESKTOP;
 
-/** Pro regalato e sospensioni decisi dal pannello admin (colonne di 0003_admin.sql). */
 async function loadAdminFlags(sb: SupabaseClient, userId: string) {
   const { data, error } = await sb.from("profiles").select("pro_until, banned_until, ban_reason").eq("id", userId).maybeSingle<{ pro_until: string | null; banned_until: string | null; ban_reason: string | null }>();
   if (error || !data) return;
   useProgress.setState({ proUntil: data.pro_until, bannedUntil: data.banned_until, banReason: data.ban_reason });
 }
 
-/** Avatar salvato nel profilo (colonna di 0004_avatar.sql): vale su tutti i dispositivi. */
 async function loadAvatar(sb: SupabaseClient, userId: string) {
   const { data, error } = await sb.from("profiles").select("avatar").eq("id", userId).maybeSingle<{ avatar: Partial<Avatar> | null }>();
   if (error || !data?.avatar) return;
@@ -71,11 +69,6 @@ async function shareActivity(sb: SupabaseClient, userId: string, state: Progress
   await publishEvents(sb, events);
 }
 
-/**
- * Collega lo store locale all'account: al login fonde i progressi locali con
- * quelli del server (così chi ha giocato da ospite non perde nulla), poi salva
- * ogni modifica con un piccolo ritardo. Al logout pulisce i dati locali.
- */
 export function SupabaseSync() {
   useEffect(() => {
     const sb = getSupabase();
@@ -157,8 +150,6 @@ export function SupabaseSync() {
         retryCount = 0;
         void startSession(user);
       } else if (!user && (activeUser || useAuth.getState().status === "loading")) {
-        // Su Capacitor lo storage è async: la prima lettura potrebbe non essere
-        // ancora pronta. Riproviamo getSession() prima di dichiarare "guest".
         if (IS_CAPACITOR && retryCount < 3) {
           retryCount++;
           setTimeout(() => {

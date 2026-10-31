@@ -1,4 +1,3 @@
-/** Testo con **grassetto** minimale per i contenuti delle lezioni. */
 export function RichText({ text, className }: { text: string; className?: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*)/g);
   return (

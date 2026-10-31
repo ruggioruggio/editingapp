@@ -18,7 +18,6 @@ const markers: Marker[] = [
   { id: "m2", time: 6, label: "Fine papera" },
 ];
 
-/** Intervista con audio collegato, già divisa nei punti indicati. */
 function interviewSequence(cuts: number[]): Sequence {
   const points = [0, ...cuts, interview.duration];
   const clips: Clip[] = [];

@@ -6,12 +6,6 @@ import * as THREE from "three";
 import { Stage } from "@/components/three/Stage";
 import { clamp01, createRig, easeOut, resetRig, Shadow, SqueakModel } from "@/components/three/SqueakModel";
 
-/**
- * Squeak 3D "da solo" per splash e Squeak AI.
- * - "turntable": ruota su sé stesso saltellando
- * - "flip": salta, fa una capriola e saluta (splash, una volta)
- * - "spin": piroetta e saluta (splash, una volta)
- */
 export type Squeak3DMode = "turntable" | "flip" | "spin";
 
 function Solo({ mode }: { mode: Squeak3DMode }) {
@@ -34,7 +28,6 @@ function Solo({ mode }: { mode: Squeak3DMode }) {
       if (r.armR) r.armR.rotation.set(-2.6, 0, 0.3 + Math.sin(t * 14) * 0.35);
     };
     if (mode === "flip") {
-      // carica, salta con capriola all'indietro, atterra e saluta
       const squash = t < 0.4 ? Math.sin((t / 0.4) * Math.PI) * 0.18 : 0;
       const p = clamp01((t - 0.4) / 0.9);
       r.body.position.y = Math.sin(p * Math.PI) * 1.6;

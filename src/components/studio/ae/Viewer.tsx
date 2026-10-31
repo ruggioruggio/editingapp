@@ -12,10 +12,6 @@ import { CompAudio, CompFrame, layerTransform } from "./compose";
 import { aeTime } from "./AeTimeline";
 import * as A from "./actions";
 
-// Pannello Composizione: anteprima, manipolazione diretta dei livelli
-// (sposta, scala, ruota, punto di ancoraggio), disegno di forme, maschere e
-// testo, barra inferiore con ingrandimento e risoluzione.
-
 function toLayerSpace(l: Layer, t: number, comp: Comp, p: [number, number]): [number, number] {
   const tf = layerTransform(l, t, comp, 1);
   const r = (-tf.rot * Math.PI) / 180;
@@ -45,7 +41,6 @@ export function Viewer() {
     const c = compOf(s);
     if (!c) return;
     let n = timeOf(s) + dt;
-    // l'anteprima ripete l'area di lavoro
     if (n >= c.workOut) n = c.workIn;
     s.set({ times: { ...s.times, [c.id]: n } });
   });
@@ -80,7 +75,6 @@ export function Viewer() {
       if (!target) return st.notify("Seleziona un livello (metraggio o tinta unita) su cui disegnare la maschera");
       const p = toLayerSpace(target, t, comp, [x, y]);
       const d = st.maskDraft?.layer === target.id ? st.maskDraft.pts : [];
-      // clic vicino al primo punto: chiude il tracciato
       if (d.length >= 6 && Math.hypot(d[0] - p[0], d[1] - p[1]) < 14 / scale) {
         A.updateLayer(target.id, (l) => ({ ...l, masks: [...l.masks, newMask(l, "poly", d)] }), "Nuova maschera");
         st.set({ maskDraft: null, open: { ...st.open, [target.id]: ["masks"] } });
@@ -103,7 +97,6 @@ export function Viewer() {
         const h = Math.max(10, Math.abs(y1 - y));
         const target = comp.layers.find((l) => st.selected.includes(l.id) && (l.type === "footage" || l.type === "solid" || l.type === "precomp" || l.type === "adjustment"));
         if (target && (tool === "rect" || tool === "rrect" || tool === "ellipse")) {
-          // con un livello selezionato si disegna una maschera
           const a = toLayerSpace(target, t, comp, [Math.min(x, x1), Math.min(y, y1)]);
           const b = toLayerSpace(target, t, comp, [Math.max(x, x1), Math.max(y, y1)]);
           A.updateLayer(target.id, (l) => ({ ...l, masks: [...l.masks, newMask(l, tool === "ellipse" ? "ellipse" : "rect", [a[0], a[1], b[0] - a[0], b[1] - a[1]])] }), "Nuova maschera");
@@ -119,7 +112,6 @@ export function Viewer() {
       el.addEventListener("pointerup", up);
       return;
     }
-    // Selezione: clic su un livello (dall'alto) per selezionarlo
     const hit = hitTest(comp, t, x, y);
     if (!hit) {
       if (!e.shiftKey) st.set({ selected: [], editingText: null });
@@ -146,7 +138,6 @@ export function Viewer() {
             return { ...l, transform: { ...l.transform, rotation: setAt(l.transform.rotation, [Math.round(s0.rot + ((a1 - a0) * 180) / Math.PI)], t, c.fps) } };
           }
           if (tool === "anchor") {
-            // sposta il punto di ancoraggio senza muovere il livello
             const dx = x1 - x;
             const dy = y1 - y;
             return { ...l, transform: { ...l.transform, anchor: setAt(l.transform.anchor, [s0.anchor[0] + dx, s0.anchor[1] + dy, ...s0.anchor.slice(2)], t, c.fps), position: setAt(l.transform.position, [s0.pos[0] + dx, s0.pos[1] + dy, ...s0.pos.slice(2)], t, c.fps) } };
@@ -290,7 +281,6 @@ function newTf(x: number, y: number) {
   return { anchor: prop(0, 0), position: prop(Math.round(x), Math.round(y)), scale: prop(100, 100), rotation: prop(0), rotX: prop(0), rotY: prop(0), opacity: prop(100) };
 }
 
-/** Trova il livello più in alto sotto il puntatore (riquadro trasformato). */
 function hitTest(comp: Comp, t: number, x: number, y: number): Layer | undefined {
   for (const l of comp.layers) {
     if (!l.visible || l.locked || t < l.inPoint || t >= l.outPoint) continue;
@@ -315,7 +305,6 @@ function hitTest(comp: Comp, t: number, x: number, y: number): Layer | undefined
   return undefined;
 }
 
-/** Riquadro, maniglie e punto di ancoraggio del livello selezionato. */
 function Handles({ l, comp, t, scale }: { l: Layer; comp: Comp; t: number; scale: number }) {
   const tf = layerTransform(l, t, comp, 1);
   let [x0, y0, x1, y1] = [0, 0, l.w, l.h];

@@ -10,11 +10,8 @@ export interface MediaEvent {
 export interface Media {
   id: string;
   name: string;
-  /** durata del file sorgente in secondi */
   duration: number;
-  /** tinta usata per generare il video sintetico nel monitor */
   hue: number;
-  /** momenti notevoli del sorgente (es. una papera), visibili nel monitor */
   events?: MediaEvent[];
 }
 
@@ -22,13 +19,9 @@ export interface Clip {
   id: string;
   mediaId: string;
   track: TrackId;
-  /** posizione in timeline (s) */
   start: number;
-  /** punto di attacco nel sorgente (s) */
   in: number;
-  /** punto di stacco nel sorgente (s) */
   out: number;
-  /** clip collegate (video + audio) condividono lo stesso linkId */
   linkId?: string;
 }
 

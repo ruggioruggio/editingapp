@@ -12,9 +12,6 @@ import { timecode, usePlayback } from "../chrome";
 import { SequenceAudio, SequenceFrame, boxSize, motionAt } from "./compose";
 import * as A from "./actions";
 
-// Monitor Sorgente e Programma, con la barra del tempo, i pulsanti di
-// trasporto e la manipolazione diretta della clip selezionata.
-
 const ZOOMS = ["fit", 10, 25, 50, 75, 100, 150, 200, 400] as const;
 
 function TransportButton({ title, onClick, children, active }: { title: string; onClick: () => void; children: ReactNode; active?: boolean }) {
@@ -81,7 +78,6 @@ const I = {
   ),
 };
 
-/** Barra del tempo sotto i monitor (righello, marcatori, attacco/uscita, testina). */
 function TimeBar({ value, max, inP, outP, markers, onScrub, fps }: { value: number; max: number; inP: number | null; outP: number | null; markers?: { t: number; color: number }[]; onScrub: (t: number) => void; fps: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const at = (x: number) => {
@@ -150,8 +146,6 @@ function ResSelect() {
     </span>
   );
 }
-
-// ---- Sorgente --------------------------------------------------------------------------------
 
 export function SourceMonitor() {
   const st = usePremiere();
@@ -241,9 +235,6 @@ export function SourceMonitor() {
   );
 }
 
-// ---- Programma ---------------------------------------------------------------------------------
-
-/** Riquadro della clip selezionata nel monitor: si trascina per spostarla, gli angoli scalano. */
 function SelectionBox({ c, seq, toLocal, scale }: { c: Clip; seq: Sequence; toLocal: (x: number, y: number) => [number, number]; scale: number }) {
   const st = usePremiere();
   const T = playheadOf(st);
@@ -437,7 +428,6 @@ export function ProgramMonitor() {
   );
 }
 
-/** Ospita il riquadro di selezione dentro il palco (serve conoscere scala e coordinate). */
 function SelectionHost({ c, seq }: { c: Clip; seq: Sequence }) {
   const ref = useRef<HTMLDivElement>(null);
   const toLocal = (x: number, y: number): [number, number] => {

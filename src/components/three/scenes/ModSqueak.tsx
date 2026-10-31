@@ -6,10 +6,6 @@ import * as THREE from "three";
 import { Stage } from "../Stage";
 import { Shadow, SqueakModel, createRig, easeInOut, phase, type SqueakRig } from "../SqueakModel";
 
-// Squeak "moderatore": ciccione, sdraiato come Snorlax con la pancia al
-// vento, barba storta, briciole intorno alla bocca e maglietta strappata.
-// Ogni tanto si mette a rotolare avanti e indietro.
-
 const CYCLE = 10;
 const IDENTITY = new THREE.Quaternion();
 
@@ -21,7 +17,6 @@ function useShirtTexture() {
     const g = c.getContext("2d")!;
     g.fillStyle = "#f1e7c4";
     g.fillRect(0, 0, 256, 256);
-    // strappi: buchi trasparenti dai bordi frastagliati
     g.globalCompositeOperation = "destination-out";
     const hole = (cx: number, cy: number, r: number) => {
       g.beginPath();
@@ -36,7 +31,6 @@ function useShirtTexture() {
     hole(185, 105, 14);
     hole(140, 205, 18);
     hole(30, 90, 10);
-    // orlo in basso tutto sfilacciato
     g.beginPath();
     g.moveTo(0, 256);
     for (let x = 0; x <= 256; x += 14) g.lineTo(x, 236 - ((x * 13) % 30));
@@ -48,7 +42,6 @@ function useShirtTexture() {
   }, []);
 }
 
-/** Maglietta strappata e pancione che esce di sotto. */
 function Outfit() {
   const shirt = useShirtTexture();
   return (
@@ -70,8 +63,6 @@ function Outfit() {
   );
 }
 
-
-/** Sacchetto di patatine aperto con qualche patatina che esce. */
 function ChipBag() {
   return (
     <group scale={0.6} rotation={[0.3, 0, 0.15]}>
@@ -112,18 +103,15 @@ function ModSqueak() {
     void easeInOut;
     void phase;
     const r = rig.current;
-    // respiro profondo da dormiglione
     const breath = Math.sin(state.clock.elapsedTime * 1.6);
     if (r.body) {
       r.body.rotation.x = -0.32;
       r.body.scale.set(1 + breath * 0.015, 1 + breath * 0.025, 1 + breath * 0.02);
     }
     if (r.head) r.head.rotation.set(0.15, 0, 0.22 + breath * 0.03);
-    // braccia sulla pancia, una si gratta
     if (r.armL) r.armL.rotation.set(-0.7, 0, -0.55);
     if (r.armR) r.armR.rotation.set(-0.85 + Math.max(0, Math.sin(state.clock.elapsedTime * 6)) * 0.25 * (t > 3 && t < 5 ? 1 : 0), 0, 0.5);
 
-    // rotola in giro a caso: sceglie un punto, ci arriva rotolando, si riassesta e riposa
     const w = walk.current;
     const dt = Math.min(0.05, delta || 1 / 60);
     if (w.mode === "rest") {
@@ -143,7 +131,6 @@ function ModSqueak() {
         const step = Math.min(dist, (1.2 + Math.min(dist, 2) * 0.6) * dt);
         to.normalize();
         w.pos.addScaledVector(to, step);
-        // asse di rotolamento: perpendicolare alla direzione, sul pavimento
         const axis = new THREE.Vector3(to.z, 0, -to.x).normalize();
         w.q.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, step / 1.05));
       }

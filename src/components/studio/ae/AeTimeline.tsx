@@ -75,7 +75,6 @@ function TimelineBody({ comp }: { comp: Comp }) {
     const x0 = e.clientX;
     const y0 = e.clientY;
     let moved = false;
-    // col dito: scorrere muove la timeline, tenere premuto afferra
     const touch = e.pointerType === "touch";
     let armed = !touch;
     const block = (ev: TouchEvent) => ev.preventDefault();
@@ -111,7 +110,6 @@ function TimelineBody({ comp }: { comp: Comp }) {
     el.addEventListener("pointercancel", up);
   };
 
-  // ---- righe -------------------------------------------------------------------------
   const rows: Row[] = [];
   const isOpen = (l: Layer, key: string) => {
     const o = st.open[l.id];
@@ -136,7 +134,6 @@ function TimelineBody({ comp }: { comp: Comp }) {
       rows.push({ kind: "group", l, id: "text", name: "Testo", depth: 1 });
       if (g("text")) rows.push({ kind: "prop", l, path: "text.source", name: "Testo sorgente", depth: 2, dims: 0, input: <span className="truncate text-[#d0d0d0]">{l.text}</span> });
     }
-    // animatore di testo (macchina da scrivere, spaziatura che si apre…)
     if (l.type === "text" && (all || (o as string[]).some((p) => p.startsWith("x.")))) {
       rows.push({ kind: "group", l, id: "anim", name: "Animatore 1", depth: 1 });
       if (g("anim")) {
@@ -499,7 +496,6 @@ function TimelineBody({ comp }: { comp: Comp }) {
                     onPointerDown={(e) => {
                       if ((e.target as HTMLElement).closest("button,select,input")) return;
                       st.set({ selected: e.ctrlKey || e.metaKey ? (isSel ? sel.filter((x) => x !== l.id) : [...sel, l.id]) : e.shiftKey && sel.length ? comp.layers.slice(Math.min(r.i, comp.layers.findIndex((x) => x.id === sel[0])), Math.max(r.i, comp.layers.findIndex((x) => x.id === sel[0])) + 1).map((x) => x.id) : [l.id], selectedProps: [] });
-                      // trascinare in verticale riordina i livelli
                       const y0 = e.clientY;
                       st.beginGesture();
                       drag(
@@ -717,7 +713,6 @@ function TimelineBody({ comp }: { comp: Comp }) {
                 </div>
               );
             }
-            // proprietà
             const l = r.l;
             const p = r.path.includes(".") && !r.path.startsWith("text") && !["s.fill", "s.stroke"].includes(r.path) ? getProp(l, r.path) : undefined;
             const v = p ? valueAt(p, t, { index: comp.layers.indexOf(l) + 1, fps, width: comp.width, height: comp.height, host: { project: st.project, comp, layerId: l.id, path: r.path } }) : [];
@@ -765,7 +760,7 @@ function TimelineBody({ comp }: { comp: Comp }) {
                             const cur = valueAt(p!, t);
                             const n = [...cur];
                             n[d] = nv;
-                            if (r.path === "t.scale" && d === 0 && Math.abs(cur[0] - cur[1]) < 1e-6) n[1] = nv; // proporzioni vincolate
+                            if (r.path === "t.scale" && d === 0 && Math.abs(cur[0] - cur[1]) < 1e-6) n[1] = nv;
                             setP(setAt(p!, n, t, fps), pid + d);
                           }}
                         />
@@ -792,7 +787,6 @@ function TimelineBody({ comp }: { comp: Comp }) {
                   style={{ width: width + 40 }}
                   onPointerDown={(e) => {
                     if (e.target !== e.currentTarget || st.graph) return;
-                    // selezione a riquadro dei keyframe
                     const el = scroller.current!;
                     const rect = el.getBoundingClientRect();
                     const x0 = e.clientX - rect.left + el.scrollLeft;
@@ -888,7 +882,6 @@ function mapLayerKeys(l: Layer, ids: Set<string>, dt: number, max: number): Part
   return out;
 }
 
-/** Editor grafico: curve del valore (o della velocità) delle proprietà scelte. */
 function GraphEditor({ comp, props, pps, top, left: LEFT }: { comp: Comp; props: { l: Layer; path: string; name: string; prop: Prop }[]; pps: number; top: number; left: number }) {
   const st = useAe();
   const [speed, setSpeed] = useState(false);
@@ -913,8 +906,6 @@ function GraphEditor({ comp, props, pps, top, left: LEFT }: { comp: Comp; props:
   const yInv = (py: number) => min + ((H - 20 - py) / (H - 40)) * (max - min || 1);
   const colors = ["#ff6b6b", "#5fd38a", "#5aa9ff", "#e8d43a", "#d966d6"];
 
-  // levette di velocità dei fotogrammi chiave selezionati: in orizzontale
-  // l'influenza, in verticale la velocità (come nell'editor grafico di AE)
   const handles = curves.flatMap((c) => {
     const ks = c.prop.keys ?? [];
     const out: ReactNode[] = [];
@@ -949,7 +940,6 @@ function GraphEditor({ comp, props, pps, top, left: LEFT }: { comp: Comp; props:
                 try {
                   el.setPointerCapture(e.pointerId);
                 } catch {
-                  /* niente */
                 }
                 st.beginGesture();
                 const move = (ev: PointerEvent) => {

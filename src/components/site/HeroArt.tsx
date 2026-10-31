@@ -1,8 +1,6 @@
 import { Clapperboard, Diamond, Film, Music2, Palette, Scissors, type LucideIcon } from "lucide-react";
 import { LoungeHero } from "@/components/three/lazy";
 
-// Squeak in 3D che entra e si mette a leggere sulla sdraio, con gli
-// "attrezzi del mestiere" che fluttuano intorno (come la home di Duolingo).
 const ORBIT: { icon: LucideIcon; color: string; x: string; y: string; delay: string; size: number }[] = [
   { icon: Scissors, color: "#ff5f5f", x: "2%", y: "8%", delay: "0s", size: 56 },
   { icon: Film, color: "#2d8ceb", x: "80%", y: "2%", delay: "0.6s", size: 62 },

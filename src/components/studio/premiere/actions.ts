@@ -36,9 +36,6 @@ import {
   type Sequence,
 } from "@/lib/studio/premiere";
 
-// Comandi del simulatore di Premiere: li usano la barra dei menu, i menu
-// contestuali, i pulsanti e le scorciatoie da tastiera.
-
 const st = () => usePremiere.getState();
 const S = () => seqOf(st());
 const T = () => playheadOf(st());
@@ -51,8 +48,6 @@ export function needSeq(): Sequence | null {
   if (!s) st().notify("Apri o crea prima una sequenza");
   return s;
 }
-
-// ---- riproduzione ----------------------------------------------------------------------
 
 export function togglePlay() {
   const s = st();
@@ -100,8 +95,6 @@ export function goMarker(dir: 1 | -1) {
   if (to !== undefined) st().setPlayhead(to);
 }
 
-// ---- attacco / uscita ---------------------------------------------------------------------
-
 export function markIn() {
   const s = st();
   if (s.focus === "source" && s.source.mediaId) return s.set({ source: { ...s.source, in: s.source.t } });
@@ -129,7 +122,6 @@ export function goToOut() {
   const q = S();
   if (q?.outPoint !== null && q) s.setPlayhead(q.outPoint!);
 }
-/** X: attacco e uscita attorno alla clip sotto l'indicatore. */
 export function markClip() {
   const q = S();
   if (!q) return;
@@ -137,15 +129,12 @@ export function markClip() {
   const c = q.clips.find((x) => (tracks.length ? tracks.includes(x.track) : true) && T() >= x.start && T() < clipEnd(x));
   if (c) st().commitSeq((s) => ({ ...s, inPoint: c.start, outPoint: clipEnd(c) }), "Contrassegna clip");
 }
-/** /: attacco e uscita attorno alla selezione. */
 export function markSelection() {
   const q = S();
   const sel = q?.clips.filter((c) => st().selection.includes(c.id)) ?? [];
   if (!sel.length) return;
   st().commitSeq((s) => ({ ...s, inPoint: Math.min(...sel.map((c) => c.start)), outPoint: Math.max(...sel.map(clipEnd)) }), "Contrassegna selezione");
 }
-
-// ---- montaggio ---------------------------------------------------------------------------
 
 export function place(mode: "insert" | "overwrite") {
   const s = st();
@@ -175,7 +164,6 @@ export function addEdit(all: boolean) {
   s.commitSeq((x) => razor(x, ids, t), all ? "Aggiungi modifica a tutte le tracce" : "Aggiungi modifica");
 }
 
-/** Fermo immagine: dalla posizione dell'indicatore in poi la clip resta ferma su quel fotogramma. */
 export function addFrameHold() {
   const s = st();
   const q = needSeq();
@@ -316,7 +304,6 @@ export function moveToTrack(delta: number) {
   s.commitSeq((x) => moveClips(x, s.selection, 0, v ? delta : -delta, { anchorVideo: v }), "Sposta");
 }
 
-/** Q / W: rifila con increspatura l'inizio o la fine della clip fino all'indicatore. */
 export function rippleTrimToPlayhead(which: "prev" | "next") {
   const s = st();
   const q = S();
@@ -346,7 +333,6 @@ export function clearMarkers() {
   st().commitSeq((q) => ({ ...q, markers: [] }), "Cancella tutti i marcatori");
 }
 
-/** Ctrl+D / Ctrl+Maiusc+D / Maiusc+D: transizione predefinita. */
 export function applyDefaultTransition(kind: "video" | "audio" | "both") {
   const s = st();
   const q = needSeq();
@@ -356,7 +342,6 @@ export function applyDefaultTransition(kind: "video" | "audio" | "both") {
   let n = 0;
   const sel = q.clips.filter((c) => s.selection.includes(c.id) && want(c.track));
   if (sel.length) {
-    // su entrambi i bordi delle clip selezionate
     for (const c of sel) {
       const def = isVideoTrack(q, c.track) ? DEFAULT_TRANSITION.video : DEFAULT_TRANSITION.audio;
       next = setTransition(next, c.id, "in", def, DEFAULT_TRANSITION.dur);
@@ -364,7 +349,6 @@ export function applyDefaultTransition(kind: "video" | "audio" | "both") {
       n++;
     }
   } else {
-    // sul punto di modifica più vicino all'indicatore, nelle tracce di destinazione
     const t = T();
     for (const tr of q.tracks.filter((x) => x.target && want(x.id))) {
       const onT = q.clips.filter((c) => c.track === tr.id);
@@ -449,8 +433,6 @@ export function zoomToFit() {
 
 export const setTool = (tool: PrTool) => st().set({ tool });
 
-// ---- progetto ------------------------------------------------------------------------------
-
 export function addProjectItem(item: Omit<ProjectItem, "id" | "parent" | "label"> & Partial<ProjectItem>, label = "Nuovo elemento") {
   const s = st();
   const it: ProjectItem = { id: uid("it"), parent: s.bin, label: 2, ...item };
@@ -488,7 +470,6 @@ export function createSequence(name: string, width: number, height: number, fps:
   return q;
 }
 
-/** Sequenza da clip: impostazioni prese dal file. */
 export function sequenceFromMedia(mediaId: string) {
   const s = st();
   const m = s.project.media[mediaId];
@@ -585,8 +566,6 @@ export function moveItems(ids: string[], parent: string | null) {
   s.commit((p) => ({ ...p, items: p.items.map((i) => (ids.includes(i.id) && i.id !== parent ? { ...i, parent } : i)) }), "Sposta");
 }
 
-// ---- tracce -----------------------------------------------------------------------------
-
 export function addTracks(nv: number, na: number) {
   st().commitSeq((q) => {
     const vt = videoTracks(q);
@@ -611,9 +590,6 @@ export function updateTrack(id: string, patch: Partial<Sequence["tracks"][number
   st().commitSeq((q) => ({ ...q, tracks: q.tracks.map((t) => (t.id === id ? { ...t, ...patch } : t)) }), label);
 }
 
-// ---- grafica --------------------------------------------------------------------------------
-
-/** Strumento Testo / Rettangolo / Ellisse: crea una clip grafica sulla prima traccia libera. */
 export function createGraphic(kind: "text" | "rect" | "ellipse", x: number, y: number) {
   const s = st();
   const q = needSeq();
@@ -623,7 +599,6 @@ export function createGraphic(kind: "text" | "rect" | "ellipse", x: number, y: n
   const sel = q.clips.find((c) => s.selection.includes(c.id) && c.graphic && t >= c.start && t < clipEnd(c));
   const layer = newGraphicLayer(kind, x, y, q);
   if (sel) {
-    // aggiunge un livello alla grafica selezionata
     s.commitSeq((z) => ({ ...z, clips: z.clips.map((c) => (c.id === sel.id ? { ...c, graphic: [...(c.graphic ?? []), layer] } : c)) }), "Nuovo livello");
     s.set({ editingText: kind === "text" ? layer.id : null });
     return;
@@ -632,7 +607,6 @@ export function createGraphic(kind: "text" | "rect" | "ellipse", x: number, y: n
   let target = free?.id;
   let next = q;
   if (!target || vts.findIndex((v) => v.id === target) < vts.findIndex((v) => q.clips.some((c) => c.track === v.id && c.start <= t && clipEnd(c) > t))) {
-    // nessuna traccia libera sopra il video: se ne crea una nuova
     const nt = makeTrack("video", vts.length + 1);
     next = { ...q, tracks: [...vts, { ...nt, target: false }, ...audioTracks(q)] };
     target = nt.id;

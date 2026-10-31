@@ -14,7 +14,6 @@ const TOOL_META: Record<Tool, { label: string; key: string; icon: LucideIcon }> 
   razor: { label: "Lama", key: "C", icon: Scissors },
 };
 
-/** Scorciatoie da tastiera uguali a Premiere Pro. */
 function useEditorShortcuts(tools: Tool[]) {
   const toolsKey = tools.join(",");
   useEffect(() => {
@@ -114,7 +113,6 @@ function ActionButton({
       title={title}
       disabled={disabled}
       aria-pressed={active}
-      // blur: altrimenti lo Spazio "ri-clicca" il bottone invece di avviare il play
       onClick={(e) => {
         onClick();
         e.currentTarget.blur();

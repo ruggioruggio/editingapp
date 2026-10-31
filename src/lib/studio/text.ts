@@ -1,8 +1,5 @@
 import type { CSSProperties } from "react";
 
-// Stile del testo, usato dalla grafica essenziale di Premiere e dai livelli di
-// testo di After Effects (pannelli Carattere e Paragrafo).
-
 export const FONTS = ["Nunito", "Arial", "Georgia", "Impact", "Courier New", "Trebuchet MS", "Times New Roman", "Verdana", "Comic Sans MS"] as const;
 
 export interface TextStyle {

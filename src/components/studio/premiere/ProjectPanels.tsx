@@ -11,9 +11,6 @@ import { timecode } from "../chrome";
 import { Thumb } from "../render";
 import * as A from "./actions";
 
-// Pannello Progetto (raccoglitori, vista a icone/elenco), Browser
-// multimediale, Librerie, Info, Effetti e Cronologia.
-
 export const openImport = () => document.getElementById("pr-import-input")?.click();
 
 const newItemMenu = (): MenuItemLike[] => [
@@ -382,8 +379,6 @@ export function InfoPanel() {
     </div>
   );
 }
-
-// ---- Effetti ----------------------------------------------------------------------------------------
 
 const PRESETS = [
   { id: "p-fadein", name: "Dissolvenza in entrata" },

@@ -1,6 +1,3 @@
-// Testi legali di SqueakEdit. BOZZE: vanno completati i dati tra [parentesi
-// quadre] e fatti verificare da un legale prima della pubblicazione.
-// Formato: Markdown semplice (titoli ##, elenchi, **grassetto**).
 
 import { features } from "@/config/features";
 
@@ -15,7 +12,6 @@ export interface LegalDoc {
   title: string;
   summary: string;
   body: string;
-  /** visibile solo quando i pagamenti sono attivi (vedi config/features.ts) */
   needsPayments?: boolean;
 }
 
@@ -236,7 +232,6 @@ A seconda della gravità: avviso, blocco temporaneo della chat, sospensione o ch
   },
 ];
 
-/** Documenti pubblicati ora: le condizioni di acquisto restano nascoste finché non si vende. */
 export const PUBLISHED_LEGAL_DOCS = LEGAL_DOCS.filter((d) => !d.needsPayments || features.payments);
 
 export const getLegalDoc = (slug: string) => PUBLISHED_LEGAL_DOCS.find((d) => d.slug === slug);

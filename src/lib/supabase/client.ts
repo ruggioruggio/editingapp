@@ -9,7 +9,6 @@ const IS_NATIVE = IS_ELECTRON || IS_CAPACITOR;
 
 let client: SupabaseClient | null = null;
 
-/** Client Supabase del browser. Su Electron usa localStorage, su Capacitor usa Preferences native. */
 export function getSupabase(): SupabaseClient | null {
   if (!isSupabaseConfigured) return null;
   if (!client) {

@@ -13,7 +13,6 @@ export interface Streak {
   lastDay: string | null;
 }
 
-/** Contatori che alimentano obiettivi (totali) e quest (giornalieri). */
 export type StatKey = "lessons" | "perfect" | "cuts" | "ripples" | "lessonXp" | "friendRequests";
 export type Stats = Record<StatKey, number>;
 
@@ -23,7 +22,6 @@ export interface TodayState {
   claimedQuests: string[];
 }
 
-/** Lo stato di gioco che viene sincronizzato con il database. */
 export interface GameData {
   xp: number;
   completed: Record<string, { completedAt: string; times: number }>;
@@ -36,14 +34,10 @@ export interface GameData {
 }
 
 interface ProgressData extends GameData {
-  /** arriva dal profilo sul server; in locale solo come simulazione */
   plan: PlanId;
   username: string | null;
-  /** a quale account appartengono i dati locali (null = ospite) */
   ownerId: string | null;
-  /** Pro regalato da un admin (dal profilo sul server) */
   proUntil: string | null;
-  /** Pro attivato dal pannello admin su questo dispositivo */
   adminPro: boolean;
   bannedUntil: string | null;
   banReason: string | null;
@@ -54,9 +48,7 @@ interface ProgressState extends ProgressData {
   completeLesson: (lessonId: string, xp: number, perfect: boolean) => void;
   recordStat: (key: StatKey, amount?: number) => void;
   claimQuest: (questId: string, xp: number) => void;
-  /** Test di salto superato: le lezioni saltate contano come completate. */
   completeLessons: (lessonIds: string[], xp: number) => void;
-  /** Solo per sviluppo finché non c'è Stripe: simula il cambio piano. */
   setPlan: (plan: PlanId) => void;
   setAdminPro: (on: boolean) => void;
   reset: () => void;
@@ -77,7 +69,6 @@ export const initialGameData = (): GameData => ({
 
 const initial = (): ProgressData => ({ ...initialGameData(), plan: "free", username: null, ownerId: null, proUntil: null, adminPro: false, bannedUntil: null, banReason: null });
 
-/** Statistiche di oggi, azzerate se il giorno salvato non è oggi. */
 export function todayState(today: TodayState): TodayState {
   return today.day === todayKey() ? today : { day: todayKey(), stats: emptyStats(), claimedQuests: [] };
 }
@@ -93,10 +84,6 @@ export function pickGameData(s: GameData): GameData {
   return { xp, completed, streak, bestStreak, daily, stats, today, questsClaimed };
 }
 
-/**
- * Progressi dell'utente. In locale con zustand/persist; quando l'utente
- * è loggato SupabaseSync li fonde con il database e li tiene allineati.
- */
 export const useProgress = create<ProgressState>()(
   persist(
     (set, get) => {
@@ -159,7 +146,6 @@ export const useProgress = create<ProgressState>()(
 
         setPlan: (plan) => set({ plan }),
         setAdminPro: (adminPro) => set({ adminPro }),
-        // il Pro attivato dall'admin su questo dispositivo sopravvive al reset dei progressi
         reset: () => set({ ...initial(), adminPro: get().adminPro }),
       };
     },
@@ -167,7 +153,6 @@ export const useProgress = create<ProgressState>()(
   ),
 );
 
-/** La serie è "viva" solo se l'ultima lezione è di oggi o di ieri. */
 export function currentStreak(streak: Streak): number {
   return streak.lastDay === todayKey() || streak.lastDay === yesterdayKey() ? streak.count : 0;
 }

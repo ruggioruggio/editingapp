@@ -10,7 +10,6 @@ interface EditorState {
   seq: Sequence;
   past: Sequence[];
   future: Sequence[];
-  /** secondi visibili in timeline (fissati al caricamento, così lo zoom non "salta") */
   viewDuration: number;
   tool: Tool;
   selection: string[];
@@ -32,7 +31,6 @@ interface EditorState {
 const emptySequence: Sequence = { name: "Sequenza 01", fps: 25, media: [], clips: [], markers: [] };
 
 export const useEditor = create<EditorState>()((set, get) => {
-  /** Applica una modifica con cronologia; false se non è cambiato nulla. */
   const commit = (next: Sequence): boolean => {
     const { seq, past, selection } = get();
     if (next === seq) return false;

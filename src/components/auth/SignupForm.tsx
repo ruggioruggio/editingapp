@@ -11,7 +11,6 @@ import { ResendEmail } from "./ResendEmail";
 
 export const USERNAME_RE = /^[a-z0-9_.]{3,20}$/;
 
-/** Dopo la registrazione: link nell'email oppure codice a 6 cifre da digitare qui. */
 function ConfirmCode({ email }: { email: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -85,13 +84,11 @@ export function SignupForm() {
       password,
       options: {
         data: { username },
-        // usato solo dal template predefinito di Supabase; quello di SqueakEdit punta a /auth/confirm
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/learn`,
       },
     });
     setBusy(false);
     if (err) return setError(authErrorMessage(err));
-    // con la conferma email attiva non c'è ancora una sessione
     if (data.session) router.replace("/learn");
     else setSentTo(email);
   };

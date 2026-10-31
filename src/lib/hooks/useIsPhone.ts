@@ -2,7 +2,6 @@ import { useSyncExternalStore } from "react";
 
 const QUERY = "(max-width: 899px)";
 
-/** true su telefono (schermo stretto): i simulatori completi sono solo per desktop/tablet. */
 export function useIsPhone() {
   return useSyncExternalStore(
     (cb) => {

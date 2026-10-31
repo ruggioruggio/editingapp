@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { BookOpen, Clapperboard, CircleUserRound, ScrollText, Sparkles, Wand2, type LucideIcon } from "lucide-react";
-import { features } from "@/config/features";
+import { BookOpen, Clapperboard, CircleUserRound, ScrollText, type LucideIcon } from "lucide-react";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { todayState, useProgress } from "@/lib/progress/store";
@@ -89,8 +88,6 @@ export function Dock() {
   const pathname = usePathname();
   const claimable = useClaimableQuests();
   const pendingFriends = usePendingRequests();
-  const aiActive = pathname.startsWith("/ai");
-
   return (
     <nav
       aria-label="Navigazione principale"
@@ -104,30 +101,6 @@ export function Dock() {
           badge={0}
         />
       ))}
-
-      <Link
-        href="/ai"
-        aria-current={aiActive ? "page" : undefined}
-        className="group relative flex flex-1 flex-col items-center justify-center py-2"
-      >
-        <span className="relative grid h-11 w-11 place-items-center">
-          <Wand2
-            size={25}
-            strokeWidth={2.4}
-            className={clsx("drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)]", aiActive ? "text-cheese" : "text-[#ffc93c]")}
-          />
-          {features.squeakAi ? (
-            <Sparkles size={10} className="absolute -right-0.5 -top-0.5 text-cheese" fill="currentColor" />
-          ) : (
-            <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-cheese px-1.5 py-0.5 text-[7px] font-black uppercase leading-none text-[#3a2500]">
-              presto
-            </span>
-          )}
-        </span>
-        {aiActive && (
-          <span className="h-1 w-5 rounded-full bg-cheese" />
-        )}
-      </Link>
 
       {RIGHT_ITEMS.map((item) => (
         <DockItem

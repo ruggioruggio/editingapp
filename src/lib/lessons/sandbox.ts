@@ -1,11 +1,6 @@
 import { useAe, type AeState } from "@/lib/studio/ae";
 import { usePremiere, type PrState } from "@/lib/studio/premiere";
 
-// "Sabbiera" degli esercizi nelle lezioni: il simulatore riceve un progetto
-// preparato per l'esercizio, e il progetto vero dell'utente viene messo da
-// parte (anche in localStorage, così si recupera se la pagina si chiude a
-// metà) e rimesso al suo posto alla fine.
-
 export type StudioApp = "premiere" | "ae";
 
 const KEYS: Record<StudioApp, string> = { premiere: "studio-premiere-v2", ae: "studio-ae-v2" };
@@ -68,16 +63,13 @@ function storage(): Storage | null {
   }
 }
 
-/** Carica nel simulatore il progetto dell'esercizio, salvando quello dell'utente. */
 export function enterSandbox(app: StudioApp, state: object) {
   const ls = storage();
-  // se c'è già un backup (pagina chiusa a metà esercizio) quello è il progetto vero: non va sovrascritto
   if (ls && ls.getItem(backupKey(app)) === null) ls.setItem(backupKey(app), ls.getItem(KEYS[app]) ?? "");
   active[app] = true;
   store(app).setState({ ...clean(app), ...state });
 }
 
-/** Rimette il progetto dell'utente com'era prima dell'esercizio. */
 export function exitSandbox(app: StudioApp) {
   active[app] = false;
   const ls = storage();
@@ -85,7 +77,6 @@ export function exitSandbox(app: StudioApp) {
   if (!ls || raw === null || raw === undefined) return;
   ls.removeItem(backupKey(app));
   if (!raw) {
-    // l'utente non aveva mai aperto il simulatore: si torna al progetto di esempio
     store(app).getState().reset();
     return;
   }
@@ -98,7 +89,6 @@ export function exitSandbox(app: StudioApp) {
   }
 }
 
-/** All'apertura del simulatore: recupera un progetto rimasto da parte da un esercizio interrotto. */
 export function recoverSandbox(app: StudioApp) {
   if (!active[app]) exitSandbox(app);
 }

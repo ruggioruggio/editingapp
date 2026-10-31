@@ -3,8 +3,6 @@ import { typing } from "../chrome";
 import * as A from "./actions";
 import { openAeImport } from "./Panels";
 
-// Scorciatoie da tastiera di After Effects.
-
 export const AE_KEYS: [string, string][] = [
   ["Ctrl+N", "Nuova composizione"],
   ["Ctrl+K", "Impostazioni composizione"],

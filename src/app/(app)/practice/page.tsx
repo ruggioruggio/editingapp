@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Clapperboard, Monitor, Sparkles } from "lucide-react";
-import { Mascot } from "@/components/brand/Mascot";
+import { Clapperboard, Sparkles } from "lucide-react";
 import { PhoneNotice } from "@/components/studio/PhoneNotice";
 
 export const metadata: Metadata = { title: "Pratica" };
@@ -54,14 +53,6 @@ export default function PracticePage() {
             <span className="duo-btn duo-blue mt-auto w-full">Apri</span>
           </Link>
         ))}
-      </div>
-      <div className="duo-card mt-6 flex items-center gap-4 p-4">
-        <Mascot size={60} idle className="shrink-0" />
-        <p className="flex items-start gap-2 text-sm text-ink-dim">
-          <Monitor size={18} className="mt-0.5 shrink-0 text-accent" />
-          Funziona anche dal telefono, ma con mouse e tastiera ti sembrerà di essere davvero in Premiere: prova le scorciatoie
-          V, C, B, Spazio, Ctrl+K, Ctrl+Z.
-        </p>
       </div>
     </div>
   );

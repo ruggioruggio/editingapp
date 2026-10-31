@@ -14,7 +14,6 @@ export function PricingTable() {
   const hydrated = useHydrated();
   const plan = useProgress((s) => planOf(s));
   const setPlan = useProgress((s) => s.setPlan);
-  // con un account il piano arriva dal server: la simulazione vale solo da ospite
   const signedIn = useAuth((s) => s.status === "user");
 
   return (

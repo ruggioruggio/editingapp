@@ -62,7 +62,6 @@ function layout(s: Sequence): { rows: Row[]; total: number; audioTop: number } {
   return { rows, total: y + MIX + 20, audioTop };
 }
 
-/** Forma d'onda finta ma stabile per una clip audio. */
 function Waveform({ seed, from, to, dense }: { seed: number; from: number; to: number; dense: boolean }) {
   const n = 80;
   const pts = Array.from({ length: n }, (_, i) => {
@@ -113,7 +112,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
   const width = dur * pps;
   const rowOf = (id: string) => rows.find((r) => r.track.id === id)!;
 
-  // segue l'indicatore durante la riproduzione
   useEffect(() => {
     const el = scroller.current;
     if (!el || !st.playing) return;
@@ -133,7 +131,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
   const toFrame = (t: number) => snapFrame(t, fps);
 
   const snapPoints = (exclude: Set<string>) => [0, playhead, ...seq.markers.map((m) => m.t), ...(seq.inPoint !== null ? [seq.inPoint] : []), ...(seq.outPoint !== null ? [seq.outPoint] : []), ...seq.clips.filter((c) => !exclude.has(c.id)).flatMap((c) => [c.start, clipEnd(c)])];
-  /** Calamita: vicino a bordi, indicatore e marcatori il tempo si aggancia (e compare la linea). */
   const snap = (t: number, exclude: Set<string> = new Set(), force?: boolean) => {
     if (!(snapping || force)) {
       setSnapLine(null);
@@ -152,7 +149,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
     const x0 = e.clientX;
     const y0 = e.clientY;
     let moved = false;
-    // col dito: uno scorrimento veloce muove la timeline, tenere premuto afferra la clip
     const touch = e.pointerType === "touch";
     let armed = !touch;
     const block = (ev: TouchEvent) => ev.preventDefault();
@@ -196,7 +192,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
     st.setPlayhead(shift ? snap(xToTime(clientX), new Set(), true) : toFrame(xToTime(clientX)));
   };
 
-  // ---- clip --------------------------------------------------------------------------------
   const neighbours = (c: Clip) => ({
     L: seq.clips.find((x) => x.track === c.track && Math.abs(clipEnd(x) - c.start) < 1e-3),
     R: seq.clips.find((x) => x.track === c.track && Math.abs(x.start - clipEnd(c)) < 1e-3),
@@ -240,7 +235,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
       if (e.shiftKey || e.ctrlKey || e.metaKey) {
         if (!(tool === "select" && sel && !e.shiftKey)) st.select(c.id, true);
       } else if (!sel) {
-        // Alt+clic seleziona solo la parte video o audio di una clip collegata
         if (e.altKey) st.set({ selection: [c.id], gap: null, selTrans: null });
         else st.select(c.id);
       }
@@ -249,7 +243,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
     const group = new Set(linked(seq, c.id).map((k) => k.id));
     const t0 = xToTime(e.clientX);
 
-    // rubber band: Ctrl+clic o strumento Penna aggiunge un keyframe
     if (!edge && (tool === "pen" || ((e.ctrlKey || e.metaKey) && tool === "select"))) {
       const r = rowOf(c.track);
       const y = yIn(e.clientY) - r.y;
@@ -287,7 +280,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
         }
         if (tool === "slip") return st.updateGesture((q, p) => slipClip(q, p, c.id, toFrame(t - t0)));
         if (tool === "slide") return st.updateGesture((q, p) => slideClip(q, p, c.id, toFrame(t - t0)));
-        // sposta: aggancia l'inizio o la fine della clip afferrata
         const ex = new Set(ids);
         const s0 = snap(c.start + (t - t0), ex);
         const sStart = snapLine;
@@ -328,9 +320,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
     }
     const g = r ? gapAt(seq, r.track.id, t) : null;
     if (!e.shiftKey) st.set({ selection: [], selTrans: null, gap: g && r ? { track: r.track.id, ...g } : null });
-    // col dito niente selezione a riquadro: si scorre la timeline
     if (e.pointerType !== "mouse") return;
-    // selezione a riquadro
     const rect = el.getBoundingClientRect();
     const sx = e.clientX - rect.left + el.scrollLeft;
     const sy = y;
@@ -356,7 +346,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
     );
   };
 
-  // ---- trascinare dal pannello Progetto o dagli Effetti -------------------------------------------
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     const r = rowAtY(yIn(e.clientY));
@@ -401,7 +390,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
     st.set({ selection: res.ids });
   };
 
-  // ---- menu contestuali ----------------------------------------------------------------------------
   const clipMenu = (e: React.MouseEvent, c: Clip) => {
     e.preventDefault();
     e.stopPropagation();
@@ -476,7 +464,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
     });
   };
 
-  // ---- righello -----------------------------------------------------------------------------------------
   const secStep = [0.04, 0.2, 1, 2, 5, 10, 30, 60, 300].find((s) => s * pps >= 70) ?? 600;
   const minor = secStep / 5;
   const ticks = Array.from({ length: Math.ceil(dur / minor) + 1 }, (_, i) => i * minor);
@@ -843,7 +830,6 @@ function TimelineBody({ seq }: { seq: Sequence }) {
                     </svg>
                   )}
                   {tall && (tool === "select" || tool === "pen") && (
-                    // trascina la linea gialla per cambiare opacità/volume
                     <div
                       className="absolute inset-x-2 h-2 -translate-y-1/2 cursor-ns-resize"
                       style={{ top: 16 + bandY(keyedValue(bandProp, (hover ?? c.start) - c.start)[0]) * (r.h - 18) }}

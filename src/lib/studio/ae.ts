@@ -6,11 +6,6 @@ import { SAMPLE_LIBRARY, type Media } from "./media";
 import { defaultTextStyle, type TextStyle } from "./text";
 import type { MenuItemLike } from "./premiere";
 
-// Motore del simulatore di After Effects: progetto con composizioni e
-// metraggio, livelli (metraggio, tinta unita, regolazione, oggetto nullo,
-// testo, forma, composizione nidificata), proprietà di trasformazione 2D/3D,
-// maschere, effetti, genitori, metodi di fusione ed espressioni.
-
 export type LayerType = "footage" | "solid" | "adjustment" | "null" | "text" | "shape" | "precomp";
 
 export interface Mask {
@@ -19,7 +14,6 @@ export interface Mask {
   mode: "add" | "subtract" | "intersect" | "none";
   inverted: boolean;
   kind: "rect" | "ellipse" | "poly";
-  /** rettangolo/ellisse: [x, y, w, h]; poligono: punti x,y in sequenza (spazio del livello) */
   path: number[];
   feather: Prop;
   opacity: Prop;
@@ -52,7 +46,7 @@ export interface Layer {
   id: string;
   name: string;
   type: LayerType;
-  source?: string; // id del media o della composizione
+  source?: string;
   color: string;
   w: number;
   h: number;
@@ -78,7 +72,6 @@ export interface Layer {
   masks: Mask[];
   audioLevel: Prop;
   reversed?: boolean;
-  /** animatore di testo: fine dell'intervallo visibile (%) e spaziatura tra le lettere */
   textRange?: Prop;
   tracking?: Prop;
 }
@@ -91,7 +84,7 @@ export interface Comp {
   fps: number;
   duration: number;
   bg: string;
-  layers: Layer[]; // [0] è il livello in cima
+  layers: Layer[];
   workIn: number;
   workOut: number;
 }
@@ -131,8 +124,6 @@ export const AE_LABELS: [string, string][] = [
   ["Sabbia", "#a89677"],
   ["Verde scuro", "#1e401e"],
 ];
-
-// ---- utilità ------------------------------------------------------------------------
 
 export function newTransform(anchor: number[], position: number[]): Transform {
   return { anchor: prop(...anchor), position: prop(...position), scale: prop(100, 100), rotation: prop(0), rotX: prop(0), rotY: prop(0), opacity: prop(100) };
@@ -208,7 +199,6 @@ export function cloneLayer(l: Layer, patch: Partial<Layer> = {}): Layer {
   };
 }
 
-/** Tutte le proprietà animabili di un livello, con un percorso stabile (per keyframe, U, grafico…). */
 export function layerProps(l: Layer): { path: string; name: string; group: string; prop: Prop }[] {
   const out: { path: string; name: string; group: string; prop: Prop }[] = [];
   const t = l.transform;
@@ -244,7 +234,6 @@ export function getProp(l: Layer, path: string): Prop | undefined {
   return layerProps(l).find((p) => p.path === path)?.prop;
 }
 
-/** Sostituisce la proprietà al percorso dato. */
 export function withProp(l: Layer, path: string, p: Prop): Layer {
   const [a, b, c] = path.split(".");
   if (a === "t") return { ...l, transform: { ...l.transform, [b]: p } };
@@ -267,8 +256,6 @@ export const shiftLayer = (l: Layer, dt: number): Layer => ({ ...mapLayerProps(l
 export function newComp(name: string, width: number, height: number, fps: number, duration: number, bg = "#000000"): Comp {
   return { id: uid("comp"), name, width, height, fps, duration, bg, layers: [], workIn: 0, workOut: duration };
 }
-
-// ---- progetto di esempio ------------------------------------------------------------------
 
 function sampleProject(): AeProject {
   const comp = newComp("Composizione 1", 1920, 1080, 30, 6, "#000000");
@@ -297,8 +284,6 @@ function sampleProject(): AeProject {
   return { name: "Progetto senza titolo", items, media, comps: { [comp.id]: comp } };
 }
 
-// ---- store ------------------------------------------------------------------------------
-
 export type AeTool = "select" | "hand" | "zoom" | "rotate" | "anchor" | "rect" | "rrect" | "ellipse" | "polygon" | "star" | "pen" | "text" | "vtext";
 
 export type AeDialog =
@@ -325,8 +310,7 @@ export interface AeState {
   playing: boolean;
   selected: string[];
   selectedKeys: string[];
-  selectedProps: string[]; // "layerId|path"
-  /** proprietà mostrate (twirl) per livello: null = chiuso, "all" = tutto, altrimenti elenco di gruppi/percorsi */
+  selectedProps: string[];
   open: Record<string, string[] | "all">;
   exprOpen: string[];
   tool: AeTool;

@@ -33,7 +33,6 @@ export interface Profile {
 }
 
 interface AuthState {
-  /** disabled = Supabase non configurato, si gioca solo come ospite */
   status: "loading" | "guest" | "user" | "disabled";
   userId: string | null;
   email: string | null;
@@ -54,7 +53,6 @@ const MESSAGES: Record<string, string> = {
   provider_disabled: "Questo metodo di accesso non è ancora attivo.",
 };
 
-/** Messaggio d'errore in italiano per l'utente. */
 export function authErrorMessage(error: AuthError | Error | null | undefined): string {
   if (!error) return "";
   const code = "code" in error ? (error.code as string | undefined) : undefined;

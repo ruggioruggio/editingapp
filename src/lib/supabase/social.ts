@@ -1,7 +1,5 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
-// Chat, serie condivise e bacheca degli amici (tabelle in 0002_social.sql).
-
 export interface ChatMessage {
   id: number;
   sender_id: string;
@@ -55,7 +53,6 @@ export async function markRead(sb: SupabaseClient, me: string, friend: string) {
     .is("read_at", null);
 }
 
-/** Messaggi non letti per amico (id mittente → numero). */
 export async function loadUnread(sb: SupabaseClient, me: string): Promise<Record<string, number>> {
   const { data } = await sb.from("messages").select("sender_id").eq("recipient_id", me).is("read_at", null).returns<{ sender_id: string }[]>();
   const out: Record<string, number> = {};
@@ -63,7 +60,6 @@ export async function loadUnread(sb: SupabaseClient, me: string): Promise<Record
   return out;
 }
 
-/** Ascolta i messaggi in arrivo in tempo reale. Restituisce la funzione per smettere. */
 export function subscribeIncoming(sb: SupabaseClient, me: string, onMessage: (m: ChatMessage) => void): () => void {
   const channel: RealtimeChannel = sb
     .channel(`inbox-${me}`)
@@ -76,7 +72,6 @@ export function subscribeIncoming(sb: SupabaseClient, me: string, onMessage: (m:
   };
 }
 
-/** Serie condivise con ciascun amico (id amico → giorni). */
 export async function loadSharedStreaks(sb: SupabaseClient, today: string): Promise<Record<string, number>> {
   const { data } = await sb.rpc("shared_streaks", { today });
   const out: Record<string, number> = {};
@@ -86,7 +81,6 @@ export async function loadSharedStreaks(sb: SupabaseClient, today: string): Prom
 
 const EVENT_FIELDS = "id, user_id, kind, data, created_at, user:profiles!activity_events_user_id_fkey(username)";
 
-/** Bacheca: ultime attività degli amici (le regole del database filtrano chi posso vedere). */
 export async function loadFeed(sb: SupabaseClient, me: string): Promise<ActivityEvent[]> {
   const { data } = await sb
     .from("activity_events")
@@ -98,7 +92,6 @@ export async function loadFeed(sb: SupabaseClient, me: string): Promise<Activity
   return data ?? [];
 }
 
-/** Obiettivi sbloccati da un amico (livello più alto per ciascuno). */
 export async function loadFriendAchievements(sb: SupabaseClient, friend: string): Promise<Record<string, number>> {
   const { data } = await sb
     .from("activity_events")

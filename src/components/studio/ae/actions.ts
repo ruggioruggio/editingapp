@@ -19,8 +19,6 @@ import {
   type LayerType,
 } from "@/lib/studio/ae";
 
-// Comandi del simulatore di After Effects (menu, pulsanti e scorciatoie).
-
 const st = () => useAe.getState();
 const C = () => compOf(st());
 const T = () => timeOf(st());
@@ -36,7 +34,6 @@ export function updateLayer(id: string, fn: (l: Layer) => Layer, label: string, 
   st().commitComp((c) => ({ ...c, layers: c.layers.map((l) => (l.id === id ? fn(l) : l)) }), label, key);
 }
 
-/** Imposta il valore di una proprietà all'istante corrente (con cronometro acceso crea un keyframe). */
 export function setPropValue(layerId: string, path: string, v: number[], key?: string) {
   const c = C();
   if (!c) return;
@@ -51,7 +48,6 @@ export function addLayer(type: LayerType, extra: Partial<Layer> = {}, media?: Me
   const c = needComp();
   if (!c) return null;
   const l = makeLayer(type, c, extra, media);
-  // i nuovi livelli vanno sopra quello selezionato (o in cima)
   const idx = Math.max(0, c.layers.findIndex((x) => s.selected.includes(x.id)));
   s.commitComp((x) => ({ ...x, layers: [...x.layers.slice(0, idx), l, ...x.layers.slice(idx)] }), "Nuovo livello");
   s.set({ selected: [l.id], selectedKeys: [] });
@@ -118,7 +114,6 @@ export function deleteSelected() {
     return s.set({ selectedKeys: [] });
   }
   if (s.selectedProps.length && s.selectedProps.some((p) => p.split("|")[1].startsWith("e."))) {
-    // effetto selezionato nei Controlli effetti
   }
   if (!s.selected.length) return;
   s.commitComp((x) => ({ ...x, layers: x.layers.filter((l) => !s.selected.includes(l.id)).map((l) => (l.parent && s.selected.includes(l.parent) ? { ...l, parent: null } : l)) }), "Elimina livello");
@@ -152,7 +147,6 @@ export function paste() {
   const c = needComp();
   if (!c || !s.clipboard) return;
   if (s.clipboard.keys) {
-    // i keyframe si incollano sui livelli selezionati, partendo dall'indicatore
     const target = c.layers.filter((l) => s.selected.includes(l.id));
     if (!target.length) return s.notify("Seleziona il livello su cui incollare i fotogrammi chiave");
     const t0 = Math.min(...s.clipboard.keys.flatMap((g) => g.keys.map((k) => k.t)));
@@ -195,7 +189,6 @@ export function setInterp(kind: KeyKind) {
   s.commitComp((x) => ({ ...x, layers: x.layers.map((l) => mapLayerProps(l, (p) => mapKeys(p, (k) => (ids.has(k.id) ? withKind(k, kind) : k)))) }), kind === "ease" ? "Easy Ease" : kind === "easeIn" ? "Easy Ease in entrata" : kind === "easeOut" ? "Easy Ease in uscita" : kind === "hold" ? "Interpolazione tenuta" : "Interpolazione lineare");
 }
 
-/** Alt+Maiusc+P/S/R/T/A: aggiunge un keyframe alla proprietà dei livelli selezionati. */
 export function keyProp(path: string) {
   const s = st();
   const c = C();
@@ -216,7 +209,6 @@ export function keyProp(path: string) {
   reveal([path], true);
 }
 
-/** P, S, R, T, A, U, E, M, F, L: mostra solo certe proprietà dei livelli selezionati. */
 export function reveal(paths: string[] | "animated" | "effects" | "masks" | "audio", add: boolean) {
   const s = st();
   const c = C();
@@ -250,7 +242,6 @@ export function reveal(paths: string[] | "animated" | "effects" | "masks" | "aud
     if (next.length) open[l.id] = next;
     else delete open[l.id];
   }
-  // premere di nuovo la stessa lettera chiude
   if (same && !add) for (const l of targets) delete open[l.id];
   s.set({ open });
 }
@@ -372,7 +363,6 @@ export function toggle3D(id?: string) {
 }
 
 export function toggleStopwatchAlt(layerId: string, path: string) {
-  // Alt+clic sul cronometro: apre il campo espressione
   const s = st();
   const key = `${layerId}|${path}`;
   const l = C()?.layers.find((x) => x.id === layerId);
@@ -396,8 +386,6 @@ export function toggleKey(layerId: string, path: string) {
     return p ? withProp(l, path, toggleKeyAt(p, T(), c.fps)) : l;
   }, "Fotogramma chiave");
 }
-
-// ---- progetto ------------------------------------------------------------------------------
 
 export function createComp(name: string, width: number, height: number, fps: number, duration: number, bg: string) {
   const s = st();
@@ -475,7 +463,6 @@ export function importSample(m: Media) {
   s.commit((p) => ({ ...p, media: { ...p.media, [m.id]: m }, items: [...p.items, { id: uid("it"), name: m.name, type: "footage", parent: s.folder, ref: m.id, label: 3 }] }), "Importa");
 }
 
-/** Ctrl+Maiusc+C: sposta i livelli selezionati in una nuova composizione. */
 export function precompose(name: string) {
   const s = st();
   const c = C();

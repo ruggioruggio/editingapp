@@ -11,9 +11,6 @@ import { useAuth, ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase
 import { getSupabase } from "@/lib/supabase/client";
 import { ModSqueakScene } from "@/components/three/lazy";
 
-// Pannello di amministrazione: Pro regalato, sospensioni, amicizie forzate,
-// annunci per tutti, statistiche e strumenti di test per il proprio account.
-
 interface UserRow {
   id: string;
   username: string;
@@ -48,7 +45,6 @@ const input = "h-9 rounded-lg border border-white/10 bg-black/30 px-3 text-sm te
 
 type StatValues = { xp: number; streak: number; best?: number };
 
-/** Valori esatti da scrivere a mano: XP, serie e (se c'è) serie migliore. */
 function StatsEditor({ initial, onSave, busy, label = "Salva valori" }: { initial: StatValues; onSave: (v: StatValues) => void; busy?: boolean; label?: string }) {
   const [v, setV] = useState({ xp: String(initial.xp), streak: String(initial.streak), best: initial.best === undefined ? "" : String(initial.best) });
   const field = (k: "xp" | "streak" | "best", name: string) => (
@@ -488,7 +484,6 @@ function Tools() {
           try {
             sessionStorage.removeItem("squeak-splash-shown");
           } catch {
-            /* niente */
           }
           window.location.reload();
         })}
@@ -742,7 +737,6 @@ function Log() {
   );
 }
 
-/** Chiudere il pannello non esce: per 10 minuti si riapre senza password (il pulsante Esci invece esce subito). */
 const closePanel = () => {
   markGrace();
   useAdmin.setState({ open: false });

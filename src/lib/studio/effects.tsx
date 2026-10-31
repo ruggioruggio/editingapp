@@ -1,11 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import { prop, uid, valueAt, type Prop } from "./anim";
 
-// Catalogo di effetti e transizioni condiviso dai due simulatori. Ogni effetto
-// ha i suoi parametri (animabili) e una funzione che lo traduce in filtri CSS,
-// filtri SVG, trasformazioni, maschere o livelli sovrapposti: così si vede
-// davvero il risultato nel monitor.
-
 export type ParamType = "number" | "angle" | "percent" | "color" | "point" | "checkbox" | "select";
 
 export interface ParamDef {
@@ -18,9 +13,7 @@ export interface ParamDef {
   step?: number;
   suffix?: string;
   options?: string[];
-  /** non animabile (es. un menu) */
   static?: boolean;
-  /** nomi inglesi usati nelle espressioni, es. effect("Slider Control")("Slider") */
   aliases?: string[];
 }
 
@@ -32,7 +25,6 @@ export interface FxCtx {
   id: string;
   name: string;
   timecode: string;
-  /** contesto per le espressioni sui parametri (After Effects) */
   host?: { project: unknown; comp: unknown; layerId: string; effectIndex?: number };
 }
 
@@ -46,9 +38,7 @@ export interface FxOut {
   opacity: number;
   echo?: { count: number; delay: number; decay: number };
   time?: (t: number) => number;
-  /** prospettiva per gli effetti 3D */
   perspective?: number;
-  /** Specchio: 0 sinistra→destra, 1 destra→sinistra, 2 alto→basso, 3 basso→alto */
   mirror?: number;
 }
 
@@ -74,9 +64,7 @@ export interface EffectDef {
   id: string;
   name: string;
   category: Category;
-  /** effetto audio di Premiere */
   audio?: boolean;
-  /** dove compare: entrambi se assente */
   only?: "pr" | "ae";
   params: ParamDef[];
   render?: (p: Record<string, number[]>, c: FxCtx, out: FxOut) => void;
@@ -90,8 +78,6 @@ export interface EffectInstance {
   params: Record<string, Prop>;
   open?: boolean;
 }
-
-// ---- utilità -----------------------------------------------------------------
 
 const num = (id: string, name: string, def: number, min = -10000, max = 10000, step = 1, suffix = ""): ParamDef => ({ id, name, type: "number", default: [def], min, max, step, suffix });
 const pct = (id: string, name: string, def: number, max = 100): ParamDef => ({ id, name, type: "percent", default: [def], min: 0, max, step: 0.5, suffix: " %" });
@@ -123,7 +109,6 @@ function svgFilter(out: FxOut, id: string, children: ReactNode, attrs: Record<st
   out.filter.push(`url(#${id})`);
 }
 
-/** Matrice 3D che porta il rettangolo w×h nei quattro angoli dati (Fissaggio angolo). */
 function cornerPin(w: number, h: number, p: number[][]) {
   const [x0, y0] = p[0];
   const [x1, y1] = p[1];
@@ -142,24 +127,19 @@ function cornerPin(w: number, h: number, p: number[][]) {
   const b = x2 - x0 + hh * x2;
   const d = y1 - y0 + g * y1;
   const e = y2 - y0 + hh * y2;
-  // da quadrato unitario a quadrilatero, poi diviso per w e h
   const m = [a / w, d / w, 0, g / w, b / h, e / h, 0, hh / h, 0, 0, 1, 0, x0, y0, 0, 1];
   return `matrix3d(${m.map((v) => +v.toFixed(8)).join(",")})`;
 }
 
-// ---- catalogo degli effetti -------------------------------------------------------
-
 const withAlias = (p: ParamDef, ...aliases: string[]): ParamDef => ({ ...p, aliases });
 
 export const EFFECTS: EffectDef[] = [
-  // Controlli per espressioni (solo After Effects): servono a collegare valori con effect("…")("…")
   { id: "x-slider", name: "Controllo cursore", aliases: ["Slider Control"], category: "Controlli per espressioni", only: "ae", params: [withAlias(num("slider", "Cursore", 0, -1000000, 1000000, 0.1), "Slider")] },
   { id: "x-angle", name: "Controllo angolo", aliases: ["Angle Control"], category: "Controlli per espressioni", only: "ae", params: [withAlias(ang("angle", "Angolo", 0), "Angle")] },
   { id: "x-check", name: "Controllo casella di controllo", aliases: ["Checkbox Control"], category: "Controlli per espressioni", only: "ae", params: [withAlias({ ...chk("check", "Casella di controllo"), static: false }, "Checkbox")] },
   { id: "x-color", name: "Controllo colore", aliases: ["Color Control"], category: "Controlli per espressioni", only: "ae", params: [withAlias(col("color", "Colore", "#ff0000"), "Color")] },
   { id: "x-point", name: "Controllo punto", aliases: ["Point Control"], category: "Controlli per espressioni", only: "ae", params: [withAlias(pt("point", "Punto", 0.5, 0.5), "Point")] },
 
-  // Regolazione / Correzione colore
   {
     id: "lumetri",
     name: "Lumetri Color",
@@ -311,7 +291,6 @@ export const EFFECTS: EffectDef[] = [
     },
   },
 
-  // Sfocatura e nitidezza
   {
     id: "gaussian",
     name: "Sfocatura gaussiana",
@@ -356,7 +335,6 @@ export const EFFECTS: EffectDef[] = [
     },
   },
 
-  // Distorsione / Trasforma
   {
     id: "transform",
     name: "Trasforma",
@@ -378,7 +356,6 @@ export const EFFECTS: EffectDef[] = [
     render: (_p, _c, out) => out.transform.push("scaleX(-1)"),
   },
   {
-    // come in Premiere: analizza il mosso e lo compensa ingrandendo un po' l'immagine
     id: "warpstab",
     name: "Stabilizzatore distorsione",
     aliases: ["Warp Stabilizer"],
@@ -487,12 +464,10 @@ export const EFFECTS: EffectDef[] = [
     category: "Distorsione",
     params: [sel("side", "Lato riflesso", ["Sinistra su destra", "Destra su sinistra", "Alto su basso", "Basso su alto"])],
     render: (p, _c, out) => {
-      // il livello mostra la metà scelta e accanto la sua copia riflessa
       out.mirror = p.side[0];
     },
   },
 
-  // Disturbo e granulosità
   {
     id: "noise",
     name: "Disturbo",
@@ -541,7 +516,6 @@ export const EFFECTS: EffectDef[] = [
     render: (p, _c, out) => p.radius[0] && out.filter.push(`blur(${p.radius[0] / 3}px)`, "contrast(1.1)"),
   },
 
-  // Genera
   {
     id: "ramp",
     name: "Rampa di gradiente",
@@ -660,14 +634,12 @@ export const EFFECTS: EffectDef[] = [
     },
   },
 
-  // Keying
   {
     id: "ultrakey",
     name: "Ultra Key",
     category: "Keying",
     params: [col("key", "Colore chiave", "#00b140"), num("tol", "Tolleranza", 50, 0, 100), num("soft", "Morbidezza", 10, 0, 100), chk("spill", "Riduzione dispersione", true)],
     render: (p, c, out) => {
-      // canale alfa = 1 - k·(crominanza del pixel nella direzione del colore chiave)
       const kc = p.key.map((x) => x / 255);
       const mean = (kc[0] + kc[1] + kc[2]) / 3;
       const d = kc.map((x) => x - mean);
@@ -703,7 +675,6 @@ export const EFFECTS: EffectDef[] = [
     },
   },
 
-  // Prospettiva
   {
     id: "shadow",
     name: "Ombra esterna",
@@ -736,7 +707,6 @@ export const EFFECTS: EffectDef[] = [
     },
   },
 
-  // Stilizza
   {
     id: "mosaic",
     name: "Mosaico",
@@ -881,7 +851,6 @@ export const EFFECTS: EffectDef[] = [
     },
   },
 
-  // Tempo
   {
     id: "postertime",
     name: "Posterizza tempo",
@@ -902,7 +871,6 @@ export const EFFECTS: EffectDef[] = [
     },
   },
 
-  // Transizione (come effetti)
   {
     id: "linearwipe",
     name: "Tendina lineare",
@@ -952,7 +920,6 @@ export const EFFECTS: EffectDef[] = [
     },
   },
 
-  // Video / Utilità
   {
     id: "timecode",
     name: "Codice temporale",
@@ -999,7 +966,6 @@ export const EFFECTS: EffectDef[] = [
     },
   },
 
-  // Effetti audio di Premiere (agiscono sui livelli)
   { id: "a-gain", name: "Guadagno", category: "Regolazione", audio: true, only: "pr", params: [num("gain", "Guadagno", 0, -96, 30, 0.1, " dB")] },
   { id: "a-amplify", name: "Amplifica", category: "Regolazione", audio: true, only: "pr", params: [num("left", "Guadagno sinistro", 0, -96, 30, 0.1, " dB"), num("right", "Guadagno destro", 0, -96, 30, 0.1, " dB")] },
   { id: "a-reverb", name: "Riverbero studio", category: "Regolazione", audio: true, only: "pr", params: [num("size", "Dimensione stanza", 50, 0, 100), num("decay", "Decadimento", 50, 0, 100), pct("mix", "Mix", 30)] },
@@ -1023,7 +989,6 @@ export function newEffect(defId: string, w: number, h: number): EffectInstance {
 
 export const emptyOut = (): FxOut => ({ filter: [], svg: [], transform: [], mask: [], overlays: [], opacity: 1 });
 
-/** Somma gli effetti attivi di un livello al tempo t (locale al livello). */
 export function runEffects(list: EffectInstance[], c: FxCtx): FxOut {
   const out = emptyOut();
   for (const fx of list) {
@@ -1052,8 +1017,6 @@ export function audioGainDb(list: EffectInstance[], t: number) {
   return g;
 }
 
-// ---- transizioni ---------------------------------------------------------------------
-
 export type TransitionCategory = "Dissolvenza" | "Diapositiva" | "Iris" | "Tendina" | "Zoom" | "Pagina" | "Movimento 3D" | "Dissolvenza incrociata (audio)";
 
 export interface TransitionDef {
@@ -1061,7 +1024,6 @@ export interface TransitionDef {
   name: string;
   category: TransitionCategory;
   audio?: boolean;
-  /** p = avanzamento 0→1. a = clip in uscita, b = clip in entrata */
   render?: (p: number) => { a?: CSSProperties; b?: CSSProperties; over?: CSSProperties; wrap?: CSSProperties; bOnTop?: boolean };
 }
 

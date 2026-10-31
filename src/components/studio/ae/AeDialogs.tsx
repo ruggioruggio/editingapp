@@ -6,8 +6,6 @@ import { Dialog, KeysHelp, field } from "../chrome";
 import * as A from "./actions";
 import { AE_KEYS } from "./aeKeys";
 
-// Finestre di dialogo di After Effects.
-
 const PRESETS: [string, number, number, number][] = [
   ["HDTV 1080 25", 1920, 1080, 25],
   ["HDTV 1080 29,97", 1920, 1080, 29.97],

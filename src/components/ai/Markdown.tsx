@@ -1,8 +1,5 @@
 import type { ReactNode } from "react";
 
-// Markdown minimo per le risposte di Squeak AI: titoli, elenchi, codice,
-// **grassetto** e `codice in linea`. Niente HTML grezzo: tutto passa da React.
-
 function inline(text: string): ReactNode[] {
   return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {

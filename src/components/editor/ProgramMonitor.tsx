@@ -10,17 +10,13 @@ import type { Sequence } from "@/lib/editor/types";
 const W = 640;
 const H = 360;
 
-/**
- * Disegna un fotogramma sintetico: niente file video da scaricare, ma il
- * monitor reagisce davvero a tagli, eliminazioni e riproduzione.
- */
 function drawFrame(ctx: CanvasRenderingContext2D, seq: Sequence, t: number) {
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, W, H);
 
   const clip = clipAt(seq, "V1", t);
   const media = clip && seq.media.find((m) => m.id === clip.mediaId);
-  if (!clip || !media) return; // nero, come in Premiere quando non c'è niente sotto il playhead
+  if (!clip || !media) return;
 
   const src = clip.in + (t - clip.start);
 
@@ -30,7 +26,6 @@ function drawFrame(ctx: CanvasRenderingContext2D, seq: Sequence, t: number) {
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, W, H);
 
-  // soggetto stilizzato che "parla"
   const cx = W / 2 + Math.sin(src * 1.6) * 6;
   const cy = H * 0.48;
   ctx.fillStyle = `hsl(${media.hue} 20% 75%)`;

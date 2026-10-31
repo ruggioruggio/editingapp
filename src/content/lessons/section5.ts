@@ -5,16 +5,12 @@ import { aeKeys, aeLayer, aeLayers, aeSetup, allComps, clipsOf, clipVolumeAt, cu
 import { lum } from "./section3";
 import { ae, lesson as L, M, near, pr, Q, T } from "./s1-practice";
 
-// Sezione 5 "Da professionista": workflow, social e il progetto finale,
-// in cui si usano insieme tutte le cose imparate nel corso.
-
 const bin = (s: PrState, re: RegExp) => s.project.items.find((i) => i.type === "bin" && re.test(i.name));
 const inBin = (s: PrState, re: RegExp) => {
   const b = bin(s, re);
   return b ? s.project.items.filter((i) => i.parent === b.id) : [];
 };
 const scaleOf = (c: { motion: { scale: { value: number[]; keys: { v: number[] }[] | null } } }) => c.motion.scale.keys?.[0]?.v[0] ?? c.motion.scale.value[0];
-/** Montaggio grezzo di partenza per il progetto finale. */
 const roughCut = () =>
   prSetup({
     name: "Spot_Pizzeria",
@@ -27,7 +23,6 @@ const roughCut = () =>
   });
 
 export const section5Lessons: Lesson[] = [
-  // ---------------- Unità 18 · Workflow ----------------
   L("proxy", "I proxy", "Montare 4K su un portatile qualsiasi.", [
     T("File leggeri per montare", [
       "I **proxy** sono copie **leggere** (bassa risoluzione, codec facile) dei file originali pesanti. Monti con i proxy, il computer non arranca, e all'esportazione Premiere usa automaticamente gli **originali**.",
@@ -139,7 +134,6 @@ export const section5Lessons: Lesson[] = [
     ),
   ]),
 
-  // ---------------- Unità 19 · Video per i social ----------------
   L("verticale", "Il formato 9:16", "Reinquadrare un video orizzontale.", [
     T("Da orizzontale a verticale", [
       "Per portare un video 16:9 in 9:16 si crea una sequenza **1080×1920** e si **ingrandisce** la clip (scala ~178%) finché riempie lo schermo. Poi si **reinquadra**: si sposta l'immagine perché il soggetto resti al centro.",
@@ -265,7 +259,6 @@ export const section5Lessons: Lesson[] = [
     ),
   ]),
 
-  // ---------------- Unità 20 · Progetto finale ----------------
   L("brief", "Il brief", "Capire cosa vuole davvero il cliente.", [
     T("Le domande giuste", [
       "Il **brief** è il documento (o la chiacchierata) in cui il cliente spiega cosa vuole. Il tuo lavoro è fare le domande giuste: **obiettivo** del video, **pubblico**, **dove** verrà pubblicato, **durata**, **stile** (con esempi!), **scadenza**, **budget**.",

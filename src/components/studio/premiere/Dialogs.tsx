@@ -9,8 +9,6 @@ import { Dialog, KeysHelp, Modal, field, timecode } from "../chrome";
 import * as A from "./actions";
 import { PR_KEYS } from "./keys";
 
-// Tutte le finestre di dialogo del simulatore di Premiere.
-
 function Num({ label, value, onChange, min = 0, max = 100000, step = 1, suffix }: { label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; suffix?: string }) {
   return (
     <label className="flex items-center justify-between gap-3 py-1.5">

@@ -3,9 +3,6 @@
 import { forwardRef, useMemo } from "react";
 import * as THREE from "three";
 
-// Oggetti di scena in 3D, tutti generati in codice.
-
-/** Texture disegnata su canvas (testi, strisce, loghi). Viene creata una volta sola. */
 function useCanvasTexture(width: number, height: number, draw: (ctx: CanvasRenderingContext2D) => void, deps: unknown[]) {
   return useMemo(() => {
     const canvas = document.createElement("canvas");
@@ -21,7 +18,6 @@ function useCanvasTexture(width: number, height: number, draw: (ctx: CanvasRende
   }, deps);
 }
 
-/** Scritta sempre rivolta verso la camera (es. "CUT!"). */
 export const TextSprite = forwardRef<THREE.Sprite, { text: string; color?: string; size?: number; position?: [number, number, number] }>(
   function TextSprite({ text, color = "#ffc93c", size = 1, position }, ref) {
     const map = useCanvasTexture(
@@ -47,7 +43,6 @@ export const TextSprite = forwardRef<THREE.Sprite, { text: string; color?: strin
   },
 );
 
-/** Sdraio a righe gialle e bianche. Seduta a y≈0.45. */
 export function Deckchair() {
   const stripes = useCanvasTexture(
     256,
@@ -93,7 +88,6 @@ export function Deckchair() {
   );
 }
 
-/** Giornale aperto: due pagine a V con titolo e righe di testo. */
 export function Newspaper() {
   const page = useCanvasTexture(
     256,
@@ -126,7 +120,6 @@ export function Newspaper() {
   );
 }
 
-/** Pellicola con fotogrammi colorati, appoggiata a terra. */
 export function FilmStrip({ length = 3 }: { length?: number }) {
   const map = useCanvasTexture(
     512,
@@ -154,7 +147,6 @@ export function FilmStrip({ length = 3 }: { length?: number }) {
   );
 }
 
-/** Forbici: due lame, quella superiore ruota per "tagliare". */
 export const Scissors = forwardRef<THREE.Group>(function Scissors(_, bladeRef) {
   return (
     <group rotation={[0, 0, -Math.PI / 2]} scale={0.9}>
@@ -174,7 +166,6 @@ export const Scissors = forwardRef<THREE.Group>(function Scissors(_, bladeRef) {
   );
 });
 
-/** Ciak: base con scritte e asta superiore incernierata a sinistra. */
 export const Clapperboard = forwardRef<THREE.Group>(function Clapperboard(_, stickRef) {
   const face = useCanvasTexture(
     256,
@@ -236,7 +227,6 @@ export const Clapperboard = forwardRef<THREE.Group>(function Clapperboard(_, sti
   );
 });
 
-/** Spicchio di formaggio estruso, con i buchi. */
 export function Cheese() {
   const geometry = useMemo(() => {
     const shape = new THREE.Shape();
@@ -265,7 +255,6 @@ export function Cheese() {
   );
 }
 
-/** Keyframe a forma di rombo, come in timeline. */
 export const KeyframeDiamond = forwardRef<THREE.Mesh, { position: [number, number, number] }>(function KeyframeDiamond(
   { position },
   ref,
@@ -278,10 +267,8 @@ export const KeyframeDiamond = forwardRef<THREE.Mesh, { position: [number, numbe
   );
 });
 
-/** Logo di Discord ("Clyde") estruso in 3D: solido, con gli occhi traforati. Largo ~2 unità. */
 export function DiscordLogo3D() {
   const geometry = useMemo(() => {
-    // tracciato disegnato su una griglia 256x256 e portato in coordinate 3D (y verso l'alto)
     const p = (x: number, y: number) => new THREE.Vector2((x - 128) / 128, -(y - 140) / 128);
     const shape = new THREE.Shape();
     const start = p(60, 88);
@@ -325,7 +312,6 @@ export function DiscordLogo3D() {
   );
 }
 
-/** Pannello del Graph Editor di After Effects: sfondo scuro con griglia ed etichette. */
 export function GraphPanel({ width = 7.4, height = 4.4 }: { width?: number; height?: number }) {
   const map = useCanvasTexture(
     740,
@@ -351,7 +337,7 @@ export function GraphPanel({ width = 7.4, height = 4.4 }: { width?: number; heig
       ctx.font = "600 20px 'Segoe UI', sans-serif";
       ["1200 px/sec", "800", "400", "0"].forEach((label, i) => ctx.fillText(label, 10, 30 + i * 132));
       ctx.fillStyle = "#2d8ceb";
-      ctx.fillRect(500, 0, 3, 440); // indicatore di tempo
+      ctx.fillRect(500, 0, 3, 440);
     },
     [],
   );
@@ -363,7 +349,6 @@ export function GraphPanel({ width = 7.4, height = 4.4 }: { width?: number; heig
   );
 }
 
-/** Caschetto giallo da cantiere (si mette in testa a Squeak). */
 export function HardHat() {
   return (
     <group position={[0, 0.42, 0.02]} rotation={[-0.12, 0, 0]}>
@@ -383,7 +368,6 @@ export function HardHat() {
   );
 }
 
-/** Gilet arancione ad alta visibilità con bande riflettenti. */
 export function SafetyVest() {
   return (
     <group position={[0, 0.95, 0.02]}>
@@ -401,7 +385,6 @@ export function SafetyVest() {
   );
 }
 
-/** Costume da bagno a righe (pantaloncino) intorno alla parte bassa del corpo. */
 export function SwimTrunks() {
   const stripes = useCanvasTexture(
     64,
@@ -429,7 +412,6 @@ export function SwimTrunks() {
   );
 }
 
-/** Martello: manico di legno e testa di metallo. */
 export function Hammer() {
   return (
     <group rotation={[Math.PI / 2, 0, 0]}>
@@ -445,7 +427,6 @@ export function Hammer() {
   );
 }
 
-/** Cono stradale arancione con banda bianca. */
 export function TrafficCone() {
   return (
     <group>
@@ -465,7 +446,6 @@ export function TrafficCone() {
   );
 }
 
-/** Transenna a strisce bianche e rosse. */
 export function Barrier({ width = 2.6 }: { width?: number }) {
   const stripes = useCanvasTexture(
     512,
@@ -506,7 +486,6 @@ export function Barrier({ width = 2.6 }: { width?: number }) {
   );
 }
 
-/** Cartello giallo del cantiere su due pali. */
 export function WorkSign({ lines }: { lines: [string, string] }) {
   const map = useCanvasTexture(
     512,
@@ -547,7 +526,6 @@ export function WorkSign({ lines }: { lines: [string, string] }) {
   );
 }
 
-/** Pila di mattoni. */
 export function Bricks() {
   const rows = [
     [-0.3, 0.3],

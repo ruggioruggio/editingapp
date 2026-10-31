@@ -67,7 +67,6 @@ export function AiChat() {
   useEffect(() => () => abortRef.current?.abort(), []);
 
   if (!hydrated) return <div className="h-96" />;
-  // il server controlla comunque il piano: questo è solo per mostrare l'invito
   if (!features.squeakAi) return <ComingSoonState />;
   if (!hasAiAssistant(plan)) return <LockedState />;
 
@@ -383,7 +382,6 @@ function LockedState() {
   );
 }
 
-/** Finché Squeak AI non è attiva: anteprima di cosa farà. */
 function ComingSoonState() {
   return (
     <div className="flex flex-col items-center text-center">

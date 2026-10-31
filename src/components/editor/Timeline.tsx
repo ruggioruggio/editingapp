@@ -37,13 +37,12 @@ export function Timeline() {
     return () => ro.disconnect();
   }, []);
 
-  const pps = laneW > 0 ? laneW / viewDuration : 0; // pixel per secondo
+  const pps = laneW > 0 ? laneW / viewDuration : 0;
   const snapPoints = useMemo(
     () => [playhead, ...seq.markers.map((m) => m.time), ...seq.clips.flatMap((c) => [c.start, clipEnd(c)])],
     [seq, playhead],
   );
 
-  /** Tempo sotto il puntatore, con snapping a marker/playhead/bordi come in Premiere (S). */
   function timeAt(e: PointerEvent, snap: boolean): number {
     if (!laneRef.current || pps === 0) return 0;
     const rect = laneRef.current.getBoundingClientRect();
@@ -227,7 +226,6 @@ function ClipBlock({
   );
 }
 
-/** Forma d'onda finta ma deterministica sul tempo sorgente: resta coerente dopo i tagli. */
 function Waveform({ clip, pps }: { clip: Clip; pps: number }) {
   const width = clipDuration(clip) * pps;
   const bars = Math.max(1, Math.floor(width / 3));

@@ -16,8 +16,6 @@ import * as A from "./actions";
 
 export const openAeImport = () => document.getElementById("ae-import-input")?.click();
 
-// ---- Progetto ----------------------------------------------------------------------------
-
 export function AeProjectPanel() {
   const st = useAe();
   const { project, projectSel, folder } = st;
@@ -182,8 +180,6 @@ export function AeProjectPanel() {
   );
 }
 
-// ---- Controlli effetti ---------------------------------------------------------------------
-
 function EcRow({ name, p, t, fps, onChange, input, dims = 1, step = 1, suffix = "", min, max }: { name: string; p: Prop; t: number; fps: number; onChange: (p: Prop, key?: string) => void; input?: ReactNode; dims?: number; step?: number; suffix?: string; min?: number; max?: number }) {
   const v = valueAt(p, t);
   return (
@@ -290,8 +286,6 @@ export function AeEffectControls() {
   );
 }
 
-// ---- Effetti e predefiniti ------------------------------------------------------------------
-
 const AE_PRESETS = [
   { id: "fadein", name: "Dissolvenza in entrata" },
   { id: "pop", name: "Pop (scala con rimbalzo)" },
@@ -376,8 +370,6 @@ export function AeEffectsPresets() {
     </div>
   );
 }
-
-// ---- Proprietà / Carattere / Allinea / Tracciatore ------------------------------------------------
 
 export function AeProperties() {
   const st = useAe();

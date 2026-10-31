@@ -3,7 +3,6 @@
 import { Monitor } from "lucide-react";
 import { useIsPhone } from "@/lib/hooks/useIsPhone";
 
-/** Avviso nella scheda Pratica quando la si apre dal telefono. */
 export function PhoneNotice() {
   const phone = useIsPhone();
   if (!phone) return null;

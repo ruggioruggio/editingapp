@@ -10,7 +10,6 @@ export interface FriendProfile {
 }
 
 export interface FriendLink {
-  /** id della riga in friendships */
   id: number;
   other: FriendProfile;
 }
@@ -56,7 +55,6 @@ export async function loadFriends(sb: SupabaseClient, me: string): Promise<Frien
 
 export type SendResult = "sent" | "accepted" | "not_found" | "self" | "exists";
 
-/** Invia una richiesta per nome utente. Se l'altro ti aveva già scritto, la accetta. */
 export async function sendFriendRequest(sb: SupabaseClient, me: string, username: string): Promise<SendResult> {
   const { data: target, error } = await sb
     .from("profiles")
@@ -91,7 +89,6 @@ export async function acceptFriendRequest(sb: SupabaseClient, id: number) {
   if (error) throw error;
 }
 
-/** Rifiuta, annulla o rimuove: per il database è la stessa cosa. */
 export async function removeFriendship(sb: SupabaseClient, id: number) {
   const { error } = await sb.from("friendships").delete().eq("id", id);
   if (error) throw error;

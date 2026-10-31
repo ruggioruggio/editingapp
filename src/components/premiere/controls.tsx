@@ -4,9 +4,6 @@ import { useRef, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import { ChevronDown } from "lucide-react";
 
-// Piccoli controlli con l'aspetto dell'interfaccia di Premiere/After Effects
-// (stile Adobe Spectrum scuro): campi, menu a tendina, numeri trascinabili.
-
 export const P = {
   panel: "bg-[#232323] text-[#c8c8c8]",
   field: "h-7 rounded-[4px] border border-[#3e3e3e] bg-[#1b1b1b] px-2 text-[12px] text-[#e0e0e0] outline-none focus:border-[#2680eb] disabled:opacity-45",
@@ -91,10 +88,6 @@ export function PNumber({
   );
 }
 
-/**
- * Valore blu "trascinabile" come nei Controlli effetti: si trascina in
- * orizzontale per cambiarlo, oppure si fa clic per scriverlo.
- */
 export function Scrubby({
   value,
   onChange,
@@ -154,7 +147,6 @@ export function Scrubby({
       onPointerUp={() => {
         const d = drag.current;
         drag.current = null;
-        // un clic senza trascinare apre il campo per scrivere il valore
         if (d && !d.moved) setEditing(true);
       }}
       onKeyDown={(e) => {

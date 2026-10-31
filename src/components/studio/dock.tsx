@@ -7,12 +7,6 @@ import { Menu as MenuIcon, X } from "lucide-react";
 import { ContextMenu } from "./chrome";
 import type { MenuItemLike } from "@/lib/studio/premiere";
 
-// Pannelli agganciabili come nei programmi Adobe: ogni zona ha le sue schede.
-// Una scheda si sposta trascinandola su un'altra zona (col mouse subito, col
-// dito dopo averla tenuta premuta un attimo). Col tasto destro (o tenendo
-// premuto senza muoversi) si chiude; si riapre dal menu Finestra.
-// La disposizione resta salvata nel dispositivo.
-
 export type Zones = Record<string, { tabs: string[]; active: string }>;
 interface Saved {
   zones: Zones;
@@ -30,7 +24,6 @@ export function useDockLayout(storageKey: string, defaults: Zones, available: st
         tabs.forEach((t) => seen.add(t));
         out[id] = { tabs, active: tabs.includes(z[id]?.active) ? z[id].active : tabs[0] ?? "" };
       }
-      // pannelli nuovi o persi (e non chiusi apposta) tornano nella loro zona
       for (const [id, d] of Object.entries(defaults))
         for (const t of d.tabs)
           if (!seen.has(t) && !shut.includes(t) && available.includes(t)) {
@@ -50,7 +43,6 @@ export function useDockLayout(storageKey: string, defaults: Zones, available: st
         return sanitize(s.zones ?? {}, s.closed ?? []);
       }
     } catch {
-      /* layout predefinito */
     }
     return sanitize(defaults, []);
   });
@@ -58,7 +50,6 @@ export function useDockLayout(storageKey: string, defaults: Zones, available: st
     try {
       localStorage.setItem(storageKey, JSON.stringify(state));
     } catch {
-      /* niente */
     }
   }, [state, storageKey]);
 
@@ -80,7 +71,6 @@ export function useDockLayout(storageKey: string, defaults: Zones, available: st
     });
   }, []);
   const activate = useCallback((zone: string, tab: string) => setState((s) => ({ ...s, zones: { ...s.zones, [zone]: { ...s.zones[zone], active: tab } } })), []);
-  /** porta in primo piano la scheda (riaprendola se era chiusa) */
   const show = useCallback(
     (tab: string) =>
       setState((s) => {
@@ -123,7 +113,6 @@ export function DragGhost() {
   );
 }
 
-/** Voci del menu Finestra: un segno di spunta per ogni pannello aperto. */
 export function windowMenu(layout: ReturnType<typeof useDockLayout>, labels: Record<string, string>): MenuItemLike[] {
   return [
     ...layout.available.map((t) => ({ label: labels[t] ?? t, checked: layout.isOpen(t), action: () => layout.toggle(t) })),
@@ -181,7 +170,6 @@ export function DockZone({
     let armed = !touch;
     let dragging = false;
     const block = (ev: TouchEvent) => ev.preventDefault();
-    // col dito: tenendo premuto la scheda "si stacca" e si può trascinare
     const timer = touch
       ? setTimeout(() => {
           armed = true;
@@ -189,7 +177,6 @@ export function DockZone({
           try {
             el.setPointerCapture(e.pointerId);
           } catch {
-            /* niente */
           }
           navigator.vibrate?.(15);
           useDrag.setState({ tab, label: labels[tab] ?? tab, x: x0, y: y0, over: id });
@@ -214,7 +201,6 @@ export function DockZone({
       const target = useDrag.getState().over;
       useDrag.setState({ tab: null, over: null });
       if (dragging && target) layout.move(tab, target);
-      // tenuta premuta senza spostarsi: menu con Chiudi / Sposta
       else if (touch && armed) setM({ x: x0, y: y0, tab });
     };
     window.addEventListener("pointermove", move);
@@ -275,7 +261,6 @@ export function CloseX({ onClick }: { onClick: () => void }) {
   );
 }
 
-/** true mentre si trascina una scheda (per mostrare le zone libere dove lasciarla). */
 export const useDockDragging = () => useDrag((s) => s.tab !== null);
 
 export interface DockRow {
@@ -285,13 +270,6 @@ export interface DockRow {
 
 type Weights = Record<string, number>;
 
-/**
- * Disposizione libera a righe: ogni riga ha più zone affiancate. Le zone
- * senza pannelli spariscono e lasciano spazio alle altre; mentre si trascina
- * una scheda ricompaiono come strisce dove lasciarla, così un pannello si
- * può mettere ovunque (anche in una colonna o riga nuova). Le dimensioni si
- * cambiano trascinando i divisori e restano salvate.
- */
 export function DockRows({
   layout,
   rows,
@@ -304,12 +282,9 @@ export function DockRows({
   layout: ReturnType<typeof useDockLayout>;
   rows: DockRow[];
   storageKey: string;
-  /** pesi iniziali di righe e zone (si usano in proporzione) */
   defaults: Weights;
   zone: (id: string, className?: string, style?: React.CSSProperties) => ReactNode;
-  /** elementi fissi in una riga (es. la barra degli strumenti), dopo una zona o all'inizio */
   extras?: Record<string, { after?: string; node: ReactNode }>;
-  /** elemento fisso tra la prima e la seconda riga (es. barra comandi sul telefono) */
   between?: ReactNode;
 }) {
   const dragging = useDockDragging();
@@ -324,13 +299,11 @@ export function DockRows({
     try {
       localStorage.setItem(storageKey, JSON.stringify(w));
     } catch {
-      /* niente */
     }
   }, [w, storageKey]);
   const weight = (id: string) => w[id] ?? defaults[id] ?? 1;
   const filled = (id: string) => (layout.zones[id]?.tabs.length ?? 0) > 0;
 
-  /** sposta peso tra due elementi vicini, in proporzione allo spostamento del divisore */
   const transfer = (a: string, b: string, deltaPx: number, sizePx: number, sum: number) =>
     setW((cur) => {
       const wa = cur[a] ?? defaults[a] ?? 1;
@@ -352,7 +325,6 @@ export function DockRows({
         try {
           el.setPointerCapture(e.pointerId);
         } catch {
-          /* niente */
         }
         let last = dir === "x" ? e.clientX : e.clientY;
         const move = (ev: PointerEvent) => {

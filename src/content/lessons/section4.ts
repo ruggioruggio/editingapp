@@ -4,9 +4,6 @@ import type { AeState, Layer } from "@/lib/studio/ae";
 import { aeKeys, aeLayer, aeLayers, aeSetup, allComps, animated, anyEased, anyExpr, findLayer, key, keyRange, layerFx, prSetup, vClips, fxValue } from "@/lib/lessons/studioKit";
 import { ae, lesson as L, M, pr, Q, T } from "./s1-practice";
 
-// Sezione 4 "Motion graphics": After Effects dalle composizioni agli
-// effetti visivi. Quasi ogni lezione ha due esercizi nel simulatore.
-
 const named = (s: AeState, re: RegExp) => findLayer(s, (l) => re.test(l.name));
 const bg = (comp: Parameters<typeof aeLayer>[1], color = "#1f1f3d") => aeLayer("solid", comp, { name: "Sfondo", color });
 const text = (comp: Parameters<typeof aeLayer>[1], t: string, extra: Partial<Layer> = {}) => aeLayer("text", comp, { name: t, text: t, ...extra });
@@ -18,7 +15,6 @@ const shape = (comp: Parameters<typeof aeLayer>[1], name: string, kind: "rect" |
 const valueOf = (p: { value: number[]; keys: { v: number[] }[] | null }) => p.keys?.[0]?.v ?? p.value;
 
 export const section4Lessons: Lesson[] = [
-  // ---------------- Unità 15 · After Effects: le basi ----------------
   L("composizioni", "Composizioni", "Il contenitore di ogni animazione.", [
     T("La composizione", [
       "In After Effects tutto vive dentro una **composizione** (comp): ha dimensioni, frequenza fotogrammi, **durata** e un colore di sfondo, come una sequenza di Premiere.",
@@ -181,7 +177,6 @@ export const section4Lessons: Lesson[] = [
     ),
   ]),
 
-  // ---------------- Unità 16 · Testo animato ----------------
   L("animatori-testo", "Animatori di testo", "Animare lettera per lettera.", [
     T("Animare il testo dall'interno", [
       "Gli **animatori di testo** cambiano proprietà (opacità, posizione, spaziatura…) **lettera per lettera** grazie a un **selettore di intervallo** che decide quali lettere sono colpite.",
@@ -342,7 +337,6 @@ export const section4Lessons: Lesson[] = [
     ),
   ]),
 
-  // ---------------- Unità 17 · Effetti visivi ----------------
   L("green-screen", "Green screen", "Scontornare con il chroma key.", [
     T("Il chroma key", [
       "Si riprende il soggetto davanti a un fondo **verde** (o blu) uniforme e illuminato bene. Il **chroma key** rende trasparente quel colore e al suo posto metti un altro sfondo.",

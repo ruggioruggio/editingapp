@@ -9,7 +9,6 @@ import { useEditor } from "@/lib/editor/store";
 import type { EditorStep, EditorTaskResult, MatchStep, QuizStep, TheoryStep } from "@/lib/lessons/types";
 import { RichText } from "./RichText";
 
-/** Etichetta colorata sopra la domanda, come "PAROLA NUOVA" in Duolingo. */
 function StepLabel({ icon, children, color }: { icon: ReactNode; children: ReactNode; color: string }) {
   return (
     <p className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-wide" style={{ color }}>
@@ -21,7 +20,6 @@ function StepLabel({ icon, children, color }: { icon: ReactNode; children: React
   );
 }
 
-/** Squeak che "parla" con il fumetto. */
 export function MascotSays({ children, mood = "happy" }: { children: ReactNode; mood?: "happy" | "wow" }) {
   return (
     <div className="flex items-center gap-4">
@@ -74,7 +72,6 @@ export function QuizView({
   checked: boolean;
   onSelect: (index: number) => void;
 }) {
-  // tasti 1-4 per scegliere, come in Duolingo
   useEffect(() => {
     if (checked) return;
     const onKey = (e: KeyboardEvent) => {
@@ -124,9 +121,7 @@ export function QuizView({
   );
 }
 
-/** "Tocca le coppie": si sceglie a sinistra, poi il significato a destra. */
 export function MatchView({ step, onMistake, onDone }: { step: MatchStep; onMistake: () => void; onDone: () => void }) {
-  // la colonna di destra è mescolata, ma sempre allo stesso modo per quello step
   const right = useMemo(() => {
     const items = step.pairs.map((p, i) => ({ text: p[1], pair: i }));
     return items.sort((a, b) => ((a.pair * 7 + 3) % 5) - ((b.pair * 7 + 3) % 5) || a.pair - b.pair);

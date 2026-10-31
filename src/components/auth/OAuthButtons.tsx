@@ -18,7 +18,6 @@ const GoogleLogo = () => (
   </svg>
 );
 
-/** Faccina del controller di Discord (stessa forma del logo 3D del sito). */
 const DiscordLogo = () => (
   <svg width="22" height="22" viewBox="30 50 196 170" aria-hidden>
     <path
@@ -36,7 +35,6 @@ const PROVIDERS: { id: Provider; label: string }[] = [
   { id: "discord", label: "Discord" },
 ];
 
-/** Accesso con Google/Discord: vanno attivati in Supabase → Authentication → Providers. */
 export function OAuthButtons({ next }: { next: string }) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();

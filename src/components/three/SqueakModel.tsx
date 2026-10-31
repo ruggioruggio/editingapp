@@ -4,10 +4,6 @@ import { useMemo, useRef, type MutableRefObject, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
-// Squeak in 3D, costruito con primitive (niente file .glb da scaricare).
-// Altezza ~3 unità, piedi a y=0, guarda verso +z (la camera).
-// Le scene lo muovono tramite il "rig": gruppi per corpo, testa, braccia e gambe.
-
 export const SQUEAK_COLORS = {
   fur: "#c3cad8",
   furDark: "#8e97ab",
@@ -62,7 +58,6 @@ function Ear({ side }: { side: 1 | -1 }) {
   );
 }
 
-/** Braccio con perno sulla spalla: rotation.x negativa lo alza in avanti. */
 function Arm({ side, refCb, children }: { side: 1 | -1; refCb: (g: THREE.Group | null) => void; children?: ReactNode }) {
   return (
     <group ref={refCb} position={[0.7 * side, 1.3, 0.35]}>
@@ -94,15 +89,11 @@ export function SqueakModel({
   rig?: MutableRefObject<SqueakRig>;
   sitting?: boolean;
   wow?: boolean;
-  /** occhi chiusi (dorme) */
   sleepy?: boolean;
-  /** sopracciglia aggrottate e guance rosse */
   angry?: boolean;
   leftHand?: ReactNode;
   rightHand?: ReactNode;
-  /** accessorio in testa (coordinate della testa, centro a y=0) */
   hat?: ReactNode;
-  /** accessorio sul corpo (es. gilet) */
   outfit?: ReactNode;
 }) {
   const eyes = useRef<THREE.Group>(null);
@@ -110,7 +101,6 @@ export function SqueakModel({
     if (rig) rig.current[key] = g;
   };
 
-  // battito di ciglia ogni ~3.5 s
   useFrame((state) => {
     if (eyes.current) eyes.current.scale.y = sleepy ? 0.12 : angry ? 0.72 : state.clock.elapsedTime % 3.5 > 3.38 ? 0.15 : 1;
   });
@@ -211,7 +201,6 @@ export function SqueakModel({
   );
 }
 
-/** Ombra morbida a terra sotto Squeak. */
 export function Shadow({ radius = 1.1, opacity = 0.3 }: { radius?: number; opacity?: number }) {
   return (
     <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -221,7 +210,6 @@ export function Shadow({ radius = 1.1, opacity = 0.3 }: { radius?: number; opaci
   );
 }
 
-// --- piccole funzioni di animazione condivise dalle scene ---
 export const clamp01 = (t: number) => Math.min(1, Math.max(0, t));
 export const easeOut = (t: number) => 1 - (1 - clamp01(t)) ** 3;
 export const easeInOut = (t: number) => {
@@ -229,10 +217,8 @@ export const easeInOut = (t: number) => {
   return x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2;
 };
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-/** Avanzamento 0→1 di t dentro la finestra [from, to]. */
 export const phase = (t: number, from: number, to: number) => clamp01((t - from) / (to - from));
 
-/** Passo di camminata: piedi alternati e corpo che sobbalza. */
 export function walkCycle(rig: SqueakRig, t: number, speed = 9, amount = 1) {
   const s = Math.sin(t * speed) * amount;
   if (rig.footL) rig.footL.position.z = 0.45 + s * 0.25;
@@ -242,7 +228,6 @@ export function walkCycle(rig: SqueakRig, t: number, speed = 9, amount = 1) {
   if (rig.armR) rig.armR.rotation.x = s * 0.4;
 }
 
-/** Riporta il rig in posa neutra (in piedi, braccia giù). */
 export function resetRig(rig: SqueakRig) {
   if (rig.footL) rig.footL.position.z = 0.45;
   if (rig.footR) rig.footR.position.z = 0.45;

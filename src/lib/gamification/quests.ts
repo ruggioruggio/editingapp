@@ -8,7 +8,6 @@ export interface Quest {
   xp: number;
 }
 
-// Pool di quest giornaliere: ogni giorno ne escono 3, uguali per tutti.
 const POOL: Quest[] = [
   { id: "lessons-1", title: "Completa 1 lezione", stat: "lessons", target: 1, xp: 10 },
   { id: "lessons-2", title: "Completa 2 lezioni", stat: "lessons", target: 2, xp: 20 },
@@ -23,7 +22,6 @@ const POOL: Quest[] = [
 
 const hash = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
 
-/** 3 quest del giorno, deterministiche sulla data. La prima è sempre "fai lezione". */
 export function questsForDay(day: string): Quest[] {
   const rest = POOL.filter((q) => !q.id.startsWith("lessons-"));
   const lesson = POOL.filter((q) => q.id.startsWith("lessons-"))[hash(day) % 3];

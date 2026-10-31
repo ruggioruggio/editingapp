@@ -1,39 +1,32 @@
-// File multimediali dei simulatori: una libreria di esempio (video "finti" ma
-// animati, disegnati al volo) più i file veri che l'utente importa dal suo
-// computer, salvati in IndexedDB così restano anche dopo aver ricaricato.
 
 export type Subject = "person" | "city" | "cup" | "sea" | "sunset" | "greenscreen" | "title" | "logo" | "music" | "whoosh" | "applause";
 
 export type MediaKind =
-  | "video" // filmato con o senza audio
+  | "video"
   | "audio"
   | "image"
-  | "black" // Video nero
-  | "adjustment" // Livello di regolazione
-  | "matte" // Mascherino colore
-  | "bars" // Barre e tono
-  | "countdown" // Contatore universale
-  | "graphic"; // titolo / grafica
+  | "black"
+  | "adjustment"
+  | "matte"
+  | "bars"
+  | "countdown"
+  | "graphic";
 
 export interface Media {
   id: string;
   name: string;
   kind: MediaKind;
-  /** secondi; le immagini e gli elementi sintetici hanno una durata predefinita ma si possono allungare */
   duration: number;
   width: number;
   height: number;
   fps: number;
   hasVideo: boolean;
   hasAudio: boolean;
-  /** clip sintetica disegnata dal simulatore */
   subject?: Subject;
   hue?: number;
   text?: string;
   color?: string;
-  /** file importato dal computer */
   file?: { mime: string; size: number };
-  /** elemento senza limite di durata (immagini, mascherini…) */
   still?: boolean;
 }
 
@@ -52,8 +45,6 @@ export const SAMPLE_LIBRARY: (Media & { folder: string })[] = [
 ];
 
 export const isStill = (m: Media) => !!m.still || m.kind === "black" || m.kind === "adjustment" || m.kind === "matte" || m.kind === "bars" || m.kind === "graphic";
-
-// ---- file importati ----------------------------------------------------------
 
 const urls = new Map<string, string>();
 export const fileUrl = (id: string) => urls.get(id);
@@ -78,11 +69,9 @@ async function saveBlob(id: string, blob: Blob) {
   try {
     d.transaction("files", "readwrite").objectStore("files").put(blob, id);
   } catch {
-    /* spazio esaurito o accesso negato: il file resta solo in questa sessione */
   }
 }
 
-/** Ricollega i file importati in una sessione precedente (altrimenti risultano "Media offline"). */
 export async function restoreFiles(ids: string[]) {
   const d = await db();
   if (!d) return;
@@ -107,7 +96,6 @@ export async function restoreFiles(ids: string[]) {
   );
 }
 
-/** Legge un file scelto dall'utente e ne ricava durata e dimensioni. */
 export async function importFile(file: File, id: string): Promise<Media | null> {
   const url = URL.createObjectURL(file);
   const base = { id, name: file.name, fps: 30, file: { mime: file.type, size: file.size } };

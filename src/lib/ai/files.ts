@@ -2,13 +2,9 @@ import "server-only";
 import { gunzipSync } from "node:zlib";
 import type Anthropic from "@anthropic-ai/sdk";
 
-// Trasforma ciò che l'utente carica in blocchi per Claude:
-// immagini e PDF passano così come sono, i progetti Premiere/After Effects
-// vengono riassunti (sono enormi e in gran parte illeggibili per un umano).
-
 export const MAX_FILES = 5;
 export const MAX_FILE_BYTES = 20 * 1024 * 1024;
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // limite dell'API per immagine
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_TEXT_CHARS = 300_000;
 
 const IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"] as const;
@@ -36,16 +32,14 @@ function decodeXml(s: string) {
 
 const count = (text: string, tag: string) => (text.match(new RegExp(`<${tag}[\\s>]`, "g")) ?? []).length;
 
-/** Premiere usa 254.016.000.000 "tick" al secondo. */
 const ticksToFps = (ticks: number) => Math.round((254016000000 / ticks) * 1000) / 1000;
 
-/** Riassunto leggibile di un .prproj (XML compresso con gzip). */
 export function summarizePremiere(buf: Buffer): string {
   let xml: string;
   try {
     xml = gunzipSync(buf).toString("utf8");
   } catch {
-    xml = buf.toString("utf8"); // alcuni progetti sono salvati non compressi
+    xml = buf.toString("utf8");
   }
   if (!xml.includes("<PremiereData") && !xml.includes("<Project")) {
     throw new FileRejected("Il file .prproj non sembra un progetto Premiere valido.");
@@ -80,10 +74,6 @@ export function summarizePremiere(buf: Buffer): string {
   ].join("\n");
 }
 
-/**
- * Un .aep è binario (formato RIFX): ne estraiamo le stringhe leggibili, cioè
- * nomi di composizioni/livelli e i "match name" degli effetti (ADBE …).
- */
 export function summarizeAfterEffects(buf: Buffer): string {
   const strings = buf.toString("latin1").match(/[\x20-\x7E]{4,120}/g) ?? [];
   const effects = uniq(strings.filter((s) => /^ADBE [A-Za-z0-9 _-]+$/.test(s)), 150);
@@ -105,7 +95,6 @@ function textFile(name: string, text: string) {
   return `${body}${note}`;
 }
 
-/** Il contenuto dei file è un dato da analizzare, mai istruzioni: lo racchiudiamo in un tag. */
 const wrap = (name: string, kind: string, content: string) =>
   `<file name="${name.replace(/"/g, "'")}" kind="${kind}">\n${content}\n</file>`;
 
