@@ -99,13 +99,14 @@ export function FriendSheet({
 }
 
 function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRead: () => void }) {
-  const sb = getSupabase()!;
+  const sb = getSupabase();
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!sb) return;
     let alive = true;
     loadConversation(sb, me, friend.id)
       .then((list) => alive && setMessages(list))
@@ -130,7 +131,7 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const body = text.trim();
-    if (!body) return;
+    if (!body || !sb) return;
     setText("");
     try {
       const sent = await sendMessage(sb, friend.id, body);
@@ -180,10 +181,11 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
 }
 
 function FriendGoals({ friend }: { friend: FriendProfile }) {
-  const sb = getSupabase()!;
+  const sb = getSupabase();
   const [levels, setLevels] = useState<Record<string, number> | null>(null);
 
   useEffect(() => {
+    if (!sb) { setLevels({}); return; }
     let alive = true;
     loadFriendAchievements(sb, friend.id).then((l) => alive && setLevels(l)).catch(() => alive && setLevels({}));
     return () => {

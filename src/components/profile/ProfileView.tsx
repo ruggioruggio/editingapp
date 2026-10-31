@@ -77,7 +77,9 @@ export function ProfileView() {
   const saveBio = async () => {
     setEditingBio(false);
     const sb = getSupabase();
-    if (sb && userId) await sb.from("profiles").update({ bio }).eq("id", userId).catch(() => {});
+    if (sb && userId) {
+      try { await sb.from("profiles").update({ bio }).eq("id", userId); } catch {}
+    }
   };
 
   const uploadAvatar = async (file: File) => {
@@ -92,9 +94,9 @@ export function ProfileView() {
       if (error) { alert("Upload non riuscito: " + error.message); return; }
       const { data } = sb.storage.from("avatars").getPublicUrl(path);
       const url = `${data.publicUrl}?t=${Date.now()}`;
-      await sb.from("profiles").update({ avatar_url: url }).eq("id", userId);
+      try { await sb.from("profiles").update({ avatar_url: url }).eq("id", userId); } catch {}
       setAvatarUrl(url);
-      await sb.from("avatar_reviews").upsert({ user_id: userId, avatar_url: url, status: "pending" }).select().catch(() => {});
+      try { await sb.from("avatar_reviews").upsert({ user_id: userId, avatar_url: url, status: "pending" }).select(); } catch {}
     } catch {
       alert("Upload non riuscito. Verifica che il bucket 'avatars' esista su Supabase Storage.");
     }
