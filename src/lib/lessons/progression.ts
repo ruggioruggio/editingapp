@@ -19,11 +19,16 @@ const units = sections.flatMap((s) => s.units);
 
 export const findUnit = (unitId: string): Unit | undefined => units.find((u) => u.id === unitId);
 
-/** Si può saltare a un'unità se tutte le sue lezioni esistono e non è ancora sbloccata. */
+/** Si può saltare a un'unità solo all'interno della stessa sezione (non tra sezioni). */
 export function canSkipTo(unitId: string, completed: Completed): boolean {
   const unit = findUnit(unitId);
   if (!unit || unit.lessons.some((l) => l.status !== "available")) return false;
-  return !isLessonUnlocked(unit.lessons[0].id, completed);
+  if (isLessonUnlocked(unit.lessons[0].id, completed)) return false;
+  const section = sections.find((s) => s.units.some((u) => u.id === unitId));
+  if (!section) return false;
+  const firstLesson = section.units[0]?.lessons[0];
+  if (!firstLesson) return false;
+  return isLessonUnlocked(firstLesson.id, completed) || Boolean(completed[firstLesson.id]);
 }
 
 /** Lezioni che il test di salto copre: tutte quelle non completate prima dell'unità. */

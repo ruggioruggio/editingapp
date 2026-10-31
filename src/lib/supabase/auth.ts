@@ -22,11 +22,14 @@ export interface Profile {
   id: string;
   username: string;
   display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
   plan: PlanId;
   xp: number;
   streak_count: number;
   streak_last_day: string | null;
   role: UserRole | null;
+  created_at: string | null;
 }
 
 interface AuthState {

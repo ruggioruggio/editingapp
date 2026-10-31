@@ -16,16 +16,16 @@ export function StatsBar() {
   const left = limit === null ? "∞" : `${Math.max(0, limit - lessonsUsedToday(daily))}`;
 
   const items = [
-    { title: "Giorni di serie", icon: Flame, value: streak, color: "text-[#ff8a3d]" },
-    { title: "Punti esperienza", icon: Zap, value: xp, color: "text-cheese" },
-    { title: "Lezioni rimaste oggi", icon: Clapperboard, value: left, color: "text-pr" },
+    { title: "Giorni di serie", icon: Flame, value: streak, color: "#ff8a3d" },
+    { title: "Punti esperienza", icon: Zap, value: xp, color: "#ffc93c" },
+    { title: "Lezioni rimaste oggi", icon: Clapperboard, value: left, color: "#2d8ceb" },
   ];
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-5">
       {items.map(({ title, icon: Icon, value, color }) => (
-        <span key={title} title={title} className={`flex items-center gap-1 text-sm font-bold ${color}`}>
-          <Icon size={18} />
+        <span key={title} title={title} className="flex items-center gap-1 text-[15px] font-black" style={{ color }}>
+          <Icon size={20} />
           {hydrated ? value : "–"}
         </span>
       ))}

@@ -4,8 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { BookOpen, Clapperboard, CircleUserRound, ScrollText, Sparkles, type LucideIcon } from "lucide-react";
-import { AppIcon } from "@/components/brand/Mascot";
+import { BookOpen, Clapperboard, CircleUserRound, ScrollText, Sparkles, Wand2, type LucideIcon } from "lucide-react";
 import { features } from "@/config/features";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
 import { useHydrated } from "@/lib/hooks/useHydrated";
@@ -69,13 +68,12 @@ function DockItem({ item, active, badge }: { item: Item; active: boolean; badge?
       <span className="relative grid h-11 w-11 place-items-center">
         <Icon
           size={25}
-          strokeWidth={1.8}
-          fill="currentColor"
+          strokeWidth={2.4}
           style={{ color: active ? item.activeColor : item.color }}
           className="drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
         />
         {!!badge && (
-          <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[10px] font-black text-white ring-2 ring-[#1a1a24]">
+          <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[10px] font-black text-white ring-2 ring-[var(--color-panel)]">
             {badge}
           </span>
         )}
@@ -96,7 +94,7 @@ export function Dock() {
   return (
     <nav
       aria-label="Navigazione principale"
-      className="fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t border-white/8 bg-[#1a1a24] pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 flex items-stretch border-t border-line bg-app pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       {LEFT_ITEMS.map((item) => (
         <DockItem
@@ -112,18 +110,16 @@ export function Dock() {
         aria-current={aiActive ? "page" : undefined}
         className="group relative flex flex-1 flex-col items-center justify-center py-2"
       >
-        <span
-          className={clsx(
-            "relative -mt-6 grid h-[54px] w-[54px] place-items-center shadow-[0_4px_16px_rgba(0,0,0,0.5)]",
-            aiActive && "ring-2 ring-white/30",
-          )}
-          style={{ borderRadius: 54 * 0.24 }}
-        >
-          <AppIcon size={54} />
+        <span className="relative grid h-11 w-11 place-items-center">
+          <Wand2
+            size={25}
+            strokeWidth={2.4}
+            className={clsx("drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)]", aiActive ? "text-cheese" : "text-[#ffc93c]")}
+          />
           {features.squeakAi ? (
-            <Sparkles size={12} className="absolute -right-1 -top-1 text-cheese drop-shadow" fill="currentColor" />
+            <Sparkles size={10} className="absolute -right-0.5 -top-0.5 text-cheese" fill="currentColor" />
           ) : (
-            <span className="absolute -top-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border-2 border-[#1a1a24] bg-cheese px-1.5 py-0.5 text-[8px] font-black uppercase leading-none text-[#3a2500]">
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-cheese px-1.5 py-0.5 text-[7px] font-black uppercase leading-none text-[#3a2500]">
               presto
             </span>
           )}

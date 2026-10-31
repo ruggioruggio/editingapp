@@ -6,6 +6,7 @@ import clsx from "clsx";
 import {
   BookOpen,
   Check,
+  ChevronDown,
   Clapperboard,
   KeyRound,
   Lock,
@@ -39,30 +40,26 @@ const KIND_ICON: Record<LessonKind, LucideIcon> = {
 };
 
 function TreasureChest({ unlocked }: { unlocked: boolean }) {
-  const body = unlocked ? "#c8874a" : "#55555f";
-  const bodyDark = unlocked ? "#a56a30" : "#40404a";
-  const lid = unlocked ? "#dda65c" : "#6a6a74";
-  const lidHighlight = unlocked ? "#eec88a" : "#7e7e88";
-  const clasp = unlocked ? "#f5e6c0" : "#9e9eaa";
-  const claspRing = unlocked ? "#c9a23c" : "#7a7a84";
-  const feet = unlocked ? "#8b5218" : "#3a3a44";
+  const body = unlocked ? "#d4a55a" : "#5a5a64";
+  const bodyDk = unlocked ? "#b8863a" : "#45454f";
+  const lid = unlocked ? "#e6c47a" : "#6e6e78";
+  const lidHi = unlocked ? "#f2dda0" : "#82828c";
+  const clasp = unlocked ? "#fff8e8" : "#a0a0aa";
 
   return (
     <div className="flex flex-col items-center py-2">
-      <svg viewBox="0 0 80 72" className="h-[72px] w-[80px] drop-shadow-md transition-transform hover:scale-105" fill="none">
-        <ellipse cx="40" cy="69" rx="26" ry="3" fill="rgba(0,0,0,0.15)" />
-        <rect x="16" y="58" width="7" height="9" rx="2" fill={feet} />
-        <rect x="57" y="58" width="7" height="9" rx="2" fill={feet} />
-        <rect x="12" y="32" width="56" height="30" rx="4" fill={body} />
-        <rect x="12" y="44" width="56" height="7" fill={bodyDark} />
-        <rect x="12" y="56" width="56" height="6" rx="3" fill={bodyDark} />
-        <rect x="14" y="33" width="3" height="28" rx="1.5" fill={lidHighlight} opacity="0.2" />
-        <rect x="10" y="22" width="60" height="14" rx="6" fill={lid} />
-        <rect x="14" y="24" width="52" height="5" rx="2.5" fill={lidHighlight} opacity="0.35" />
-        <circle cx="40" cy="36" r="7" fill={claspRing} />
-        <circle cx="40" cy="36" r="5" fill={clasp} />
-        {unlocked && <circle cx="40" cy="36" r="2.5" fill="#fef3c7" />}
-        {!unlocked && <rect x="38.5" y="34" width="3" height="5" rx="1" fill={bodyDark} />}
+      <svg viewBox="0 0 80 68" className="h-[68px] w-[80px] drop-shadow-md transition-transform hover:scale-105" fill="none">
+        <ellipse cx="40" cy="65" rx="24" ry="3" fill="rgba(0,0,0,0.12)" />
+        <rect x="18" y="56" width="6" height="8" rx="1.5" fill={bodyDk} />
+        <rect x="56" y="56" width="6" height="8" rx="1.5" fill={bodyDk} />
+        <rect x="14" y="30" width="52" height="30" rx="3" fill={body} />
+        <rect x="14" y="30" width="52" height="10" rx="3" fill={lid} />
+        <rect x="14" y="44" width="52" height="6" fill={bodyDk} />
+        <rect x="14" y="54" width="52" height="6" rx="3" fill={bodyDk} />
+        <rect x="10" y="20" width="60" height="14" rx="5" fill={lid} />
+        <rect x="14" y="22" width="52" height="5" rx="2.5" fill={lidHi} opacity="0.4" />
+        <circle cx="40" cy="34" r="5" fill={clasp} />
+        {unlocked && <circle cx="40" cy="34" r="2" fill="#fbbf24" />}
       </svg>
     </div>
   );
@@ -100,25 +97,25 @@ export function LearnPath() {
 
   return (
     <div>
-      {/* Section banner — Duolingo style */}
+      {/* Section banner — clickable to change section */}
       <button
         type="button"
         onClick={() => setShowPicker(true)}
-        className="mb-4 flex w-full items-center gap-3 rounded-2xl p-4 text-left text-[#121212]"
+        className="group mb-4 flex w-full items-center gap-3 rounded-2xl p-4 text-left text-[#121212] transition-all hover:brightness-105 active:scale-[0.98]"
         style={{ background: section.color }}
       >
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-black uppercase tracking-widest opacity-70">
-            Sezione {sectionIdx + 1}, {section.level}
+            Sezione {sectionIdx + 1}
           </p>
           <h2 className="text-lg font-black leading-tight">{section.title}</h2>
         </div>
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#121212]/15">
-          <BookOpen size={22} className="text-[#121212]" />
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#121212]/15 transition-transform group-hover:scale-105">
+          <ChevronDown size={22} className="text-[#121212]" />
         </div>
       </button>
 
-      {/* Section picker overlay */}
+      {/* Section picker */}
       {showPicker && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={() => setShowPicker(false)}>
           <div className="w-full max-w-md rounded-t-3xl bg-panel-2 p-5 sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
@@ -128,7 +125,7 @@ export function LearnPath() {
                 <X size={20} />
               </button>
             </div>
-            <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[60vh] space-y-2 overflow-y-auto">
               {sections.map((s, i) => {
                 const lessons = s.units.flatMap((u) => u.lessons);
                 const done = lessons.filter((l) => isDone(l.id)).length;
@@ -262,7 +259,7 @@ function LessonNode({
               ? "linear-gradient(180deg, #fbbf24 0%, #d97706 100%)"
               : `linear-gradient(180deg, color-mix(in srgb, ${color} 85%, white) 0%, ${color} 100%)`,
           boxShadow: locked
-            ? "0 6px 0 #1f1f1f"
+            ? "0 6px 0 var(--color-line)"
             : done
               ? "0 6px 0 #92400e"
               : `0 6px 0 color-mix(in srgb, ${color} 40%, black)`,

@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, Settings, UserRound } from "lucide-react";
-import { MyAvatar } from "@/components/profile/Avatar";
-import { ProfileModal } from "@/components/profile/ProfileModal";
+import { LogOut, Settings } from "lucide-react";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { useT } from "@/lib/settings/i18n";
 import { useAuth } from "@/lib/supabase/auth";
@@ -18,7 +16,7 @@ export function AccountMenu() {
   const status = useAuth((s) => s.status);
   const profile = useAuth((s) => s.profile);
   const [open, setOpen] = useState(false);
-  const [modal, setModal] = useState<"settings" | "profile" | null>(null);
+  const [modal, setModal] = useState<"settings" | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,14 +28,9 @@ export function AccountMenu() {
 
   if (status === "loading") return null;
 
-  const modals = (
-    <>
-      {modal === "settings" && <SettingsModal onClose={() => setModal(null)} />}
-      {modal === "profile" && <ProfileModal onClose={() => setModal(null)} />}
-    </>
-  );
+  const modals = modal === "settings" ? <SettingsModal onClose={() => setModal(null)} /> : null;
   const item = "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-ink-dim hover:bg-panel-3 hover:text-ink";
-  const pick = (m: "settings" | "profile") => {
+  const pick = (m: "settings") => {
     setOpen(false);
     setModal(m);
   };
@@ -53,8 +46,8 @@ export function AccountMenu() {
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="Il tuo account" className="overflow-hidden rounded-full ring-2 ring-white/10">
-        <MyAvatar size={36} />
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="Il tuo account" className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-panel-3 text-sm font-black ring-2 ring-white/10">
+        {(profile?.username ?? "?")[0].toUpperCase()}
       </button>
       {open && (
         <div className="animate-pop absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-line bg-panel-2 p-2 shadow-2xl">
@@ -63,9 +56,6 @@ export function AccountMenu() {
               <p className="truncate font-black">@{profile?.username ?? "…"}</p>
             </div>
           )}
-          <button type="button" onClick={() => pick("profile")} className={item}>
-            <UserRound size={16} /> {t("profile")}
-          </button>
           <button type="button" onClick={() => pick("settings")} className={item}>
             <Settings size={16} /> {t("settings")}
           </button>

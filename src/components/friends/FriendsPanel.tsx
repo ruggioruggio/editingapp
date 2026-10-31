@@ -323,7 +323,7 @@ function SignedInFriends() {
         <section>
           <h2 className="mb-3 font-black">Cosa fanno i tuoi amici</h2>
           <ul className="space-y-2">
-            {feed.map((e) => (
+            {feed.slice(0, 5).map((e) => (
               <FeedItem key={e.id} event={e} />
             ))}
           </ul>
