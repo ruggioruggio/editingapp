@@ -94,7 +94,8 @@ export function ProfileView() {
       if (error) { alert("Upload non riuscito: " + error.message); return; }
       const { data } = sb.storage.from("avatars").getPublicUrl(path);
       const url = `${data.publicUrl}?t=${Date.now()}`;
-      try { await sb.from("profiles").update({ avatar_url: url }).eq("id", userId); } catch {}
+      const { error: updErr } = await sb.from("profiles").update({ avatar_url: url }).eq("id", userId);
+      if (updErr) { alert("Salvataggio avatar non riuscito: " + updErr.message); return; }
       setAvatarUrl(url);
       try { await sb.from("avatar_reviews").upsert({ user_id: userId, avatar_url: url, status: "pending" }).select(); } catch {}
     } catch {

@@ -30,7 +30,16 @@ export function LoginForm() {
     const form = new FormData(e.currentTarget);
     setBusy(true);
     setError(null);
-    const mail = String(form.get("email")).trim();
+    let mail = String(form.get("login")).trim();
+    if (!mail.includes("@")) {
+      const handle = mail.replace(/^@/, "").toLowerCase();
+      const { data, error: rpcErr } = await sb.rpc("email_for_username", { handle });
+      if (rpcErr || !data) {
+        setBusy(false);
+        return setError("Nessun account trovato con questo nome utente.");
+      }
+      mail = data as string;
+    }
     setEmail(mail);
     const { error: err } = await sb.auth.signInWithPassword({ email: mail, password: String(form.get("password")) });
     setBusy(false);
@@ -71,7 +80,7 @@ export function LoginForm() {
   return (
     <div className="space-y-3">
       <form onSubmit={onSubmit} className="space-y-3">
-        <input name="email" type="email" required placeholder="Email" autoComplete="email" className={fieldClass} />
+        <input name="login" type="text" required placeholder="Email o @nomeutente" autoComplete="username" className={fieldClass} />
         <input
           name="password"
           type="password"
