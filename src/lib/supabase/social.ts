@@ -73,6 +73,39 @@ export function subscribeIncoming(sb: SupabaseClient, me: string, onMessage: (m:
   };
 }
 
+let _readSeq = 0;
+export function subscribeReadReceipts(sb: SupabaseClient, me: string, friendId: string, onRead: (id: number) => void): () => void {
+  const channel: RealtimeChannel = sb
+    .channel(`read-${me}-${friendId}-${++_readSeq}`)
+    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages", filter: `sender_id=eq.${me}` }, (payload) => {
+      const row = payload.new as ChatMessage;
+      if (row.recipient_id === friendId && row.read_at) onRead(row.id);
+    })
+    .subscribe();
+  return () => { void sb.removeChannel(channel); };
+}
+
+let _presenceSeq = 0;
+export function subscribeTyping(sb: SupabaseClient, me: string, friendId: string, onTyping: (typing: boolean) => void): { stop: () => void; sendTyping: () => void } {
+  const channelName = [me, friendId].sort().join("-");
+  const channel = sb.channel(`typing-${channelName}-${++_presenceSeq}`, { config: { presence: { key: me } } });
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  channel.on("presence", { event: "sync" }, () => {
+    const state = channel.presenceState();
+    const friendPresent = Object.keys(state).some((k) => k === friendId);
+    onTyping(friendPresent);
+  }).subscribe();
+  const sendTyping = () => {
+    void channel.track({ typing: true });
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => void channel.untrack(), 3000);
+  };
+  return {
+    stop: () => { if (timeout) clearTimeout(timeout); void sb.removeChannel(channel); },
+    sendTyping,
+  };
+}
+
 export async function loadSharedStreaks(sb: SupabaseClient, today: string): Promise<Record<string, number>> {
   const { data } = await sb.rpc("shared_streaks", { today });
   const out: Record<string, number> = {};

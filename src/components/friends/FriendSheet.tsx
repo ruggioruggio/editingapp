@@ -14,6 +14,8 @@ import {
   MAX_MESSAGE,
   sendMessage,
   subscribeIncoming,
+  subscribeReadReceipts,
+  subscribeTyping,
   type ChatMessage,
 } from "@/lib/supabase/social";
 import { useT } from "@/lib/settings/i18n";
@@ -149,6 +151,9 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [friendTyping, setFriendTyping] = useState(false);
+  const [newIds, setNewIds] = useState<Set<number>>(new Set());
+  const typingRef = useRef<{ sendTyping: () => void } | null>(null);
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -159,20 +164,31 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
       .catch(() => alive && setError(t("loadChatFailed")));
     void markRead(sb, me, friend.id).then(onRead).catch(() => {});
 
-    const stop = subscribeIncoming(sb, me, (m) => {
+    const stopIncoming = subscribeIncoming(sb, me, (m) => {
       if (m.sender_id !== friend.id) return;
       setMessages((list) => (list && !list.some((x) => x.id === m.id) ? [...list, m] : list));
+      setNewIds((s) => new Set(s).add(m.id));
       void markRead(sb, me, friend.id).catch(() => {});
     });
+
+    const stopRead = subscribeReadReceipts(sb, me, friend.id, (id) => {
+      setMessages((list) => list?.map((m) => m.id === id ? { ...m, read_at: new Date().toISOString() } : m) ?? null);
+    });
+
+    const { stop: stopTyping, sendTyping } = subscribeTyping(sb, me, friend.id, setFriendTyping);
+    typingRef.current = { sendTyping };
+
     return () => {
       alive = false;
-      stop();
+      stopIncoming();
+      stopRead();
+      stopTyping();
     };
   }, [sb, me, friend.id, onRead, t]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
-  }, [messages]);
+  }, [messages, friendTyping]);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -182,6 +198,7 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
     try {
       const sent = await sendMessage(sb, friend.id, body);
       setMessages((list) => [...(list ?? []), sent]);
+      setNewIds((s) => new Set(s).add(sent.id));
       setError(null);
     } catch {
       setText(body);
@@ -191,8 +208,17 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
 
   const time = (iso: string) => new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
+  const lastMine = messages ? [...messages].reverse().find((m) => m.sender_id === me) : null;
+  const showSeen = lastMine?.read_at != null;
+
   return (
     <>
+      <style>{`
+        @keyframes msgPop { 0%{transform:scale(0.6);opacity:0} 50%{transform:scale(1.04)} 100%{transform:scale(1);opacity:1} }
+        .msg-pop { animation: msgPop .3s cubic-bezier(.34,1.56,.64,1) both }
+        @keyframes dots { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
+        .dot1{animation:dots 1.2s infinite} .dot2{animation:dots 1.2s .2s infinite} .dot3{animation:dots 1.2s .4s infinite}
+      `}</style>
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
         {messages === null && !error && <div className="h-20 animate-pulse rounded-2xl bg-panel" />}
         {messages?.length === 0 && (
@@ -200,22 +226,35 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
         )}
         {messages?.map((m) => {
           const mine = m.sender_id === me;
+          const isNew = newIds.has(m.id);
           return (
             <div key={m.id} className={clsx("flex", mine && "justify-end")}>
-              <div className={clsx("max-w-[80%] rounded-2xl px-3.5 py-2", mine ? "rounded-br-md bg-accent text-white" : "rounded-bl-md bg-panel-2 text-ink")}>
+              <div className={clsx("max-w-[80%] rounded-2xl px-3.5 py-2", mine ? "rounded-br-md bg-accent text-white" : "rounded-bl-md bg-panel-2 text-ink", isNew && "msg-pop")}>
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
                 <p className={clsx("mt-0.5 text-right text-[10px]", mine ? "text-white/70" : "text-ink-mute")}>{time(m.created_at)}</p>
               </div>
             </div>
           );
         })}
+        {showSeen && (
+          <p className="text-right text-[10px] font-semibold text-accent/70">{t("seen")}</p>
+        )}
+        {friendTyping && (
+          <div className="flex">
+            <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-panel-2 px-4 py-2.5">
+              <span className="dot1 inline-block h-2 w-2 rounded-full bg-ink-mute" />
+              <span className="dot2 inline-block h-2 w-2 rounded-full bg-ink-mute" />
+              <span className="dot3 inline-block h-2 w-2 rounded-full bg-ink-mute" />
+            </div>
+          </div>
+        )}
         <div ref={bottom} />
       </div>
       {error && <p className="px-4 pb-1 text-sm font-semibold text-danger">{error}</p>}
       <form onSubmit={onSubmit} className="flex gap-2 border-t border-line p-3">
         <input
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => { setText(e.target.value); typingRef.current?.sendTyping(); }}
           maxLength={MAX_MESSAGE}
           placeholder={`${t("writeTo")} @${friend.username}…`}
           className="min-w-0 flex-1 rounded-full border-2 border-line bg-panel-2 px-4 py-2.5 font-semibold outline-none focus:border-accent"

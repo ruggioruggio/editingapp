@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { brand } from "@/config/brand";
-import { features } from "@/config/features";
+
 
 export function AiAssistantButton({ lessonId }: { lessonId?: string }) {
   return (
@@ -12,7 +12,6 @@ export function AiAssistantButton({ lessonId }: { lessonId?: string }) {
       <Sparkles size={14} />
       <span className="hidden sm:inline">
         {brand.aiName}
-        {!features.squeakAi && " · presto"}
       </span>
     </Link>
   );

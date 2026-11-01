@@ -22,6 +22,7 @@ import { getTranslatedSections } from "@/content/course";
 import { useSettings } from "@/lib/settings/store";
 import { getLesson } from "@/content/lessons";
 import { useHydrated } from "@/lib/hooks/useHydrated";
+import { useT } from "@/lib/settings/i18n";
 import type { LessonKind, LessonMeta, Section } from "@/lib/lessons/types";
 import { canSkipTo, isLessonUnlocked } from "@/lib/lessons/progression";
 import { useAdmin } from "@/lib/admin/client";
@@ -229,9 +230,12 @@ function LessonNode({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const t = useT();
   const lang = useSettings((s) => s.lang);
   const soon = lesson.status === "soon";
   const locked = soon || (!unlocked && !done);
+  const COMING_SOON_LABEL = t("comingSoon");
+  const COMPLETE_PREV_LABEL = t("completePrev");
   const Icon = locked ? Lock : done ? Star : KIND_ICON[lesson.kind];
 
   return (
@@ -269,7 +273,7 @@ function LessonNode({
           <p className="mb-3 text-sm text-ink-dim">{lesson.goal}</p>
           {locked ? (
             <p className="rounded-xl bg-panel-3 px-2 py-2.5 text-center text-sm font-bold text-ink-mute">
-              {soon ? "In arrivo" : "Completa prima la lezione precedente"}
+              {soon ? COMING_SOON_LABEL : COMPLETE_PREV_LABEL}
             </p>
           ) : (
             <Link
@@ -277,7 +281,7 @@ function LessonNode({
               className="duo-btn w-full"
               style={{ ["--face" as string]: color, ["--shade" as string]: `color-mix(in srgb, ${color} 55%, black)`, ["--ink" as string]: "#121212" }}
             >
-              {done ? "Ripeti" : "Inizia"} +{getLesson(lesson.id, lang)?.xp ?? 0} XP
+              {done ? t("repeat") : t("start")} +{getLesson(lesson.id, lang)?.xp ?? 0} XP
             </Link>
           )}
         </div>

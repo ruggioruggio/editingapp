@@ -193,6 +193,17 @@ const it = {
   lessonsCompleted: "lezioni completate",
   yourLeague: "La tua lega",
   keepPlaying: "Continua a giocare per salire!",
+  unfollow: "Smetti di seguire",
+  currentPlan: "Piano attuale",
+  free: "Gratis",
+  forever: "Per sempre",
+  perMonth: "/mese",
+  orYearly: "oppure {price} all'anno",
+  comingSoonPricing: "Squeak ci sta lavorando: presto potrai sbloccare tutto.",
+  seen: "Visualizzato",
+  typing: "sta scrivendo…",
+  comingSoon: "In arrivo",
+  completePrev: "Completa prima la lezione precedente",
 };
 
 type Dict = typeof it;
@@ -382,6 +393,17 @@ const en: Dict = {
   lessonsCompleted: "lessons completed",
   yourLeague: "Your league",
   keepPlaying: "Keep playing to rank up!",
+  unfollow: "Unfollow",
+  currentPlan: "Current plan",
+  free: "Free",
+  forever: "Forever",
+  perMonth: "/month",
+  orYearly: "or {price}/year",
+  comingSoonPricing: "Squeak is working on it: you'll unlock everything soon.",
+  seen: "Seen",
+  typing: "is typing…",
+  comingSoon: "Coming soon",
+  completePrev: "Complete the previous lesson first",
 };
 
 const fr: Dict = {
@@ -568,6 +590,17 @@ const fr: Dict = {
   lessonsCompleted: "leçons complétées",
   yourLeague: "Ta ligue",
   keepPlaying: "Continue à jouer pour monter !",
+  unfollow: "Se désabonner",
+  currentPlan: "Plan actuel",
+  free: "Gratuit",
+  forever: "Pour toujours",
+  perMonth: "/mois",
+  orYearly: "ou {price}/an",
+  comingSoonPricing: "Squeak y travaille : bientôt tu pourras tout débloquer.",
+  seen: "Lu",
+  typing: "écrit…",
+  comingSoon: "Bientôt",
+  completePrev: "Termine d'abord la leçon précédente",
 };
 
 const es: Dict = {
@@ -754,6 +787,17 @@ const es: Dict = {
   lessonsCompleted: "lecciones completadas",
   yourLeague: "Tu liga",
   keepPlaying: "¡Sigue jugando para subir!",
+  unfollow: "Dejar de seguir",
+  currentPlan: "Plan actual",
+  free: "Gratis",
+  forever: "Para siempre",
+  perMonth: "/mes",
+  orYearly: "o {price}/año",
+  comingSoonPricing: "Squeak está trabajando en ello: pronto podrás desbloquear todo.",
+  seen: "Visto",
+  typing: "está escribiendo…",
+  comingSoon: "Próximamente",
+  completePrev: "Completa primero la lección anterior",
 };
 
 const zh: Dict = {
@@ -940,6 +984,17 @@ const zh: Dict = {
   lessonsCompleted: "已完成课程",
   yourLeague: "你的联赛",
   keepPlaying: "继续学习来提升排名！",
+  unfollow: "取消关注",
+  currentPlan: "当前方案",
+  free: "免费",
+  forever: "永久",
+  perMonth: "/月",
+  orYearly: "或 {price}/年",
+  comingSoonPricing: "Squeak 正在开发中：很快你就能解锁所有内容。",
+  seen: "已读",
+  typing: "正在输入…",
+  comingSoon: "即将推出",
+  completePrev: "请先完成上一课",
 };
 
 const DICTS: Record<Lang, Dict> = { it, en, fr, es, zh };

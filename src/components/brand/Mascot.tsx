@@ -96,40 +96,36 @@ export function Mascot({
   );
 }
 
+let iconIdCounter = 0;
+
 export function AppIcon({ size = 32, className }: { size?: number; className?: string }) {
+  const uid = `sq-${++iconIdCounter}`;
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} className={clsx("shrink-0 overflow-hidden", className)} style={{ borderRadius: size * 0.24 }} aria-hidden>
+    <svg viewBox="0 0 100 100" width={size} height={size} className={clsx("shrink-0", className)} style={{ borderRadius: size * 0.24, overflow: "hidden" }} aria-hidden>
       <defs>
-        <linearGradient id="sq-icon-BG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3d3d45"/><stop offset="0.45" stopColor="#18181c"/><stop offset="1" stopColor="#030304"/></linearGradient>
-        <radialGradient id="sq-icon-GLOW"><stop offset="0" stopColor="#ffffff" stopOpacity="0.16"/><stop offset="1" stopColor="#ffffff" stopOpacity="0"/></radialGradient>
-        <radialGradient id="sq-icon-HEAD" gradientUnits="userSpaceOnUse" cx="38" cy="42" r="62"><stop offset="0" stopColor="#ffffff"/><stop offset="0.55" stopColor="#e4e6ee"/><stop offset="1" stopColor="#a9aebd"/></radialGradient>
-        <clipPath id="sq-icon-CLIP"><rect width="100" height="100" rx="24"/></clipPath>
+        <linearGradient id={`${uid}-bg`} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3d3d45"/><stop offset="0.45" stopColor="#18181c"/><stop offset="1" stopColor="#030304"/></linearGradient>
+        <radialGradient id={`${uid}-glow`}><stop offset="0" stopColor="#ffffff" stopOpacity="0.16"/><stop offset="1" stopColor="#ffffff" stopOpacity="0"/></radialGradient>
+        <radialGradient id={`${uid}-head`} gradientUnits="userSpaceOnUse" cx="38" cy="42" r="62"><stop offset="0" stopColor="#ffffff"/><stop offset="0.55" stopColor="#e4e6ee"/><stop offset="1" stopColor="#a9aebd"/></radialGradient>
       </defs>
-      {/* topolino tondo su fondo scuro sfumato */}
-      <g clipPath="url(#sq-icon-CLIP)">
-        <rect width={100} height={100} fill="url(#sq-icon-BG)" />
-        <circle cx={22} cy={18} r={40} fill="url(#sq-icon-GLOW)" />
-        {/* solo il musetto, a tutto quadrato */}
-        <g transform="translate(0 0)">
-          <circle cx={12} cy={14} r={22} fill="url(#sq-icon-HEAD)" />
-          <circle cx={13} cy={15} r={14} fill="#ffb3c9" />
-          <circle cx={88} cy={14} r={22} fill="url(#sq-icon-HEAD)" />
-          <circle cx={87} cy={15} r={14} fill="#ffb3c9" />
-          <ellipse cx={50} cy={64} rx={50} ry={46} fill="url(#sq-icon-HEAD)" />
-          <ellipse cx={22} cy={72} rx={8} ry={5} fill="#ffb3c9" opacity={0.75} />
-          <ellipse cx={78} cy={72} rx={8} ry={5} fill="#ffb3c9" opacity={0.75} />
-          <ellipse cx={34} cy={53} rx={9} ry={11} fill="#15151b" />
-          <circle cx={31} cy={48.5} r={3.8} fill="#fff" />
-          <circle cx={37} cy={58} r={1.6} fill="#fff" />
-          <ellipse cx={66} cy={53} rx={9} ry={11} fill="#15151b" />
-          <circle cx={63} cy={48.5} r={3.8} fill="#fff" />
-          <circle cx={69} cy={58} r={1.6} fill="#fff" />
-          <ellipse cx={50} cy={69} rx={5.5} ry={4.2} fill="#ff6f9a" />
-          <ellipse cx={48.4} cy={67.6} rx={1.6} ry={1.1} fill="#fff" opacity={0.85} />
-          <path d="M42 76 q4 4 8 0 q4 4 8 0" stroke="#5a5d6e" strokeWidth={1.8} fill="none" strokeLinecap="round" />
-          <path d="M14 66 L0 62 M14 70 L-1 71 M83 66 L100 62 M84 70 L101 71" stroke="#a7abb8" strokeWidth={1.2} strokeLinecap="round" />
-        </g>
-      </g>
+      <rect width={100} height={100} rx={24} fill={`url(#${uid}-bg)`} />
+      <circle cx={22} cy={18} r={40} fill={`url(#${uid}-glow)`} />
+      <circle cx={12} cy={14} r={22} fill={`url(#${uid}-head)`} />
+      <circle cx={13} cy={15} r={14} fill="#ffb3c9" />
+      <circle cx={88} cy={14} r={22} fill={`url(#${uid}-head)`} />
+      <circle cx={87} cy={15} r={14} fill="#ffb3c9" />
+      <ellipse cx={50} cy={64} rx={50} ry={46} fill={`url(#${uid}-head)`} />
+      <ellipse cx={22} cy={72} rx={8} ry={5} fill="#ffb3c9" opacity={0.75} />
+      <ellipse cx={78} cy={72} rx={8} ry={5} fill="#ffb3c9" opacity={0.75} />
+      <ellipse cx={34} cy={53} rx={9} ry={11} fill="#15151b" />
+      <circle cx={31} cy={48.5} r={3.8} fill="#fff" />
+      <circle cx={37} cy={58} r={1.6} fill="#fff" />
+      <ellipse cx={66} cy={53} rx={9} ry={11} fill="#15151b" />
+      <circle cx={63} cy={48.5} r={3.8} fill="#fff" />
+      <circle cx={69} cy={58} r={1.6} fill="#fff" />
+      <ellipse cx={50} cy={69} rx={5.5} ry={4.2} fill="#ff6f9a" />
+      <ellipse cx={48.4} cy={67.6} rx={1.6} ry={1.1} fill="#fff" opacity={0.85} />
+      <path d="M42 76 q4 4 8 0 q4 4 8 0" stroke="#5a5d6e" strokeWidth={1.8} fill="none" strokeLinecap="round" />
+      <path d="M14 66 L0 62 M14 70 L-1 71 M83 66 L100 62 M84 70 L101 71" stroke="#a7abb8" strokeWidth={1.2} strokeLinecap="round" />
     </svg>
   );
 }

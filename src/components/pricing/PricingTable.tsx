@@ -7,10 +7,12 @@ import { planOf, PLANS, type PlanId } from "@/lib/billing/plans";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { useProgress } from "@/lib/progress/store";
 import { useAuth } from "@/lib/supabase/auth";
+import { useT } from "@/lib/settings/i18n";
 
 const eur = (n: number) => n.toLocaleString("it-IT", { style: "currency", currency: "EUR" });
 
 export function PricingTable() {
+  const t = useT();
   const hydrated = useHydrated();
   const plan = useProgress((s) => planOf(s));
   const setPlan = useProgress((s) => s.setPlan);
@@ -36,7 +38,7 @@ export function PricingTable() {
                 {isPro && <Crown size={20} className="text-cheese" />}
                 {p.name}
               </h2>
-              {isCurrent && <span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs font-bold text-accent">Piano attuale</span>}
+              {isCurrent && <span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs font-bold text-accent">{t("currentPlan")}</span>}
               {comingSoon && (
                 <span className="flex items-center gap-1 rounded-full bg-cheese/20 px-2 py-0.5 text-xs font-black text-cheese">
                   <Hammer size={12} /> {COMING_SOON}
@@ -46,16 +48,16 @@ export function PricingTable() {
             {comingSoon ? (
               <>
                 <p className="mb-1 text-3xl font-extrabold">{COMING_SOON}</p>
-                <p className="mb-6 text-sm text-ink-mute">Squeak ci sta lavorando: presto potrai sbloccare tutto.</p>
+                <p className="mb-6 text-sm text-ink-mute">{t("comingSoonPricing")}</p>
               </>
             ) : (
               <>
                 <p className="mb-1 text-3xl font-extrabold">
-                  {p.priceMonthlyEur === 0 ? "Gratis" : eur(p.priceMonthlyEur)}
-                  {p.priceMonthlyEur > 0 && <span className="text-sm font-medium text-ink-mute"> /mese</span>}
+                  {p.priceMonthlyEur === 0 ? t("free") : eur(p.priceMonthlyEur)}
+                  {p.priceMonthlyEur > 0 && <span className="text-sm font-medium text-ink-mute"> {t("perMonth")}</span>}
                 </p>
                 <p className="mb-6 text-sm text-ink-mute">
-                  {p.priceYearlyEur > 0 ? `oppure ${eur(p.priceYearlyEur)} all'anno` : "Per sempre"}
+                  {p.priceYearlyEur > 0 ? t("orYearly").replace("{price}", eur(p.priceYearlyEur)) : t("forever")}
                 </p>
               </>
             )}
@@ -81,7 +83,7 @@ export function PricingTable() {
                   isPro ? "bg-pr text-pr-deep" : "bg-panel-3 text-ink",
                 )}
               >
-                {isCurrent ? "Attivo" : signedIn ? "Pagamenti in arrivo" : isPro ? "Attiva Pro (demo)" : "Torna a Free"}
+                {isCurrent ? t("currentPlan") : isPro ? "Pro" : "Free"}
               </button>
             )}
           </div>
