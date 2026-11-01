@@ -13,15 +13,14 @@ import LoginPage from "@/app/login/page";
 import LandingPage from "@/app/page";
 import ResetPasswordPage from "@/app/reset-password/page";
 import SignupPage from "@/app/signup/page";
-import { Markdown } from "@/components/ai/Markdown";
+import { LegalDocView } from "@/components/legal/LegalDocView";
 import { LessonPlayer } from "@/components/lesson/LessonPlayer";
 import { AfterEffectsStudio } from "@/components/studio/ae/AfterEffectsStudio";
 import { PremiereStudio } from "@/components/studio/premiere/PremiereStudio";
-import { SiteFooter, SiteHeader } from "@/components/site/SiteChrome";
 import { SupabaseSync } from "@/components/app/SupabaseSync";
 import { useAuth } from "@/lib/supabase/auth";
 import { getLesson } from "@/content/lessons";
-import { getLegalDoc, LEGAL_UPDATED } from "@/content/legal";
+import { getLegalDoc } from "@/content/legal";
 import { PreviewRouter, usePreviewRouter } from "./router";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { MaintenanceGate } from "@/components/app/Maintenance";
@@ -60,11 +59,18 @@ function NativeAuthGate({ path, children }: { path: string; children: React.Reac
   return <>{children}</>;
 }
 
+// come redirect() di Next: sostituisce la voce corrente nella cronologia
+function Redirect({ to }: { to: string }) {
+  const { navigate } = usePreviewRouter();
+  useEffect(() => navigate(to, true), [to, navigate]);
+  return null;
+}
+
 const APP_PAGES: Record<string, () => React.ReactNode> = {
   "/learn": () => <LearnPage />,
   "/quests": () => <QuestsPage />,
   // in Next /goals reindirizza alle quest con la scheda Obiettivi
-  "/goals": () => <QuestsPage />,
+  "/goals": () => <Redirect to="/quests?tab=obiettivi" />,
   "/practice": () => <PracticePage />,
   "/friends": () => <ProfileView />,
   "/profile": () => <ProfileView />,
@@ -83,39 +89,27 @@ const SITE_PAGES: Record<string, () => React.ReactNode> = {
   "/studio/after-effects": () => <AfterEffectsStudio />,
 };
 
-function LegalPreview({ slug }: { slug: string }) {
-  const doc = getLegalDoc(slug);
-  if (!doc) return <LandingPage />;
-  return (
-    <div className="min-h-dvh">
-      <SiteHeader />
-      <main className="mx-auto max-w-3xl px-6 py-12">
-        <h1 className="mb-2 text-3xl font-black md:text-4xl">{doc.title}</h1>
-        <p className="mb-8 text-sm text-ink-mute">Ultimo aggiornamento: {LEGAL_UPDATED}</p>
-        <div className="text-ink-dim">
-          <Markdown text={doc.body} />
-        </div>
-      </main>
-      <SiteFooter />
-    </div>
-  );
-}
+// al posto del 404 di Next: su desktop/mobile il login, mai la landing
+const notFoundPage = () => (IS_NATIVE ? SITE_PAGES["/login"] : SITE_PAGES["/"])();
 
 function render(fullPath: string) {
   const path = fullPath.split("?")[0];
   if (path.startsWith("/lesson/")) {
     const id = path.slice("/lesson/".length);
-    return getLesson(id) ? <LessonPlayer key={id} lessonId={id} /> : <LandingPage />;
+    return getLesson(id) ? <LessonPlayer key={id} lessonId={id} /> : notFoundPage();
   }
   if (path.startsWith("/unit-test/")) {
     const id = path.slice("/unit-test/".length);
     return <LessonPlayer key={id} unitTestId={id} />;
   }
-  if (path.startsWith("/legal/")) return <LegalPreview slug={path.slice("/legal/".length)} />;
+  if (path.startsWith("/legal/")) {
+    const doc = getLegalDoc(path.slice("/legal/".length));
+    return doc ? <LegalDocView doc={doc} /> : notFoundPage();
+  }
   // il layout dell'app resta montato tra le schede (come in Next): cambia solo la pagina
   if (APP_PAGES[path]) return <AppLayout>{<div key={path}>{APP_PAGES[path]()}</div>}</AppLayout>;
-  if (IS_NATIVE && BLOCKED_ON_NATIVE.has(path)) return (SITE_PAGES["/login"] ?? SITE_PAGES["/"])();
-  return (SITE_PAGES[path] ?? (IS_NATIVE ? SITE_PAGES["/login"] : SITE_PAGES["/"]))();
+  if (IS_NATIVE && BLOCKED_ON_NATIVE.has(path)) return notFoundPage();
+  return SITE_PAGES[path]?.() ?? notFoundPage();
 }
 
 createRoot(document.getElementById("root")!).render(
