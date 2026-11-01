@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import clsx from "clsx";
-import { ArrowUp, BookOpen, Flame, Star, Users, X, Zap } from "lucide-react";
+import { ArrowUp, BookOpen, Flame, Heart, Star, UserCheck, UserPlus, Users, X, Zap } from "lucide-react";
 import { ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
 import { ACHIEVEMENTS } from "@/lib/gamification/achievements";
 import { getSupabase } from "@/lib/supabase/client";
@@ -38,15 +38,18 @@ export function FriendSheet({
   onRead: () => void;
 }) {
   const t = useT();
-  const [tab, setTab] = useState<"chat" | "goals">("chat");
+  const [tab, setTab] = useState<"profile" | "chat" | "goals">("profile");
   const [followerCount, setFollowerCount] = useState(0);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followBusy, setFollowBusy] = useState(false);
   const friendTier = getTier(friend.xp);
 
   useEffect(() => {
     const sb = getSupabase();
     if (!sb) return;
-    void sb.from("follows").select("id", { count: "exact", head: true }).eq("following_id", friend.id).then(({ count }) => setFollowerCount(count ?? 0));
-  }, [friend.id]);
+    void Promise.resolve(sb.from("follows").select("id", { count: "exact", head: true }).eq("following_id", friend.id)).then(({ count }) => setFollowerCount(count ?? 0)).catch(() => {});
+    void Promise.resolve(sb.from("follows").select("id").eq("follower_id", me).eq("following_id", friend.id).maybeSingle()).then(({ data }) => setIsFollowing(!!data)).catch(() => {});
+  }, [friend.id, me]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -101,20 +104,38 @@ export function FriendSheet({
               ? `${t("sharedStreakLabel")}: ${sharedStreak} ${sharedStreak === 1 ? t("day") : t("days")}. ${t("sharedStreakActive")}`
               : t("noSharedStreak")}
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-panel p-1 text-sm font-black">
-            {(["chat", "goals"] as const).map((tb) => (
+          <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-panel p-1 text-sm font-black">
+            {(["profile", "chat", "goals"] as const).map((tb) => (
               <button
                 key={tb}
                 type="button"
                 onClick={() => setTab(tb)}
                 className={clsx("rounded-lg py-1.5", tab === tb ? "bg-panel-3 text-ink" : "text-ink-mute hover:text-ink")}
               >
-                {tb === "chat" ? t("chat") : t("goalsTab")}
+                {tb === "profile" ? t("profile") : tb === "chat" ? t("chat") : t("goalsTab")}
               </button>
             ))}
           </div>
         </header>
-        {tab === "chat" ? <Chat me={me} friend={friend} onRead={onRead} /> : <FriendGoals friend={friend} />}
+        {tab === "profile" ? (
+          <FriendProfileTab friend={friend} me={me} isFollowing={isFollowing} followerCount={followerCount} followBusy={followBusy} onToggleFollow={async () => {
+            const sb = getSupabase();
+            if (!sb) return;
+            setFollowBusy(true);
+            try {
+              if (isFollowing) {
+                await sb.from("follows").delete().eq("follower_id", me).eq("following_id", friend.id);
+                setIsFollowing(false);
+                setFollowerCount((c) => Math.max(0, c - 1));
+              } else {
+                await sb.from("follows").insert({ follower_id: me, following_id: friend.id });
+                setIsFollowing(true);
+                setFollowerCount((c) => c + 1);
+              }
+            } catch {}
+            setFollowBusy(false);
+          }} />
+        ) : tab === "chat" ? <Chat me={me} friend={friend} onRead={onRead} /> : <FriendGoals friend={friend} />}
       </div>
     </div>
   );
@@ -204,6 +225,79 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
         </button>
       </form>
     </>
+  );
+}
+
+function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, onToggleFollow }: { friend: FriendProfile; me: string; isFollowing: boolean; followerCount: number; followBusy: boolean; onToggleFollow: () => void }) {
+  const t = useT();
+  const lang = useSettings((s) => s.lang);
+  const locale = LOCALE_MAP[lang] ?? "en-US";
+  const tier = getTier(friend.xp);
+  const joinDate = friend.created_at ? new Date(friend.created_at).toLocaleDateString(locale, { month: "long", year: "numeric" }) : null;
+  const [lessonsCount, setLessonsCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb) return;
+    void Promise.resolve(sb.from("progress").select("completed", { count: "exact", head: true }).eq("user_id", friend.id)).then(({ count }) => setLessonsCount(count ?? 0)).catch(() => {});
+    void Promise.resolve(sb.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", friend.id)).then(({ count }) => setFollowingCount(count ?? 0)).catch(() => {});
+  }, [friend.id]);
+
+  return (
+    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex flex-col items-center text-center">
+        {friend.avatar_url ? (
+          <img src={friend.avatar_url} alt={friend.username} className="h-20 w-20 rounded-full object-cover" />
+        ) : (
+          <span className="grid h-20 w-20 place-items-center rounded-full bg-pr text-2xl font-black uppercase text-pr-deep">
+            {friend.username[0]}
+          </span>
+        )}
+        <p className="mt-2 text-lg font-black">@{friend.username}</p>
+        {friend.bio && <p className="mt-1 text-sm text-ink-dim">{friend.bio}</p>}
+        {joinDate && <p className="text-xs text-ink-mute">{t("joinedSince")} {joinDate}</p>}
+        <div className="mt-1 flex items-center gap-1">
+          <span className={clsx("inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-r", tier.gradient)} />
+          <span className="text-xs font-bold text-ink-mute">{t(tier.nameKey)}</span>
+        </div>
+        <button
+          type="button"
+          disabled={followBusy}
+          onClick={onToggleFollow}
+          className={clsx(
+            "mt-3 flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-black transition-colors disabled:opacity-50",
+            isFollowing ? "bg-panel-2 text-ink-dim hover:bg-panel-3" : "bg-accent text-white hover:bg-accent/80",
+          )}
+        >
+          {isFollowing ? <><UserCheck size={16} /> {t("following")}</> : <><UserPlus size={16} /> {t("follow")}</>}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-xl bg-panel-2 p-3">
+          <p className="text-lg font-black text-cheese">{friend.xp}</p>
+          <p className="text-[11px] font-bold text-ink-mute">XP</p>
+        </div>
+        <div className="rounded-xl bg-panel-2 p-3">
+          <p className="text-lg font-black">{followerCount}</p>
+          <p className="text-[11px] font-bold text-ink-mute">{t("follower")}</p>
+        </div>
+        <div className="rounded-xl bg-panel-2 p-3">
+          <p className="text-lg font-black">{followingCount}</p>
+          <p className="text-[11px] font-bold text-ink-mute">{t("following")}</p>
+        </div>
+      </div>
+
+      <div className="flex gap-3">
+        <span className="flex items-center gap-1 rounded-xl bg-panel-2 px-3 py-1.5 text-sm font-bold text-[#ff8a3d]">
+          <Flame size={16} /> {friend.streak_count} {t("days")}
+        </span>
+        <span className="flex items-center gap-1 rounded-xl bg-panel-2 px-3 py-1.5 text-sm font-bold text-ink-dim">
+          <BookOpen size={16} /> {lessonsCount} {t("lessons")}
+        </span>
+      </div>
+    </div>
   );
 }
 

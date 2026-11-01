@@ -4,53 +4,48 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Gavel, X } from "lucide-react";
 import { adminAction, checkSession, graceActive, useAdmin } from "@/lib/admin/client";
+import { useAuth } from "@/lib/supabase/auth";
 import { AdminPanel } from "./AdminPanel";
 
 export const openPanel = () => {
+  const role = useAuth.getState().profile?.role;
+  const accessLevel = role === "founder" ? "founder" : role === "moderatore" ? "moderator" : null;
   if (graceActive()) {
-    useAdmin.setState({ open: true });
+    useAdmin.setState({ open: true, accessLevel });
     if (!useAdmin.getState().unlocked) void checkSession();
     return;
   }
-  useAdmin.setState({ open: true, unlocked: false, mode: null });
+  useAdmin.setState({ open: true, unlocked: false, mode: null, accessLevel });
   void fetch("/api/admin/login", { method: "DELETE" }).catch(() => {});
 };
 
 export function AdminGate() {
   const { open, quickBan } = useAdmin();
+  const role = useAuth((s) => s.profile?.role);
 
   useEffect(() => {
+    const canOpen = () => {
+      const r = useAuth.getState().profile?.role;
+      return r === "founder" || r === "moderatore";
+    };
     const onKey = (e: KeyboardEvent) => {
       if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === "KeyL") {
+        if (!canOpen()) return;
         e.preventDefault();
         openPanel();
         return;
       }
       const s = useAdmin.getState();
       if (s.modShortcuts && (e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "b") {
+        if (!canOpen()) return;
         e.preventDefault();
         if (s.unlocked && s.mode) s.set({ quickBan: true });
         else openPanel();
       }
     };
-    let taps: number[] = [];
-    const onTap = (e: PointerEvent) => {
-      if (!(e.target as HTMLElement | null)?.closest?.("[data-admin-tap]")) {
-        taps = [];
-        return;
-      }
-      const now = Date.now();
-      taps = [...taps.filter((t) => now - t < 4000), now];
-      if (taps.length >= 7) {
-        taps = [];
-        openPanel();
-      }
-    };
     window.addEventListener("keydown", onKey, true);
-    document.addEventListener("pointerdown", onTap, true);
     return () => {
       window.removeEventListener("keydown", onKey, true);
-      document.removeEventListener("pointerdown", onTap, true);
     };
   }, []);
 

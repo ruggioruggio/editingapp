@@ -168,8 +168,8 @@ function SignedInFriends() {
   };
 
   const leaderboard = [
-    { id: me ?? "", username: profile?.username ?? "tu", xp: myXp, streak: myStreak, isMe: true },
-    ...(data?.friends ?? []).map((f) => ({ id: f.other.id, username: f.other.username, xp: f.other.xp, streak: liveStreak(f.other), isMe: false })),
+    { id: me ?? "", username: profile?.username ?? "tu", avatar_url: profile?.avatar_url ?? null, xp: myXp, streak: myStreak, isMe: true },
+    ...(data?.friends ?? []).map((f) => ({ id: f.other.id, username: f.other.username, avatar_url: f.other.avatar_url, xp: f.other.xp, streak: liveStreak(f.other), isMe: false })),
   ].sort((a, b) => b.xp - a.xp);
   const openFriend = data?.friends.find((f) => f.other.id === openId)?.other
     ?? data?.incoming.find((r) => r.other.id === openId)?.other
@@ -277,7 +277,7 @@ function SignedInFriends() {
                   className="flex min-w-0 flex-1 items-center gap-3 text-left enabled:hover:opacity-90"
                 >
                   <span className="relative">
-                    <FriendAvatar name={row.username} />
+                    <FriendAvatar name={row.username} url={row.avatar_url} />
                     {!!unread[row.id] && (
                       <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] font-black text-white">
                         {unread[row.id]}

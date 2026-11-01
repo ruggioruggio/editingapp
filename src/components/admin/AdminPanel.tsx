@@ -25,7 +25,7 @@ interface UserRow {
   created_at: string;
 }
 
-const TABS = [
+const ALL_TABS = [
   ["users", "Utenti", UserCog],
   ["terminal", "Terminale", Terminal],
   ["friends", "Amicizie", Handshake],
@@ -35,7 +35,8 @@ const TABS = [
   ["tools", "Strumenti", Wrench],
   ["log", "Registro", ScrollText],
 ] as const;
-type Tab = (typeof TABS)[number][0];
+const MOD_TABS: ReadonlyArray<(typeof ALL_TABS)[number][0]> = ["users"];
+type Tab = (typeof ALL_TABS)[number][0];
 
 const active = (d: string | null) => !!d && new Date(d).getTime() > Date.now();
 const fmtUntil = (d: string) => (d.startsWith("9999") ? "per sempre" : `fino al ${new Date(d).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" })}`);
@@ -170,7 +171,7 @@ function Stats() {
   );
 }
 
-function Users() {
+function Users({ isMod = false }: { isMod?: boolean }) {
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<UserRow[]>([]);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -235,23 +236,27 @@ function Users() {
                     Sospendi
                   </button>
                 )}
-                <span className="mx-0.5 h-4 w-px bg-white/10" />
-                {(["owner", "moderatore", "amico", "founder"] as UserRole[]).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    disabled={busy || u.role === r}
-                    onClick={() => act("setRole", { userId: u.id, role: r }, `@${u.username} è ora ${ROLE_LABELS[r]}`)}
-                    className={clsx(btn, u.role === r ? "ring-1 ring-white/40" : "")}
-                    style={{ backgroundColor: `${ROLE_COLORS[r]}20`, color: ROLE_COLORS[r] }}
-                  >
-                    {ROLE_LABELS[r]}
-                  </button>
-                ))}
-                {u.role && (
-                  <button type="button" disabled={busy} onClick={() => act("setRole", { userId: u.id, role: null }, `Ruolo rimosso da @${u.username}`)} className={clsx(btn, "bg-white/10 text-white hover:bg-white/20")}>
-                    ✕ Ruolo
-                  </button>
+                {!isMod && (
+                  <>
+                    <span className="mx-0.5 h-4 w-px bg-white/10" />
+                    {(["owner", "moderatore", "amico", "founder"] as UserRole[]).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        disabled={busy || u.role === r}
+                        onClick={() => act("setRole", { userId: u.id, role: r }, `@${u.username} è ora ${ROLE_LABELS[r]}`)}
+                        className={clsx(btn, u.role === r ? "ring-1 ring-white/40" : "")}
+                        style={{ backgroundColor: `${ROLE_COLORS[r]}20`, color: ROLE_COLORS[r] }}
+                      >
+                        {ROLE_LABELS[r]}
+                      </button>
+                    ))}
+                    {u.role && (
+                      <button type="button" disabled={busy} onClick={() => act("setRole", { userId: u.id, role: null }, `Ruolo rimosso da @${u.username}`)} className={clsx(btn, "bg-white/10 text-white hover:bg-white/20")}>
+                        ✕ Ruolo
+                      </button>
+                    )}
+                  </>
                 )}
                 <span className="mx-0.5 h-4 w-px bg-white/10" />
                 <button type="button" onClick={() => { setRenaming(renaming === u.id ? null : u.id); setNewName(u.username); }} className={clsx(btn, renaming === u.id ? "bg-[#5865f2] text-white" : "bg-white/10 text-white hover:bg-white/20")}>
@@ -744,6 +749,8 @@ const closePanel = () => {
 
 export function AdminPanel() {
   const st = useAdmin();
+  const isMod = st.accessLevel === "moderator";
+  const tabs = isMod ? ALL_TABS.filter(([id]) => MOD_TABS.includes(id)) : ALL_TABS;
   const [tab, setTab] = useState<Tab>("users");
   return (
     <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-6" onPointerDown={(e) => e.target === e.currentTarget && closePanel()}>
@@ -754,7 +761,7 @@ export function AdminPanel() {
           </div>
           <div className="absolute left-4 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-black uppercase tracking-wide">
             <Ban size={12} className="mr-1 inline text-[#ed4245]" />
-            Pannello admin {st.unlocked && <span className="ml-1 text-[#57f287]">· {st.mode === "server" ? "server" : "anteprima locale"}</span>}
+            {isMod ? "Moderazione" : "Pannello admin"} {st.unlocked && <span className="ml-1 text-[#57f287]">· {st.mode === "server" ? "server" : "anteprima locale"}</span>}
           </div>
           <div className="absolute right-3 top-3 flex gap-1.5">
             {st.unlocked && (
@@ -772,21 +779,21 @@ export function AdminPanel() {
         ) : (
           <div className="flex min-h-0 flex-1 flex-col sm:flex-row">
             <nav className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/5 p-2 sm:w-48 sm:flex-col sm:border-b-0 sm:border-r">
-              {TABS.map(([id, label, Icon]) => (
+              {tabs.map(([id, label, Icon]) => (
                 <button key={id} type="button" onClick={() => setTab(id)} className={clsx("flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold", tab === id ? "bg-[#5865f2] text-white" : "text-[#b5bac1] hover:bg-white/5")}>
                   <Icon size={15} /> {label}
                 </button>
               ))}
             </nav>
             <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-              {tab === "users" && <Users />}
-              {tab === "terminal" && <AdminTerminal />}
-              {tab === "friends" && <Friends />}
-              {tab === "announce" && <AnnounceTab />}
-              {tab === "maintenance" && <MaintenanceTab />}
-              {tab === "me" && <Me />}
-              {tab === "tools" && <Tools />}
-              {tab === "log" && <Log />}
+              {tab === "users" && <Users isMod={isMod} />}
+              {tab === "terminal" && !isMod && <AdminTerminal />}
+              {tab === "friends" && !isMod && <Friends />}
+              {tab === "announce" && !isMod && <AnnounceTab />}
+              {tab === "maintenance" && !isMod && <MaintenanceTab />}
+              {tab === "me" && !isMod && <Me />}
+              {tab === "tools" && !isMod && <Tools />}
+              {tab === "log" && !isMod && <Log />}
             </div>
           </div>
         )}

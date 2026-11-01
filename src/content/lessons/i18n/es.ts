@@ -10,7 +10,7 @@ const es: LessonTranslations = {
         "En Premiere Pro el instrumento principal es la **Cuchilla (C)**: haz clic en un punto de la línea de tiempo y el clip se divide en dos.",
       ] },
       { kind: "quiz", question: "¿Qué hace la herramienta Cuchilla?", options: ["Divide un clip en dos", "Borra todo el clip", "Añade una transición", "Duplica el clip"], explanation: "La cuchilla corta en el punto exacto donde haces clic." },
-      { kind: "editor", instructions: "Abre el clip en la **Línea de tiempo**, mueve el cabezal de reproducción al segundo **2** y presiona **C** para cortar. Luego selecciona la segunda parte y presiona **Suprimir**." },
+      { kind: "editor", title: "Tu primer corte", instructions: "Abre el clip en la **Línea de tiempo**, mueve el cabezal de reproducción al segundo **2** y presiona **C** para cortar. Luego selecciona la segunda parte y presiona **Suprimir**." },
     ],
   },
   "crea-sequenza": {

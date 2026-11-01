@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { ChevronUp, Sparkles, X } from "lucide-react";
+import { ChevronUp, X } from "lucide-react";
 import { useT } from "@/lib/settings/i18n";
 import { getTier, getNextTier, LEAGUE_TIERS, type LeagueTier } from "@/lib/gamification/leagues";
 import { useProgress } from "@/lib/progress/store";
+import { LeagueEmblem } from "@/components/gamification/LeagueEmblem";
 
 const SHOW_EVERY_N = 3;
 const STORAGE_KEY = "squeak-league-shown";
@@ -40,9 +41,7 @@ function TierBar({ tier, current, xp }: { tier: LeagueTier; current: boolean; xp
 
   return (
     <div className={clsx("flex items-center gap-3 rounded-xl p-2 transition-all", current ? "bg-white/10 ring-2 ring-white/20" : "opacity-50")}>
-      <span className={clsx("grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gradient-to-br", tier.gradient)}>
-        <span className="h-3 w-3 rounded-full bg-white/50" />
-      </span>
+      <LeagueEmblem tier={tier} size={32} />
       <div className="flex-1">
         <p className="text-xs font-black text-white">{t(tier.nameKey)}</p>
         {current && (
@@ -70,17 +69,13 @@ export function LeaguePromotionModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className={clsx("animate-pop relative mx-4 w-full max-w-sm overflow-hidden rounded-3xl bg-gradient-to-b p-6 text-center", tier.gradient)}>
+      <div className={clsx("animate-pop relative mx-4 w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 p-6 text-center bg-gradient-to-b", tier.gradient)}>
         <button type="button" onClick={onClose} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/20 text-white/80 hover:bg-black/40">
           <X size={18} />
         </button>
 
         <div className="mb-4 flex justify-center">
-          <span className="grid h-20 w-20 place-items-center rounded-full bg-white/20 shadow-lg">
-            <span className={clsx("grid h-14 w-14 place-items-center rounded-full bg-gradient-to-br shadow-inner", tier.gradient)}>
-              <Sparkles size={28} className="text-white" fill="currentColor" />
-            </span>
-          </span>
+          <LeagueEmblem tier={tier} size={80} />
         </div>
 
         <h2 className="mb-1 text-xl font-black text-white">{t(tier.nameKey)}</h2>

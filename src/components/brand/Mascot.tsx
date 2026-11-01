@@ -98,7 +98,7 @@ export function Mascot({
 
 export function AppIcon({ size = 32, className }: { size?: number; className?: string }) {
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} className={clsx("shrink-0", className)} style={{ borderRadius: size * 0.24 }} aria-hidden>
+    <svg viewBox="0 0 100 100" width={size} height={size} className={clsx("shrink-0 overflow-hidden", className)} style={{ borderRadius: size * 0.24 }} aria-hidden>
       <defs>
         <linearGradient id="sq-icon-BG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#3d3d45"/><stop offset="0.45" stopColor="#18181c"/><stop offset="1" stopColor="#030304"/></linearGradient>
         <radialGradient id="sq-icon-GLOW"><stop offset="0" stopColor="#ffffff" stopOpacity="0.16"/><stop offset="1" stopColor="#ffffff" stopOpacity="0"/></radialGradient>

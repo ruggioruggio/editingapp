@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { getTier, LEAGUE_TIERS, type LeagueTier } from "@/lib/gamification/leagues";
 import { useProgress } from "@/lib/progress/store";
+import { LeagueEmblem } from "@/components/gamification/LeagueEmblem";
 
 interface LeaderboardRow {
   id: string;
@@ -21,10 +22,8 @@ interface LeaderboardRow {
 function TierBadge({ tier }: { tier: LeagueTier }) {
   const t = useT();
   return (
-    <span
-      className={clsx("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-black text-white bg-gradient-to-r", tier.gradient)}
-    >
-      <span className="h-2 w-2 rounded-full bg-white/40" />
+    <span className="inline-flex items-center gap-1 text-[11px] font-black text-ink-mute">
+      <LeagueEmblem tier={tier} size={18} />
       {t(tier.nameKey)}
     </span>
   );
@@ -90,34 +89,30 @@ export function WorldLeaderboard() {
         <h1 className="text-xl font-black">{t("worldLeaderboard")}</h1>
       </div>
 
-      <div className="mb-6 rounded-2xl border border-line bg-panel p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold text-ink-dim">{t("yourLeague")}</p>
-            <div className="mt-1 flex items-center gap-2">
-              <TierBadge tier={myTier} />
-              <span className="text-sm font-bold text-ink-mute">{myXp} XP</span>
-            </div>
+      <div className="mb-6 rounded-2xl border border-line bg-panel p-5">
+        <div className="flex flex-col items-center text-center">
+          <p className="text-xs font-bold uppercase tracking-wide text-ink-dim">{t("yourLeague")}</p>
+          <div className="my-3">
+            <LeagueEmblem tier={myTier} size={80} />
           </div>
+          <p className="text-lg font-black">{t(myTier.nameKey)}</p>
           {myRank && (
-            <div className="text-right">
-              <p className="text-sm font-bold text-ink-dim">{t("yourPosition")}</p>
-              <p className="text-2xl font-black">#{myRank}</p>
-            </div>
+            <p className="mt-1 text-sm font-bold text-ink-mute">#{myRank} · {myXp} XP</p>
           )}
         </div>
-        <div className="mt-3">
-          <div className="flex gap-1 overflow-x-auto pb-1">
+        <div className="mt-4">
+          <div className="flex gap-1.5 justify-center flex-wrap">
             {LEAGUE_TIERS.map((tier) => (
-              <span
+              <div
                 key={tier.id}
                 className={clsx(
-                  "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold transition-all",
-                  tier.id === myTier.id ? "bg-gradient-to-r text-white " + tier.gradient : "bg-panel-2 text-ink-mute",
+                  "flex flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 transition-all",
+                  tier.id === myTier.id ? "bg-panel-2 ring-1 ring-white/20" : "opacity-50",
                 )}
               >
-                {t(tier.nameKey)}
-              </span>
+                <LeagueEmblem tier={tier} size={24} />
+                <span className="text-[9px] font-bold text-ink-mute">{t(tier.nameKey)}</span>
+              </div>
             ))}
           </div>
         </div>
