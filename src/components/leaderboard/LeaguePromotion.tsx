@@ -40,7 +40,7 @@ function TierBar({ tier, current, xp }: { tier: LeagueTier; current: boolean; xp
   const progress = next ? Math.min(1, (xp - tier.minXp) / (next.minXp - tier.minXp)) : 1;
 
   return (
-    <div className={clsx("flex items-center gap-3 rounded-xl p-2 transition-all", current ? "bg-white/10 ring-2 ring-white/20" : "opacity-50")}>
+    <div className={clsx("flex items-center gap-3 rounded-xl p-2 transition-all", current ? "bg-white/10" : "opacity-50")}>
       <LeagueEmblem tier={tier} size={32} />
       <div className="flex-1">
         <p className="text-xs font-black text-white">{t(tier.nameKey)}</p>

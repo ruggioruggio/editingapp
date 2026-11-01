@@ -184,7 +184,8 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
       stopRead();
       stopTyping();
     };
-  }, [sb, me, friend.id, onRead, t]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sb, me, friend.id]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });

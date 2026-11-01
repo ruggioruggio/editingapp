@@ -66,6 +66,7 @@ function TreasureChest({ unlocked }: { unlocked: boolean }) {
 }
 
 export function LearnPath() {
+  const t = useT();
   const hydrated = useHydrated();
   const completed = useProgress((s) => s.completed);
   const isDone = (id: string) => hydrated && Boolean(completed[id]);
@@ -101,12 +102,12 @@ export function LearnPath() {
       <button
         type="button"
         onClick={() => setShowPicker(true)}
-        className="group mb-4 flex w-full items-center gap-3 rounded-2xl p-4 text-left text-[#121212] transition-all hover:brightness-105 active:scale-[0.98]"
-        style={{ background: section.color }}
+        className="group mb-4 flex w-full items-center gap-3 rounded-2xl p-4 text-left text-[#121212] transition-transform active:scale-[0.98]"
+        style={{ background: section.color, WebkitBackfaceVisibility: "hidden" }}
       >
         <div className="min-w-0 flex-1">
           <p className="text-[11px] font-black uppercase tracking-widest opacity-70">
-            Sezione {sectionIdx + 1}
+            {t("section")} {sectionIdx + 1}
           </p>
           <h2 className="text-lg font-black leading-tight">{section.title}</h2>
         </div>
@@ -117,15 +118,15 @@ export function LearnPath() {
 
       {/* Section picker */}
       {showPicker && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" onClick={() => setShowPicker(false)}>
-          <div className="w-full max-w-md rounded-t-3xl bg-panel-2 p-5 sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={() => setShowPicker(false)}>
+          <div className="w-full max-w-md rounded-3xl border border-line bg-panel-2 p-5" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-black">Scegli una sezione</h3>
+              <h3 className="text-lg font-black">{t("chooseSection")}</h3>
               <button type="button" onClick={() => setShowPicker(false)} className="grid h-8 w-8 place-items-center rounded-full hover:bg-panel-3">
                 <X size={20} />
               </button>
             </div>
-            <div className="max-h-[60vh] space-y-2 overflow-y-auto">
+            <div className="max-h-[56vh] space-y-2 overflow-y-auto">
               {sections.map((s, i) => {
                 const lessons = s.units.flatMap((u) => u.lessons);
                 const done = lessons.filter((l) => isDone(l.id)).length;
@@ -136,9 +137,8 @@ export function LearnPath() {
                     onClick={() => { setSectionIdx(i); setShowPicker(false); }}
                     className={clsx(
                       "flex w-full items-center gap-3 rounded-2xl p-3 text-left transition-colors",
-                      i === sectionIdx ? "ring-2 ring-white/30" : "hover:bg-panel-3",
+                      i === sectionIdx ? "bg-panel-3" : "hover:bg-panel-3",
                     )}
-                    style={i === sectionIdx ? { background: `${s.color}20` } : undefined}
                   >
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-black text-[#121212]" style={{ background: s.color }}>
                       {i + 1}

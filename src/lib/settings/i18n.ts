@@ -4,9 +4,9 @@ import { useSettings, type Lang } from "./store";
 export const LANGS: { id: Lang; label: string; flag: string }[] = [
   { id: "it", label: "Italiano", flag: "🇮🇹" },
   { id: "en", label: "English", flag: "🇬🇧" },
-  { id: "fr", label: "Français", flag: "🇫🇷" },
-  { id: "es", label: "Español", flag: "🇪🇸" },
-  { id: "zh", label: "中文", flag: "🇨🇳" },
+  // { id: "fr", label: "Français", flag: "🇫🇷" },
+  // { id: "es", label: "Español", flag: "🇪🇸" },
+  // { id: "zh", label: "中文", flag: "🇨🇳" },
 ];
 
 const it = {
@@ -204,6 +204,8 @@ const it = {
   typing: "sta scrivendo…",
   comingSoon: "In arrivo",
   completePrev: "Completa prima la lezione precedente",
+  section: "Sezione",
+  chooseSection: "Scegli una sezione",
 };
 
 type Dict = typeof it;
@@ -404,6 +406,8 @@ const en: Dict = {
   typing: "is typing…",
   comingSoon: "Coming soon",
   completePrev: "Complete the previous lesson first",
+  section: "Section",
+  chooseSection: "Choose a section",
 };
 
 const fr: Dict = {
@@ -601,6 +605,8 @@ const fr: Dict = {
   typing: "écrit…",
   comingSoon: "Bientôt",
   completePrev: "Termine d'abord la leçon précédente",
+  section: "Section",
+  chooseSection: "Choisis une section",
 };
 
 const es: Dict = {
@@ -798,6 +804,8 @@ const es: Dict = {
   typing: "está escribiendo…",
   comingSoon: "Próximamente",
   completePrev: "Completa primero la lección anterior",
+  section: "Sección",
+  chooseSection: "Elige una sección",
 };
 
 const zh: Dict = {
@@ -995,6 +1003,8 @@ const zh: Dict = {
   typing: "正在输入…",
   comingSoon: "即将推出",
   completePrev: "请先完成上一课",
+  section: "章节",
+  chooseSection: "选择章节",
 };
 
 const DICTS: Record<Lang, Dict> = { it, en, fr, es, zh };

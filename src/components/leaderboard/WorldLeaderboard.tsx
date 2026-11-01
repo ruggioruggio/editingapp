@@ -107,7 +107,7 @@ export function WorldLeaderboard() {
                 key={tier.id}
                 className={clsx(
                   "flex flex-col items-center gap-0.5 rounded-xl px-2 py-1.5 transition-all",
-                  tier.id === myTier.id ? "bg-panel-2 ring-1 ring-white/20" : "opacity-50",
+                  tier.id === myTier.id ? "bg-panel-2" : "opacity-50",
                 )}
               >
                 <LeagueEmblem tier={tier} size={24} />
