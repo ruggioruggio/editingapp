@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { BookOpen, Clapperboard, CircleUserRound, ScrollText, Sparkles, Wand2, type LucideIcon } from "lucide-react";
+import { BookOpen, Clapperboard, CircleUserRound, ScrollText, Sparkles, Trophy, Wand2, type LucideIcon } from "lucide-react";
 import { features } from "@/config/features";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
 import { useHydrated } from "@/lib/hooks/useHydrated";
@@ -21,6 +21,7 @@ const LEFT_ITEMS: Item[] = [
 
 const RIGHT_ITEMS: Item[] = [
   { href: "/quests", icon: ScrollText, color: "#c080ee", activeColor: "#d291ff" },
+  { href: "/leaderboard", icon: Trophy, color: "#d4a017", activeColor: "#ffc93c" },
   { href: "/profile", icon: CircleUserRound, color: "#e88a5a", activeColor: "#f09a6a" },
 ];
 

@@ -3,10 +3,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export interface FriendProfile {
   id: string;
   username: string;
+  display_name: string | null;
+  bio: string | null;
+  avatar_url: string | null;
   xp: number;
   streak_count: number;
   streak_last_day: string | null;
   role: string | null;
+  created_at: string | null;
 }
 
 export interface FriendLink {
@@ -20,7 +24,7 @@ export interface FriendsData {
   outgoing: FriendLink[];
 }
 
-const PROFILE_FIELDS = "id, username, xp, streak_count, streak_last_day, role";
+const PROFILE_FIELDS = "id, username, display_name, bio, avatar_url, xp, streak_count, streak_last_day, role, created_at";
 
 interface Row {
   id: number;

@@ -1,13 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BookOpen, Camera, Flame, Settings, Zap } from "lucide-react";
+import { Camera, Flame, Settings, Zap } from "lucide-react";
 import { FriendsPanel } from "@/components/friends/FriendsPanel";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { useAuth } from "@/lib/supabase/auth";
 import { currentStreak, useProgress } from "@/lib/progress/store";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { getSupabase } from "@/lib/supabase/client";
+import { useT } from "@/lib/settings/i18n";
+import { useSettings } from "@/lib/settings/store";
 
 const BG_COLORS = ["#6b5cff", "#2d8ceb", "#3ecf8e", "#ff8a3d", "#ff5f5f", "#c080ee", "#ffc93c"];
 
@@ -39,7 +41,12 @@ function LetterAvatar({ name, size, url }: { name: string; size: number; url?: s
   );
 }
 
+const LOCALE_MAP: Record<string, string> = { it: "it-IT", en: "en-US", fr: "fr-FR", es: "es-ES", zh: "zh-CN" };
+
 export function ProfileView() {
+  const t = useT();
+  const lang = useSettings((s) => s.lang);
+  const locale = LOCALE_MAP[lang] ?? "en-US";
   const status = useAuth((s) => s.status);
   const profile = useAuth((s) => s.profile);
   const userId = useAuth((s) => s.userId);
@@ -85,26 +92,26 @@ export function ProfileView() {
   const uploadAvatar = async (file: File) => {
     const sb = getSupabase();
     if (!sb || !userId) return;
-    if (file.size > 2 * 1024 * 1024) { alert("Max 2 MB"); return; }
-    if (!file.type.startsWith("image/")) { alert("Solo immagini"); return; }
+    if (file.size > 2 * 1024 * 1024) { alert(t("maxFileSize")); return; }
+    if (!file.type.startsWith("image/")) { alert(t("imagesOnly")); return; }
     try {
       const ext = file.name.split(".").pop() ?? "jpg";
       const path = `${userId}.${ext}`;
       const { error } = await sb.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
-      if (error) { alert("Upload non riuscito: " + error.message); return; }
+      if (error) { alert(`${t("uploadFailed")}: ${error.message}`); return; }
       const { data } = sb.storage.from("avatars").getPublicUrl(path);
       const url = `${data.publicUrl}?t=${Date.now()}`;
       const { error: updErr } = await sb.from("profiles").update({ avatar_url: url }).eq("id", userId);
-      if (updErr) { alert("Salvataggio avatar non riuscito: " + updErr.message); return; }
+      if (updErr) { alert(`${t("uploadFailed")}: ${updErr.message}`); return; }
       setAvatarUrl(url);
       try { await sb.from("avatar_reviews").upsert({ user_id: userId, avatar_url: url, status: "pending" }).select(); } catch {}
     } catch {
-      alert("Upload non riuscito. Verifica che il bucket 'avatars' esista su Supabase Storage.");
+      alert(t("uploadFailed"));
     }
   };
 
   const joinDate = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString("it-IT", { month: "long", year: "numeric" })
+    ? new Date(profile.created_at).toLocaleDateString(locale, { month: "long", year: "numeric" })
     : null;
 
   if (status !== "user") {
@@ -117,21 +124,19 @@ export function ProfileView() {
 
   return (
     <div>
-      {/* Profile header — Instagram style */}
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-black">{profile?.username ?? "Profilo"}</h1>
+          <h1 className="text-xl font-black">{profile?.username ?? t("profile")}</h1>
           <button
             type="button"
             onClick={() => setShowSettings(true)}
             className="grid h-10 w-10 place-items-center rounded-full hover:bg-panel-3"
-            aria-label="Impostazioni"
+            aria-label={t("settings")}
           >
             <Settings size={22} />
           </button>
         </div>
 
-        {/* Avatar + stats row (Instagram layout) */}
         <div className="flex items-center gap-6">
           <div className="relative shrink-0">
             <LetterAvatar name={profile?.username ?? "?"} size={80} url={avatarUrl} />
@@ -147,31 +152,30 @@ export function ProfileView() {
             <div className="flex flex-1 justify-around text-center">
               <div>
                 <p className="text-lg font-black">{lessons}</p>
-                <p className="text-[11px] text-ink-dim">Lezioni</p>
+                <p className="text-[11px] text-ink-dim">{t("lessons")}</p>
               </div>
               <div>
                 <p className="text-lg font-black">{followerCount}</p>
-                <p className="text-[11px] text-ink-dim">Follower</p>
+                <p className="text-[11px] text-ink-dim">{t("follower")}</p>
               </div>
               <div>
                 <p className="text-lg font-black">{followingCount}</p>
-                <p className="text-[11px] text-ink-dim">Seguiti</p>
+                <p className="text-[11px] text-ink-dim">{t("following")}</p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Username + bio */}
         <div className="mt-3">
           <p className="text-sm font-bold text-ink-dim">@{profile?.username ?? "..."}</p>
-          {joinDate && <p className="text-xs text-ink-mute">Iscritto da {joinDate}</p>}
+          {joinDate && <p className="text-xs text-ink-mute">{t("joinedSince")} {joinDate}</p>}
           {editingBio ? (
             <div className="mt-2 flex gap-2">
               <input
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 maxLength={150}
-                placeholder="Scrivi una bio..."
+                placeholder={t("writeBio")}
                 className="min-w-0 flex-1 rounded-xl border-2 border-line bg-panel-2 px-3 py-1.5 text-sm outline-none focus:border-accent"
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && void saveBio()}
@@ -180,25 +184,23 @@ export function ProfileView() {
             </div>
           ) : (
             <button type="button" onClick={() => setEditingBio(true)} className="mt-1 text-left text-sm text-ink-dim hover:text-ink">
-              {bio || "Tocca per aggiungere una bio..."}
+              {bio || t("addBio")}
             </button>
           )}
         </div>
 
-        {/* XP + Streak compact stats */}
         {hydrated && (
           <div className="mt-4 flex gap-3">
             <span className="flex items-center gap-1 rounded-xl bg-panel-2 px-3 py-1.5 text-sm font-bold text-[#ffc93c]">
               <Zap size={16} /> {xp} XP
             </span>
             <span className="flex items-center gap-1 rounded-xl bg-panel-2 px-3 py-1.5 text-sm font-bold text-[#ff8a3d]">
-              <Flame size={16} /> {streak} giorni
+              <Flame size={16} /> {streak} {t("days")}
             </span>
           </div>
         )}
       </div>
 
-      {/* Friends section below */}
       <div className="border-t border-line mx-auto max-w-xl px-4 py-6">
         <FriendsPanel />
       </div>

@@ -72,10 +72,10 @@ function DailyQuestsWidget() {
               {complete && !claimed && (
                 <button
                   type="button"
-                  onClick={() => { claimQuest(q.id); sfx("quest"); }}
+                  onClick={() => { claimQuest(q.id, q.xp); sfx("quest"); }}
                   className="shrink-0 rounded-xl bg-cheese px-3 py-1.5 text-xs font-black text-[#3a2500]"
                 >
-                  +{q.reward} XP
+                  +{q.xp} XP
                 </button>
               )}
             </li>

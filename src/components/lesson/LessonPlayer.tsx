@@ -18,6 +18,7 @@ import { useAdmin } from "@/lib/admin/client";
 import { getTranslatedSections, sections } from "@/content/course";
 import { useT } from "@/lib/settings/i18n";
 import { useSettings } from "@/lib/settings/store";
+import { useLeaguePromotion, LeaguePromotionModal } from "@/components/leaderboard/LeaguePromotion";
 import { sfx } from "@/lib/settings/sfx";
 import type { EditorTaskResult, Lesson } from "@/lib/lessons/types";
 import { PremiereTaskView } from "./PremiereTaskView";
@@ -279,8 +280,10 @@ function LessonComplete({ xp, accuracy, seconds, streakBefore }: { xp: number; a
   const t = useT();
   const streak = useProgress((s) => currentStreak(s.streak));
   const [showStreak, setShowStreak] = useState(false);
+  const league = useLeaguePromotion();
   const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
+  if (league.visible) return <LeaguePromotionModal onClose={league.dismiss} />;
   if (showStreak) return <StreakScreen streak={streak} onContinue={() => router.push("/learn")} />;
 
   const stats = [

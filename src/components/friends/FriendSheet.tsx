@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import clsx from "clsx";
-import { ArrowUp, Flame, Star, X, Zap } from "lucide-react";
+import { ArrowUp, BookOpen, Flame, Star, Users, X, Zap } from "lucide-react";
 import { ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
 import { ACHIEVEMENTS } from "@/lib/gamification/achievements";
 import { getSupabase } from "@/lib/supabase/client";
@@ -16,8 +16,11 @@ import {
   subscribeIncoming,
   type ChatMessage,
 } from "@/lib/supabase/social";
+import { useT } from "@/lib/settings/i18n";
+import { useSettings } from "@/lib/settings/store";
+import { getTier } from "@/lib/gamification/leagues";
 
-const time = (iso: string) => new Date(iso).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" });
+const LOCALE_MAP: Record<string, string> = { it: "it-IT", en: "en-US", fr: "fr-FR", es: "es-ES", zh: "zh-CN" };
 
 export function FriendSheet({
   me,
@@ -34,7 +37,16 @@ export function FriendSheet({
   onClose: () => void;
   onRead: () => void;
 }) {
+  const t = useT();
   const [tab, setTab] = useState<"chat" | "goals">("chat");
+  const [followerCount, setFollowerCount] = useState(0);
+  const friendTier = getTier(friend.xp);
+
+  useEffect(() => {
+    const sb = getSupabase();
+    if (!sb) return;
+    void sb.from("follows").select("id", { count: "exact", head: true }).eq("following_id", friend.id).then(({ count }) => setFollowerCount(count ?? 0));
+  }, [friend.id]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -47,9 +59,13 @@ export function FriendSheet({
       <div className="animate-pop flex h-[88dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-line bg-app sm:h-[80dvh] sm:rounded-3xl">
         <header className="border-b border-line p-4">
           <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-pr text-lg font-black uppercase text-pr-deep">
-              {friend.username[0]}
-            </span>
+            {friend.avatar_url ? (
+              <img src={friend.avatar_url} alt={friend.username} className="h-12 w-12 shrink-0 rounded-full object-cover" />
+            ) : (
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-pr text-lg font-black uppercase text-pr-deep">
+                {friend.username[0]}
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-lg font-black">
                 @{friend.username}
@@ -64,30 +80,36 @@ export function FriendSheet({
                   <Zap size={13} /> {friend.xp} XP
                 </span>
                 <span className="flex items-center gap-1 text-[#ff8a3d]">
-                  <Flame size={13} /> {streak} gg
+                  <Flame size={13} /> {streak} {t("days")}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Users size={13} /> {followerCount} {t("follower")}
                 </span>
               </p>
+              <p className="mt-0.5 flex items-center gap-1 text-[10px] font-bold text-ink-mute">
+                <span className={clsx("inline-block h-2 w-2 rounded-full bg-gradient-to-r", friendTier.gradient)} />
+                {t(friendTier.nameKey)}
+              </p>
             </div>
-            <button type="button" onClick={onClose} aria-label="Chiudi" className="grid h-9 w-9 place-items-center rounded-lg text-ink-mute hover:bg-panel-2 hover:text-ink">
+            <button type="button" onClick={onClose} aria-label={t("close")} className="grid h-9 w-9 place-items-center rounded-lg text-ink-mute hover:bg-panel-2 hover:text-ink">
               <X size={20} />
             </button>
           </div>
-          {/* serie condivisa: giorni consecutivi in cui avete fatto lezione entrambi */}
           <div className={clsx("mt-3 flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold", sharedStreak > 0 ? "bg-[#ff8a3d]/15 text-[#ffb27a]" : "bg-panel text-ink-mute")}>
             <Flame size={18} className={sharedStreak > 0 ? "text-[#ff8a3d]" : ""} />
             {sharedStreak > 0
-              ? `Serie insieme: ${sharedStreak} ${sharedStreak === 1 ? "giorno" : "giorni"}. Fate una lezione entrambi oggi per allungarla!`
-              : "Nessuna serie insieme: fate una lezione entrambi oggi per iniziarne una."}
+              ? `${t("sharedStreakLabel")}: ${sharedStreak} ${sharedStreak === 1 ? t("day") : t("days")}. ${t("sharedStreakActive")}`
+              : t("noSharedStreak")}
           </div>
           <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-panel p-1 text-sm font-black">
-            {(["chat", "goals"] as const).map((t) => (
+            {(["chat", "goals"] as const).map((tb) => (
               <button
-                key={t}
+                key={tb}
                 type="button"
-                onClick={() => setTab(t)}
-                className={clsx("rounded-lg py-1.5", tab === t ? "bg-panel-3 text-ink" : "text-ink-mute hover:text-ink")}
+                onClick={() => setTab(tb)}
+                className={clsx("rounded-lg py-1.5", tab === tb ? "bg-panel-3 text-ink" : "text-ink-mute hover:text-ink")}
               >
-                {t === "chat" ? "Chat" : "Obiettivi"}
+                {tb === "chat" ? t("chat") : t("goalsTab")}
               </button>
             ))}
           </div>
@@ -99,6 +121,9 @@ export function FriendSheet({
 }
 
 function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRead: () => void }) {
+  const t = useT();
+  const lang = useSettings((s) => s.lang);
+  const locale = LOCALE_MAP[lang] ?? "en-US";
   const sb = getSupabase();
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [text, setText] = useState("");
@@ -110,7 +135,7 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
     let alive = true;
     loadConversation(sb, me, friend.id)
       .then((list) => alive && setMessages(list))
-      .catch(() => alive && setError("Non riesco a caricare la chat."));
+      .catch(() => alive && setError(t("loadChatFailed")));
     void markRead(sb, me, friend.id).then(onRead).catch(() => {});
 
     const stop = subscribeIncoming(sb, me, (m) => {
@@ -122,7 +147,7 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
       alive = false;
       stop();
     };
-  }, [sb, me, friend.id, onRead]);
+  }, [sb, me, friend.id, onRead, t]);
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
@@ -139,16 +164,18 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
       setError(null);
     } catch {
       setText(body);
-      setError("Messaggio non inviato. Siete ancora amici?");
+      setError(t("messageFailed"));
     }
   };
+
+  const time = (iso: string) => new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 
   return (
     <>
       <div className="flex-1 space-y-2 overflow-y-auto p-4">
         {messages === null && !error && <div className="h-20 animate-pulse rounded-2xl bg-panel" />}
         {messages?.length === 0 && (
-          <p className="py-10 text-center text-sm text-ink-mute">Rompi il ghiaccio: chiedi a @{friend.username} che lezione sta facendo!</p>
+          <p className="py-10 text-center text-sm text-ink-mute">{t("breakIce")} @{friend.username}</p>
         )}
         {messages?.map((m) => {
           const mine = m.sender_id === me;
@@ -169,10 +196,10 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
           value={text}
           onChange={(e) => setText(e.target.value)}
           maxLength={MAX_MESSAGE}
-          placeholder={`Scrivi a @${friend.username}…`}
+          placeholder={`${t("writeTo")} @${friend.username}…`}
           className="min-w-0 flex-1 rounded-full border-2 border-line bg-panel-2 px-4 py-2.5 font-semibold outline-none focus:border-accent"
         />
-        <button type="submit" aria-label="Invia" disabled={!text.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent text-white disabled:opacity-40">
+        <button type="submit" aria-label={t("send")} disabled={!text.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent text-white disabled:opacity-40">
           <ArrowUp size={20} strokeWidth={3} />
         </button>
       </form>
@@ -181,6 +208,7 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
 }
 
 function FriendGoals({ friend }: { friend: FriendProfile }) {
+  const t = useT();
   const sb = getSupabase();
   const [levels, setLevels] = useState<Record<string, number> | null>(null);
 
@@ -199,7 +227,7 @@ function FriendGoals({ friend }: { friend: FriendProfile }) {
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <p className="mb-3 text-sm font-bold text-ink-dim">
-        @{friend.username} ha sbloccato <span className="text-cheese">{unlocked}</span> livelli di obiettivi.
+        @{friend.username} — <span className="text-cheese">{unlocked}</span> {t("unlockedGoalLevels")}
       </p>
       <ul className="grid gap-2">
         {ACHIEVEMENTS.map((a) => {

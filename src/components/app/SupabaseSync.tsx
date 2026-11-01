@@ -92,7 +92,7 @@ export function SupabaseSync() {
       useAuth.setState({ status: "user", userId: user.id, email: user.email ?? null });
 
       const [{ data: profile }, { data: row }] = await Promise.all([
-        sb.from("profiles").select("id, username, display_name, plan, xp, streak_count, streak_last_day").eq("id", user.id).maybeSingle<Profile>(),
+        sb.from("profiles").select("id, username, display_name, bio, avatar_url, plan, xp, streak_count, streak_last_day, role, created_at").eq("id", user.id).maybeSingle<Profile>(),
         sb.from("progress").select("data").eq("user_id", user.id).maybeSingle<{ data: unknown }>(),
       ]);
       if (activeUser !== user.id) return;
@@ -119,16 +119,16 @@ export function SupabaseSync() {
         timer = setTimeout(flush, SAVE_DELAY_MS);
         void shareActivity(sb, user.id, state, prev);
       });
-      const stopAvatar = useSettings.subscribe(
-        (s) => s.avatar,
-        (avatar) => {
-          clearTimeout(avatarTimer);
-          avatarTimer = setTimeout(() => {
-            if (activeUser) void sb.from("profiles").update({ avatar }).eq("id", activeUser);
-          }, SAVE_DELAY_MS);
-        },
-        { equalityFn: (a, b) => JSON.stringify(a) === JSON.stringify(b) },
-      );
+      let prevAvatar = JSON.stringify(useSettings.getState().avatar);
+      const stopAvatar = useSettings.subscribe((s) => {
+        const next = JSON.stringify(s.avatar);
+        if (next === prevAvatar) return;
+        prevAvatar = next;
+        clearTimeout(avatarTimer);
+        avatarTimer = setTimeout(() => {
+          if (activeUser) void sb.from("profiles").update({ avatar: s.avatar }).eq("id", activeUser);
+        }, SAVE_DELAY_MS);
+      });
       stopWatching = () => { stopProgress(); stopAvatar(); clearTimeout(avatarTimer); };
     };
 

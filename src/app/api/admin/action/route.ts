@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
       case "search": {
         const q = str(body.q, 40).replace(/^@/, "").replace(/[%_,()]/g, "");
         const cols = "id, username, display_name, plan, xp, streak_count, pro_until, banned_until, ban_reason, role, created_at";
-        let query = sb.from("profiles").select(cols).order("created_at", { ascending: false }).limit(40);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let query: any = sb.from("profiles").select(cols).order("created_at", { ascending: false }).limit(40);
         if (q) query = query.ilike("username", `%${q}%`);
         let { data, error } = await query;
         if (error && /role/.test(error.message)) {
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
           query = sb.from("profiles").select(fallback).order("created_at", { ascending: false }).limit(40);
           if (q) query = query.ilike("username", `%${q}%`);
           ({ data, error } = await query);
-          if (!error && data) data = data.map((r: Record<string, unknown>) => ({ ...r, role: null }));
+          if (!error && data) data = (data as Record<string, unknown>[]).map((r) => ({ ...r, role: null }));
         }
         if (error) throw error;
         return NextResponse.json({ users: data });

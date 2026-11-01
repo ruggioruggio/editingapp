@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { BookOpen, Clapperboard, Sparkles, Target, Users, type LucideIcon } from "lucide-react";
+import { BookOpen, Clapperboard, Sparkles, Target, Trophy, Users, type LucideIcon } from "lucide-react";
 import { AppIcon } from "@/components/brand/Mascot";
 import { Logo } from "@/components/brand/Logo";
 import { features } from "@/config/features";
@@ -21,6 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/learn", label: "learn", icon: BookOpen, color: "#9999ff" },
   { href: "/practice", label: "practice", icon: Clapperboard, color: "#2d8ceb" },
   { href: "/goals", label: "goals", icon: Target, color: "#d291ff" },
+  { href: "/leaderboard", label: "leaderboard", icon: Trophy, color: "#ffc93c" },
   { href: "/profile", label: "profile", icon: Users, color: "#5ce1e6" },
 ];
 

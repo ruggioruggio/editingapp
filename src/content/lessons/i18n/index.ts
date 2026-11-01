@@ -3,6 +3,9 @@ import type { LessonTranslations } from "./types";
 
 const translationModules: Partial<Record<Lang, () => Promise<{ default: LessonTranslations }>>> = {
   en: () => import("./en") as Promise<{ default: LessonTranslations }>,
+  fr: () => import("./fr") as Promise<{ default: LessonTranslations }>,
+  es: () => import("./es") as Promise<{ default: LessonTranslations }>,
+  // zh: () => import("./zh") as Promise<{ default: LessonTranslations }>,
 };
 
 const cache = new Map<Lang, LessonTranslations>();

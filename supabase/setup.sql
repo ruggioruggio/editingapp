@@ -351,6 +351,12 @@ drop policy if exists "Tutti leggono le impostazioni" on public.app_settings;
 create policy "Tutti leggono le impostazioni" on public.app_settings for select to anon, authenticated using (true);
 revoke all on public.app_settings from anon, authenticated;
 grant select on public.app_settings to anon, authenticated;
+grant insert, update, delete on public.app_settings to authenticated;
+drop policy if exists "Admin scrive le impostazioni" on public.app_settings;
+create policy "Admin scrive le impostazioni"
+  on public.app_settings for all to authenticated
+  using (exists (select 1 from public.profiles where id = (select auth.uid()) and role in ('owner', 'moderatore')))
+  with check (exists (select 1 from public.profiles where id = (select auth.uid()) and role in ('owner', 'moderatore')));
 
 create table if not exists public.admin_log (
   id bigint generated always as identity primary key,

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import AppLayout from "@/app/(app)/layout";
 import AiPage from "@/app/(app)/ai/page";
 import { ProfileView } from "@/components/profile/ProfileView";
+import { WorldLeaderboard } from "@/components/leaderboard/WorldLeaderboard";
 import LearnPage from "@/app/(app)/learn/page";
 import PracticePage from "@/app/(app)/practice/page";
 import PricingPage from "@/app/(app)/pricing/page";
@@ -69,6 +70,7 @@ const APP_PAGES: Record<string, () => React.ReactNode> = {
   "/profile": () => <ProfileView />,
   "/pricing": () => <PricingPage />,
   "/ai": () => <AiPage />,
+  "/leaderboard": () => <WorldLeaderboard />,
 };
 
 const SITE_PAGES: Record<string, () => React.ReactNode> = {

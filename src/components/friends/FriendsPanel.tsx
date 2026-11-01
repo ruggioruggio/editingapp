@@ -24,14 +24,7 @@ import {
 import { getAchievement } from "@/lib/gamification/achievements";
 import { loadFeed, loadSharedStreaks, loadUnread, subscribeIncoming, type ActivityEvent } from "@/lib/supabase/social";
 import { FriendSheet } from "./FriendSheet";
-
-const SEND_MESSAGES: Record<SendResult, { tone: "ok" | "error"; text: string }> = {
-  sent: { tone: "ok", text: "Richiesta inviata!" },
-  accepted: { tone: "ok", text: "Ti aveva già scritto: ora siete amici!" },
-  not_found: { tone: "error", text: "Nessun utente con questo nome." },
-  self: { tone: "error", text: "Non puoi aggiungere te stesso." },
-  exists: { tone: "error", text: "Siete già amici o c'è già una richiesta in corso." },
-};
+import { useT } from "@/lib/settings/i18n";
 
 const liveStreak = (p: FriendProfile) =>
   p.streak_last_day === todayKey() || p.streak_last_day === yesterdayKey() ? p.streak_count : 0;
@@ -45,22 +38,21 @@ export function FriendsPanel() {
 }
 
 function GuestFriends({ disabled }: { disabled: boolean }) {
+  const t = useT();
   return (
     <div className="flex flex-col items-center gap-4 rounded-3xl border border-line bg-panel p-8 text-center">
       <Mascot size={110} idle />
-      <h2 className="text-xl font-black">Montare insieme è più divertente</h2>
+      <h2 className="text-xl font-black">{t("friendsTitle")}</h2>
       <p className="text-ink-dim">
-        {disabled
-          ? "Gli account non sono ancora attivi su questa installazione."
-          : "Crea un profilo per aggiungere amici, vedere i loro progressi e sfidarli in classifica."}
+        {disabled ? t("friendsSubDisabled") : t("friendsSub")}
       </p>
       {!disabled && (
         <div className="flex w-full max-w-xs flex-col gap-3">
           <Link href="/signup" className="btn-3d rounded-2xl bg-success py-3 font-black uppercase text-[#08311f]">
-            Crea un profilo
+            {t("createProfile")}
           </Link>
           <Link href="/login?next=/friends" className="btn-3d rounded-2xl border-2 border-line bg-panel-2 py-3 font-black uppercase text-pr">
-            Accedi
+            {t("signIn")}
           </Link>
         </div>
       )}
@@ -69,12 +61,21 @@ function GuestFriends({ disabled }: { disabled: boolean }) {
 }
 
 function SignedInFriends() {
+  const t = useT();
   const sb = getSupabase();
   const me = useAuth((s) => s.userId);
   const profile = useAuth((s) => s.profile);
   const myXp = useProgress((s) => s.xp);
   const myStreak = useProgress((s) => currentStreak(s.streak));
   const recordStat = useProgress((s) => s.recordStat);
+
+  const SEND_MESSAGES: Record<SendResult, { tone: "ok" | "error"; text: string }> = {
+    sent: { tone: "ok", text: t("requestSent") },
+    accepted: { tone: "ok", text: t("alreadyFriends") },
+    not_found: { tone: "error", text: t("userNotFound") },
+    self: { tone: "error", text: t("cannotAddSelf") },
+    exists: { tone: "error", text: t("requestExists") },
+  };
 
   const [data, setData] = useState<FriendsData | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -128,7 +129,7 @@ function SignedInFriends() {
     try {
       await fn();
     } catch {
-      setMessage({ tone: "error", text: "Operazione non riuscita. Riprova." });
+      setMessage({ tone: "error", text: t("operationFailed") });
     }
     await refresh();
   };
@@ -137,7 +138,7 @@ function SignedInFriends() {
     e.preventDefault();
     if (!sb || !me) return;
     const name = input.trim().replace(/^@/, "").toLowerCase();
-    if (!USERNAME_RE.test(name)) return setMessage({ tone: "error", text: "Nome utente non valido." });
+    if (!USERNAME_RE.test(name)) return setMessage({ tone: "error", text: t("invalidUsername") });
     setBusy(true);
     try {
       const result = await sendFriendRequest(sb, me, name);
@@ -147,18 +148,18 @@ function SignedInFriends() {
         setInput("");
       }
     } catch {
-      setMessage({ tone: "error", text: "Invio non riuscito. Riprova." });
+      setMessage({ tone: "error", text: t("sendFailed") });
     }
     setBusy(false);
     await refresh();
   };
 
   const share = async () => {
-    const text = `Impara il montaggio video con me su ${brand.appName}! Aggiungimi: @${profile?.username ?? ""}`;
+    const text2 = `${t("shareText")} ${brand.appName}! @${profile?.username ?? ""}`;
     try {
-      if (navigator.share) await navigator.share({ title: brand.appName, text, url: window.location.origin });
+      if (navigator.share) await navigator.share({ title: brand.appName, text: text2, url: window.location.origin });
       else {
-        await navigator.clipboard.writeText(`${text} ${window.location.origin}`);
+        await navigator.clipboard.writeText(`${text2} ${window.location.origin}`);
         setCopied(true);
         setTimeout(() => setCopied(false), 1800);
       }
@@ -167,7 +168,7 @@ function SignedInFriends() {
   };
 
   const leaderboard = [
-    { id: me, username: profile?.username ?? "tu", xp: myXp, streak: myStreak, isMe: true },
+    { id: me ?? "", username: profile?.username ?? "tu", xp: myXp, streak: myStreak, isMe: true },
     ...(data?.friends ?? []).map((f) => ({ id: f.other.id, username: f.other.username, xp: f.other.xp, streak: liveStreak(f.other), isMe: false })),
   ].sort((a, b) => b.xp - a.xp);
   const openFriend = data?.friends.find((f) => f.other.id === openId)?.other
@@ -180,7 +181,7 @@ function SignedInFriends() {
       <div className="flex items-center gap-4 rounded-3xl border border-[#5ce1e6]/40 bg-linear-to-br from-[#5ce1e6]/15 to-panel p-5">
         <Mascot size={84} idle />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-bold text-ink-dim">Il tuo nome utente</p>
+          <p className="text-sm font-bold text-ink-dim">{t("yourUsername")}</p>
           <p className="truncate text-2xl font-black">@{profile?.username ?? "…"}</p>
           <button
             type="button"
@@ -188,21 +189,21 @@ function SignedInFriends() {
             className="btn-3d mt-3 flex items-center gap-2 rounded-xl bg-[#5ce1e6] px-4 py-2 text-sm font-black text-[#063b3d]"
           >
             {copied ? <Check size={16} /> : <Share2 size={16} />}
-            {copied ? "Invito copiato!" : "Invita un amico"}
+            {copied ? t("inviteCopied") : t("inviteFriend")}
           </button>
         </div>
       </div>
 
       <form onSubmit={onSubmit} className="rounded-2xl border border-line bg-panel p-4">
         <label htmlFor="friend" className="mb-2 block font-black">
-          Aggiungi un amico
+          {t("addFriend")}
         </label>
         <div className="flex gap-2">
           <input
             id="friend"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="@nomeutente"
+            placeholder={t("usernamePlaceholder")}
             autoComplete="off"
             autoCapitalize="none"
             className="min-w-0 flex-1 rounded-xl border-2 border-line bg-panel-2 px-4 py-2.5 font-semibold outline-none focus:border-[#5ce1e6]"
@@ -212,7 +213,7 @@ function SignedInFriends() {
             disabled={busy}
             className="btn-3d flex items-center gap-1.5 rounded-xl bg-accent px-4 font-black text-white disabled:opacity-60"
           >
-            <UserPlus size={18} /> <span className="hidden sm:inline">Invia</span>
+            <UserPlus size={18} /> <span className="hidden sm:inline">{t("send")}</span>
           </button>
         </div>
         {message && (
@@ -222,27 +223,27 @@ function SignedInFriends() {
         )}
       </form>
 
-      {loadError && <p className="text-sm font-semibold text-danger">Non riesco a caricare gli amici. Controlla la connessione.</p>}
+      {loadError && <p className="text-sm font-semibold text-danger">{t("loadFriendsFailed")}</p>}
 
       {data && data.incoming.length > 0 && (
         <section>
-          <h2 className="mb-3 font-black">Richieste ricevute</h2>
+          <h2 className="mb-3 font-black">{t("incomingRequests")}</h2>
           <ul className="space-y-2">
             {data.incoming.map((r) => (
               <li key={r.id} className="flex items-center gap-3 rounded-2xl border border-[#5ce1e6]/40 bg-panel p-3">
                 <button type="button" onClick={() => setOpenId(r.other.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left hover:opacity-90">
-                  <Avatar name={r.other.username} />
+                  <FriendAvatar name={r.other.username} url={r.other.avatar_url} />
                   <p className="min-w-0 flex-1 truncate font-bold">@{r.other.username}</p>
                 </button>
                 <ModHammer username={r.other.username} />
                 <button
                   type="button"
-                  onClick={() => act(() => acceptFriendRequest(sb, r.id))}
+                  onClick={() => sb && act(() => acceptFriendRequest(sb, r.id))}
                   className="btn-3d rounded-xl bg-success px-3 py-2 text-sm font-black text-[#08311f]"
                 >
-                  Accetta
+                  {t("accept")}
                 </button>
-                <IconButton label={`Rifiuta ${r.other.username}`} onClick={() => act(() => removeFriendship(sb, r.id))} />
+                <IconButton label={`${t("remove")} ${r.other.username}`} onClick={() => sb && act(() => removeFriendship(sb, r.id))} />
               </li>
             ))}
           </ul>
@@ -250,13 +251,13 @@ function SignedInFriends() {
       )}
 
       <section>
-        <h2 className="mb-3 font-black">Classifica amici</h2>
+        <h2 className="mb-3 font-black">{t("friendsLeaderboard")}</h2>
         {!data ? (
           <div className="h-24 animate-pulse rounded-2xl bg-panel" />
         ) : data.friends.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-line py-8 text-center">
             <Mascot size={70} mood="sleepy" />
-            <p className="text-sm text-ink-dim">Ancora nessun amico. Aggiungine uno per sfidarlo in classifica!</p>
+            <p className="text-sm text-ink-dim">{t("noFriendsYet")}</p>
           </div>
         ) : (
           <ol className="space-y-2">
@@ -269,7 +270,6 @@ function SignedInFriends() {
                 )}
               >
                 <span className="w-6 text-center font-black text-ink-mute">{i === 0 ? <Crown size={18} className="mx-auto text-cheese" /> : i + 1}</span>
-                {/* tocca un amico per aprire chat, serie condivisa e obiettivi */}
                 <button
                   type="button"
                   disabled={row.isMe}
@@ -277,7 +277,7 @@ function SignedInFriends() {
                   className="flex min-w-0 flex-1 items-center gap-3 text-left enabled:hover:opacity-90"
                 >
                   <span className="relative">
-                    <Avatar name={row.username} />
+                    <FriendAvatar name={row.username} />
                     {!!unread[row.id] && (
                       <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] font-black text-white">
                         {unread[row.id]}
@@ -286,12 +286,12 @@ function SignedInFriends() {
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-bold">
-                      @{row.username} {row.isMe && <span className="text-xs text-ink-mute">(tu)</span>}
+                      @{row.username} {row.isMe && <span className="text-xs text-ink-mute">({t("you")})</span>}
                     </span>
                     {!row.isMe && (
                       <span className="flex items-center gap-1 text-xs font-bold text-ink-mute">
                         <MessageCircle size={12} />
-                        {shared[row.id] ? <span className="text-[#ffb27a]">Serie insieme: {shared[row.id]} gg</span> : "Chat e obiettivi"}
+                        {shared[row.id] ? <span className="text-[#ffb27a]">{t("sharedStreakLabel")}: {shared[row.id]} {t("days")}</span> : t("chatAndGoals")}
                       </span>
                     )}
                   </span>
@@ -305,10 +305,10 @@ function SignedInFriends() {
                 </span>
                 {!row.isMe && (
                   <IconButton
-                    label={`Rimuovi ${row.username}`}
+                    label={`${t("remove")} ${row.username}`}
                     onClick={() => {
                       const link = data.friends.find((f) => f.other.id === row.id);
-                      if (link && window.confirm(`Rimuovere @${row.username} dagli amici?`)) void act(() => removeFriendship(sb, link.id));
+                      if (link && sb && window.confirm(`${t("remove")} @${row.username}?`)) void act(() => removeFriendship(sb, link.id));
                     }}
                   />
                 )}
@@ -320,7 +320,7 @@ function SignedInFriends() {
 
       {feed.length > 0 && (
         <section>
-          <h2 className="mb-3 font-black">Cosa fanno i tuoi amici</h2>
+          <h2 className="mb-3 font-black">{t("friendActivity")}</h2>
           <ul className="space-y-2">
             {feed.slice(0, 5).map((e) => (
               <FeedItem key={e.id} event={e} />
@@ -331,7 +331,7 @@ function SignedInFriends() {
 
       {openFriend && (
         <FriendSheet
-          me={me}
+          me={me!}
           friend={openFriend}
           sharedStreak={shared[openFriend.id] ?? 0}
           streak={liveStreak(openFriend)}
@@ -342,21 +342,21 @@ function SignedInFriends() {
 
       {data && data.outgoing.length > 0 && (
         <section>
-          <h2 className="mb-3 font-black">Richieste inviate</h2>
+          <h2 className="mb-3 font-black">{t("outgoingRequests")}</h2>
           <ul className="space-y-2">
             {data.outgoing.map((r) => (
               <li key={r.id} className="flex items-center gap-3 rounded-2xl border border-line bg-panel p-3">
                 <button type="button" onClick={() => setOpenId(r.other.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left hover:opacity-90">
-                  <Avatar name={r.other.username} />
+                  <FriendAvatar name={r.other.username} url={r.other.avatar_url} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-bold">@{r.other.username}</p>
                     <p className="flex items-center gap-1 text-xs text-ink-mute">
-                      <Clock size={12} /> In attesa di risposta
+                      <Clock size={12} /> {t("waitingResponse")}
                     </p>
                   </div>
                 </button>
                 <ModHammer username={r.other.username} />
-                <IconButton label={`Annulla richiesta a ${r.other.username}`} onClick={() => act(() => removeFriendship(sb, r.id))} />
+                <IconButton label={`${t("cancel")} ${r.other.username}`} onClick={() => sb && act(() => removeFriendship(sb, r.id))} />
               </li>
             ))}
           </ul>
@@ -366,27 +366,28 @@ function SignedInFriends() {
   );
 }
 
-const ago = (iso: string) => {
-  const mins = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 60) return `${Math.max(1, mins)} min fa`;
-  if (mins < 60 * 24) return `${Math.round(mins / 60)} h fa`;
-  return `${Math.round(mins / 1440)} g fa`;
-};
-
 function FeedItem({ event }: { event: ActivityEvent }) {
-  const name = event.user?.username ?? "un amico";
+  const t = useT();
+  const name = event.user?.username ?? "?";
   const achievement = event.data.achievementId ? getAchievement(event.data.achievementId) : undefined;
   let icon = <Zap size={18} className="text-cheese" />;
-  let text = `ha completato una lezione`;
-  if (event.kind === "lesson_completed" && event.data.lessonTitle) text = `ha completato "${event.data.lessonTitle}"`;
+  let text = t("completedALesson");
+  if (event.kind === "lesson_completed" && event.data.lessonTitle) text = `${t("completed")} "${event.data.lessonTitle}"`;
   if (event.kind === "achievement_unlocked" && achievement) {
     icon = <Trophy size={18} style={{ color: achievement.color }} />;
-    text = `ha sbloccato "${achievement.title}" livello ${event.data.level}`;
+    text = `${t("unlockedAchievement")} "${achievement.title}" ${t("achievementLevel")} ${event.data.level}`;
   }
   if (event.kind === "streak_milestone") {
     icon = <Flame size={18} className="text-[#ff8a3d]" />;
-    text = `ha raggiunto una serie di ${event.data.days} giorni`;
+    text = `${t("reachedStreak")} ${event.data.days} ${t("days")}`;
   }
+
+  const mins = Math.round((Date.now() - new Date(event.created_at).getTime()) / 60000);
+  let agoText: string;
+  if (mins < 60) agoText = `${Math.max(1, mins)} ${t("minAgo")}`;
+  else if (mins < 60 * 24) agoText = `${Math.round(mins / 60)} ${t("hoursAgo")}`;
+  else agoText = `${Math.round(mins / 1440)} ${t("daysAgo")}`;
+
   return (
     <li className="flex items-center gap-3 rounded-2xl border border-line bg-panel p-3">
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-panel-2">{icon}</span>
@@ -395,13 +396,14 @@ function FeedItem({ event }: { event: ActivityEvent }) {
       </p>
       <span className="flex shrink-0 items-center gap-1 text-xs text-ink-mute">
         {event.kind === "achievement_unlocked" && <Star size={12} className="text-cheese" fill="currentColor" />}
-        {ago(event.created_at)}
+        {agoText}
       </span>
     </li>
   );
 }
 
-function Avatar({ name }: { name: string }) {
+function FriendAvatar({ name, url }: { name: string; url?: string | null }) {
+  if (url) return <img src={url} alt={name} className="h-10 w-10 shrink-0 rounded-full object-cover" />;
   return <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-panel-3 font-black uppercase">{name[0]}</span>;
 }
 
