@@ -178,7 +178,7 @@ function SignedInFriends() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4 rounded-3xl border border-[#5ce1e6]/40 bg-linear-to-br from-[#5ce1e6]/15 to-panel p-5">
+      <div className="flex items-center gap-4 rounded-3xl border border-line bg-panel p-5">
         <Mascot size={84} idle />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-bold text-ink-dim">{t("yourUsername")}</p>

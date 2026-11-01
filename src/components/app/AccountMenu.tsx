@@ -44,8 +44,12 @@ export function AccountMenu() {
 
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="Il tuo account" className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-panel-3 text-sm font-black ring-2 ring-white/10">
-        {(profile?.username ?? "?")[0].toUpperCase()}
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-label={t("profile")} className="grid h-9 w-9 place-items-center overflow-hidden rounded-full bg-panel-3 text-sm font-black ring-2 ring-white/10">
+        {profile?.avatar_url ? (
+          <img src={profile.avatar_url} alt={profile.username ?? ""} className="h-full w-full object-cover" />
+        ) : (
+          (profile?.username ?? "?")[0].toUpperCase()
+        )}
       </button>
       {open && (
         <div className="animate-pop absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-line bg-panel-2 p-2 shadow-2xl">

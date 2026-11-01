@@ -87,7 +87,14 @@ export const S1_PRACTICE: Record<string, Extra> = {
       pr(
         "Metti in ordine il progetto",
         "Nel pannello **Progetto** crea un nuovo raccoglitore chiamato **Interviste** e trascinaci dentro **A001_Intervista.mp4**.",
-        () => prSetup({ noSequence: true }),
+        () => {
+          const base = prSetup({ noSequence: true, media: ["s-intervista"] });
+          if (base.project) {
+            base.project.items = base.project.items.filter((i) => i.type !== "bin");
+            for (const it of base.project.items) it.parent = null;
+          }
+          return base;
+        },
         [
           { label: "Esiste un bin **Interviste**", test: (s) => s.project.items.some((i) => i.type === "bin" && /interviste/i.test(i.name)) },
           {

@@ -9,6 +9,8 @@ import { getSupabase } from "@/lib/supabase/client";
 import { getTier, LEAGUE_TIERS, type LeagueTier } from "@/lib/gamification/leagues";
 import { useProgress } from "@/lib/progress/store";
 import { LeagueEmblem } from "@/components/gamification/LeagueEmblem";
+import { FriendSheet } from "@/components/friends/FriendSheet";
+import type { FriendProfile } from "@/lib/supabase/friends";
 
 interface LeaderboardRow {
   id: string;
@@ -53,6 +55,7 @@ export function WorldLeaderboard() {
   const [rows, setRows] = useState<LeaderboardRow[] | null>(null);
   const [error, setError] = useState(false);
   const [myRank, setMyRank] = useState<number | null>(null);
+  const [openProfile, setOpenProfile] = useState<FriendProfile | null>(null);
 
   const load = useCallback(async () => {
     const sb = getSupabase();
@@ -132,9 +135,26 @@ export function WorldLeaderboard() {
           return (
             <li
               key={row.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (isMe) return;
+                setOpenProfile({
+                  id: row.id,
+                  username: row.username,
+                  display_name: row.display_name,
+                  bio: null,
+                  avatar_url: row.avatar_url,
+                  xp: row.xp,
+                  streak_count: row.streak_count,
+                  streak_last_day: null,
+                  role: null,
+                  created_at: null,
+                });
+              }}
               className={clsx(
                 "flex items-center gap-3 rounded-2xl border p-3 transition-colors",
-                isMe ? "border-accent/40 bg-accent/10" : "border-line bg-panel",
+                isMe ? "border-accent/40 bg-accent/10" : "border-line bg-panel cursor-pointer hover:bg-panel-2",
               )}
             >
               <span className="grid h-8 w-8 shrink-0 place-items-center">{<RankIcon rank={rank} />}</span>
@@ -158,6 +178,17 @@ export function WorldLeaderboard() {
           );
         })}
       </ul>
+
+      {openProfile && me && (
+        <FriendSheet
+          me={me}
+          friend={openProfile}
+          sharedStreak={0}
+          streak={openProfile.streak_count}
+          onClose={() => setOpenProfile(null)}
+          onRead={() => {}}
+        />
+      )}
     </div>
   );
 }
