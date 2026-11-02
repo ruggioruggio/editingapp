@@ -24,7 +24,7 @@ jobs:
           - os: windows-latest
             target: dist:win
             files: desktop/dist/*.exe
-          - os: macos-latest
+          - os: macos-13
             target: dist:mac
             files: desktop/dist/*.dmg
           - os: ubuntu-latest
