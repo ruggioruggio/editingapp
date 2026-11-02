@@ -7,6 +7,8 @@ import clsx from "clsx";
 import { AlertTriangle, Check, Flame, Heart, Target, X, Zap } from "lucide-react";
 import { Mascot } from "@/components/brand/Mascot";
 import { SqueakReaction } from "@/components/brand/Reactions";
+import { Squeak3D as Squeak3DLazy } from "@/components/brand/Squeak3DLazy";
+import { brand } from "@/config/brand";
 import { features } from "@/config/features";
 import { getLesson } from "@/content/lessons";
 import { loadLessonTranslations } from "@/content/lessons/i18n";
@@ -275,15 +277,65 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
   );
 }
 
+const DISCORD_SHOWN_KEY = "squeak-discord-shown";
+
+function DiscordPopup({ onClose }: { onClose: () => void }) {
+  const t = useT();
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="animate-pop w-full max-w-sm rounded-3xl border-2 border-[#5865F2]/40 bg-panel-2 p-6 text-center shadow-2xl">
+        <div className="mx-auto mb-4 h-40 w-40">
+          <Squeak3DLazy />
+        </div>
+        <div className="mx-auto mb-3 grid h-16 w-16 place-items-center rounded-2xl bg-[#5865F2] shadow-lg">
+          <svg viewBox="0 0 24 24" className="h-9 w-9 text-white" fill="currentColor">
+            <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-black text-[#5865F2]">{t("joinDiscord")}</h2>
+        <p className="mt-2 text-sm text-ink-dim">{t("discordReward")}</p>
+        <div className="mt-5 flex flex-col gap-2">
+          <a
+            href={brand.discordUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onClose}
+            className="duo-btn flex items-center justify-center gap-2 bg-[#5865F2] text-white hover:bg-[#4752C4]"
+          >
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor">
+              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
+            </svg>
+            {t("openDiscord")}
+          </a>
+          <button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-sm font-bold text-ink-mute hover:bg-panel-3">
+            {t("noThanks")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LessonComplete({ xp, accuracy, seconds, streakBefore }: { xp: number; accuracy: number; seconds: number; streakBefore: number }) {
   const router = useRouter();
   const t = useT();
   const streak = useProgress((s) => currentStreak(s.streak));
   const [showStreak, setShowStreak] = useState(false);
+  const [showDiscord, setShowDiscord] = useState(false);
   const league = useLeaguePromotion();
   const time = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem(DISCORD_SHOWN_KEY)) {
+        localStorage.setItem(DISCORD_SHOWN_KEY, "1");
+        setShowDiscord(true);
+      }
+    } catch {}
+  }, []);
+
   if (league.visible) return <LeaguePromotionModal onClose={league.dismiss} />;
+  if (showDiscord) return <DiscordPopup onClose={() => setShowDiscord(false)} />;
   if (showStreak) return <StreakScreen streak={streak} onContinue={() => router.push("/learn")} />;
 
   const stats = [

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings } from "lucide-react";
+import { Mascot } from "@/components/brand/Mascot";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { useT } from "@/lib/settings/i18n";
 import { useAuth } from "@/lib/supabase/auth";
@@ -48,7 +49,7 @@ export function AccountMenu() {
         {profile?.avatar_url ? (
           <img src={profile.avatar_url} alt={profile.username ?? ""} className="h-full w-full object-cover" />
         ) : (
-          (profile?.username ?? "?")[0].toUpperCase()
+          <Mascot size={36} />
         )}
       </button>
       {open && (

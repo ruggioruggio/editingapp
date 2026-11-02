@@ -55,6 +55,7 @@ const result = await build({
     "process.env.ADMIN_PREVIEW_HASH": JSON.stringify(previewAdminHash),
     "process.env.SQUEAK_DESKTOP": JSON.stringify(isDesktop ? "1" : ""),
     "process.env.SQUEAK_NO_ADMIN": JSON.stringify(process.env.SQUEAK_NO_ADMIN ? "1" : ""),
+    "process.env.NEXT_PUBLIC_API_BASE": JSON.stringify(process.env.NEXT_PUBLIC_API_BASE ?? ""),
   },
   banner: { js: "var process=globalThis.process||{env:{}};" },
   logLevel: "warning",

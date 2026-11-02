@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/app/Sidebar";
 import { Splash } from "@/components/app/Splash";
 import { AnnouncementBar, BanGate } from "@/components/app/SiteNotices";
 import { StatsBar } from "@/components/app/StatsBar";
+import { NotificationsDropdown } from "@/components/app/NotificationsDropdown";
 import { Logo } from "@/components/brand/Logo";
 
 export default function AppLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -21,7 +22,10 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
           <header className="sticky top-0 z-30 border-b border-white/5 bg-app/80 backdrop-blur-xl lg:hidden">
             <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4">
               <Logo href="/learn" size={30} compact />
-              <StatsBar />
+              <div className="flex items-center gap-2">
+                <StatsBar />
+                <NotificationsDropdown />
+              </div>
             </div>
           </header>
           <main className="pb-28 lg:pb-8">{children}</main>

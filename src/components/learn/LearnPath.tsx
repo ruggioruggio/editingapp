@@ -40,27 +40,90 @@ const KIND_ICON: Record<LessonKind, LucideIcon> = {
 };
 
 function TreasureChest({ unlocked }: { unlocked: boolean }) {
+  const t = useT();
+  const [opened, setOpened] = useState(false);
+  const [claimed, setClaimed] = useState(false);
+  const claimQuest = useProgress((s) => s.claimQuest);
+  const chestXp = 25;
+
+  const handleOpen = () => {
+    if (!unlocked || opened) return;
+    setOpened(true);
+    try {
+      const key = `chest-${Date.now()}`;
+      claimQuest(key, chestXp);
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (opened) {
+      const timer = setTimeout(() => setClaimed(true), 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [opened]);
+
   const body = unlocked ? "#d4a55a" : "#5a5a64";
   const bodyDk = unlocked ? "#b8863a" : "#45454f";
   const lid = unlocked ? "#e6c47a" : "#6e6e78";
   const lidHi = unlocked ? "#f2dda0" : "#82828c";
   const clasp = unlocked ? "#fff8e8" : "#a0a0aa";
+  const glow = unlocked && !opened;
 
   return (
     <div className="flex flex-col items-center py-2">
-      <svg viewBox="0 0 80 68" className="h-[68px] w-[80px] drop-shadow-md transition-transform hover:scale-105" fill="none">
-        <ellipse cx="40" cy="65" rx="24" ry="3" fill="rgba(0,0,0,0.12)" />
-        <rect x="18" y="56" width="6" height="8" rx="1.5" fill={bodyDk} />
-        <rect x="56" y="56" width="6" height="8" rx="1.5" fill={bodyDk} />
-        <rect x="14" y="30" width="52" height="30" rx="3" fill={body} />
-        <rect x="14" y="30" width="52" height="10" rx="3" fill={lid} />
-        <rect x="14" y="44" width="52" height="6" fill={bodyDk} />
-        <rect x="14" y="54" width="52" height="6" rx="3" fill={bodyDk} />
-        <rect x="10" y="20" width="60" height="14" rx="5" fill={lid} />
-        <rect x="14" y="22" width="52" height="5" rx="2.5" fill={lidHi} opacity="0.4" />
-        <circle cx="40" cy="34" r="5" fill={clasp} />
-        {unlocked && <circle cx="40" cy="34" r="2" fill="#fbbf24" />}
-      </svg>
+      <button
+        type="button"
+        onClick={handleOpen}
+        disabled={!unlocked || opened}
+        className={clsx("group relative transition-transform", unlocked && !opened && "cursor-pointer hover:scale-110 active:scale-95")}
+      >
+        {glow && (
+          <span className="absolute inset-0 -m-3 animate-pulse rounded-full bg-cheese/20 blur-xl" />
+        )}
+        <svg viewBox="0 0 100 85" className="relative h-[85px] w-[100px] drop-shadow-lg" fill="none">
+          <ellipse cx="50" cy="80" rx="30" ry="4" fill="rgba(0,0,0,0.15)" />
+          {/* Coins on ground */}
+          {unlocked && (
+            <>
+              <circle cx="18" cy="76" r="5" fill="#fbbf24" stroke="#d4950a" strokeWidth="0.8" />
+              <circle cx="82" cy="77" r="4.5" fill="#fbbf24" stroke="#d4950a" strokeWidth="0.8" />
+              <circle cx="26" cy="79" r="3.5" fill="#fcd34d" stroke="#d4950a" strokeWidth="0.6" />
+              <circle cx="76" cy="80" r="3" fill="#fcd34d" stroke="#d4950a" strokeWidth="0.6" />
+              <text x="18" y="78" textAnchor="middle" fontSize="4" fontWeight="bold" fill="#92600a">XP</text>
+              <text x="82" y="79" textAnchor="middle" fontSize="3.5" fontWeight="bold" fill="#92600a">XP</text>
+            </>
+          )}
+          {/* Legs */}
+          <rect x="22" y="66" width="7" height="10" rx="2" fill={bodyDk} />
+          <rect x="71" y="66" width="7" height="10" rx="2" fill={bodyDk} />
+          {/* Body */}
+          <rect x="18" y="38" width="64" height="34" rx="5" fill={body} />
+          <rect x="18" y="52" width="64" height="8" fill={bodyDk} opacity="0.4" />
+          <rect x="18" y="64" width="64" height="8" rx="5" fill={bodyDk} />
+          {/* Metal bands */}
+          <rect x="16" y="38" width="68" height="4" rx="2" fill={lid} />
+          <rect x="16" y="55" width="68" height="3" rx="1.5" fill={lid} opacity="0.5" />
+          {/* Lid */}
+          <g style={{ transformOrigin: "50px 28px", transition: "transform 0.5s cubic-bezier(.34,1.56,.64,1)", transform: opened ? "rotate(-35deg)" : "rotate(0deg)" }}>
+            <rect x="14" y="22" width="72" height="18" rx="6" fill={lid} />
+            <rect x="18" y="24" width="64" height="7" rx="3" fill={lidHi} opacity="0.4" />
+            {/* Clasp */}
+            <rect x="44" y="34" width="12" height="8" rx="3" fill={clasp} />
+            <circle cx="50" cy="38" r="2.5" fill={unlocked ? "#fbbf24" : "#888"} />
+          </g>
+          {/* Glow from inside when opened */}
+          {opened && (
+            <ellipse cx="50" cy="38" rx="20" ry="8" fill="#fbbf24" opacity="0.6">
+              <animate attributeName="opacity" values="0.6;0.3;0.6" dur="1.5s" repeatCount="indefinite" />
+            </ellipse>
+          )}
+        </svg>
+        {opened && !claimed && (
+          <span className="absolute -top-6 left-1/2 -translate-x-1/2 animate-bounce rounded-full bg-cheese px-3 py-1 text-xs font-black text-[#3a2500] shadow-lg">
+            +{chestXp} XP
+          </span>
+        )}
+      </button>
     </div>
   );
 }

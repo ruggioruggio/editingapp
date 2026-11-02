@@ -94,15 +94,19 @@ export function subscribeTyping(sb: SupabaseClient, me: string, friendId: string
     const channelName = [me, friendId].sort().join("-");
     const channel = sb.channel(`typing-${channelName}-${++_presenceSeq}`, { config: { presence: { key: me } } });
     let timeout: ReturnType<typeof setTimeout> | null = null;
+    let joined = false;
     channel.on("presence", { event: "sync" }, () => {
       const state = channel.presenceState();
       const friendPresent = Object.keys(state).some((k) => k === friendId);
       onTyping(friendPresent);
-    }).subscribe();
+    }).subscribe((status: string) => {
+      if (status === "SUBSCRIBED") joined = true;
+    });
     const sendTyping = () => {
+      if (!joined) return;
       try { void channel.track({ typing: true }); } catch {}
       if (timeout) clearTimeout(timeout);
-      timeout = setTimeout(() => { try { void channel.untrack(); } catch {} }, 3000);
+      timeout = setTimeout(() => { if (joined) try { void channel.untrack(); } catch {} }, 3000);
     };
     return {
       stop: () => { if (timeout) clearTimeout(timeout); try { void sb.removeChannel(channel); } catch {} },

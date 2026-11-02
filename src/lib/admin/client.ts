@@ -82,7 +82,8 @@ function clearGrace() {
 
 export async function checkSession() {
   try {
-    const r = await fetch("/api/admin/login", { cache: "no-store" });
+    const base = API_BASE || "";
+    const r = await fetch(`${base}/api/admin/login`, { cache: "no-store", credentials: base ? "include" : "same-origin" });
     if (!r.ok) return;
     const j = (await r.json()) as { ok: boolean; database: boolean };
     if (j.ok) useAdmin.setState({ unlocked: true, mode: "server", database: j.database });
@@ -92,7 +93,8 @@ export async function checkSession() {
 
 export async function adminLogin(password: string): Promise<string | null> {
   try {
-    const r = await fetch("/api/admin/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password }) });
+    const base = API_BASE || "";
+    const r = await fetch(`${base}/api/admin/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ password }), credentials: base ? "include" : "same-origin" });
     const ct = r.headers.get("content-type") ?? "";
     if (ct.includes("application/json")) {
       const j = (await r.json()) as { ok?: boolean; error?: string; database?: boolean };
@@ -116,15 +118,22 @@ export async function adminLogin(password: string): Promise<string | null> {
 export async function adminLogout() {
   clearGrace();
   try {
-    await fetch("/api/admin/login", { method: "DELETE" });
+    await fetch(`${API_BASE || ""}/api/admin/login`, { method: "DELETE", credentials: API_BASE ? "include" : "same-origin" });
   } catch {
   }
   useAdmin.setState({ unlocked: false, mode: null, open: false });
 }
 
+const API_BASE: string = typeof process !== "undefined" ? (process.env.NEXT_PUBLIC_API_BASE ?? "") : "";
+
 export async function adminAction<T = { ok: boolean }>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
-  if (useAdmin.getState().mode !== "server") throw new Error("Questa azione richiede il sito con il server (non funziona nell'anteprima)");
-  const r = await fetch("/api/admin/action", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, ...payload }) });
+  const state = useAdmin.getState();
+  let url = "/api/admin/action";
+  if (state.mode !== "server") {
+    if (!API_BASE) throw new Error("Questa azione richiede il sito con il server (non funziona nell'anteprima)");
+    url = `${API_BASE}/api/admin/action`;
+  }
+  const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action, ...payload }), credentials: state.mode === "server" ? "same-origin" : "include" });
   const j = (await r.json().catch(() => ({ error: "Risposta non valida" }))) as T & { error?: string };
   if (!r.ok || j.error) {
     if (r.status === 401) useAdmin.setState({ unlocked: false, mode: null });

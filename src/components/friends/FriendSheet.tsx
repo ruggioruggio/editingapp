@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import clsx from "clsx";
-import { ArrowUp, BookOpen, Flame, Heart, Star, UserCheck, UserPlus, Users, X, Zap } from "lucide-react";
+import { ArrowUp, BookOpen, Flame, Heart, Star, UserCheck, UserPlus, UserRoundPlus, Users, X, Zap } from "lucide-react";
 import { ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
 import { ACHIEVEMENTS } from "@/lib/gamification/achievements";
 import { getSupabase } from "@/lib/supabase/client";
-import type { FriendProfile } from "@/lib/supabase/friends";
+import { sendFriendRequest, type FriendProfile } from "@/lib/supabase/friends";
 import {
   loadConversation,
   loadFriendAchievements,
@@ -157,25 +157,33 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!sb) return;
+    const client = sb ?? getSupabase();
+    if (!client) return;
     let alive = true;
-    loadConversation(sb, me, friend.id)
-      .then((list) => alive && setMessages(list))
-      .catch(() => alive && setError(t("loadChatFailed")));
-    void markRead(sb, me, friend.id).then(onRead).catch(() => {});
+    const load = () => {
+      loadConversation(client, me, friend.id)
+        .then((list) => alive && setMessages(list))
+        .catch(() => {
+          if (alive) {
+            setTimeout(() => alive && load(), 2000);
+          }
+        });
+    };
+    load();
+    void markRead(client, me, friend.id).then(onRead).catch(() => {});
 
-    const stopIncoming = subscribeIncoming(sb, me, (m) => {
+    const stopIncoming = subscribeIncoming(client, me, (m) => {
       if (m.sender_id !== friend.id) return;
       setMessages((list) => (list && !list.some((x) => x.id === m.id) ? [...list, m] : list));
       setNewIds((s) => new Set(s).add(m.id));
-      void markRead(sb, me, friend.id).catch(() => {});
+      void markRead(client, me, friend.id).catch(() => {});
     });
 
-    const stopRead = subscribeReadReceipts(sb, me, friend.id, (id) => {
+    const stopRead = subscribeReadReceipts(client, me, friend.id, (id) => {
       setMessages((list) => list?.map((m) => m.id === id ? { ...m, read_at: new Date().toISOString() } : m) ?? null);
     });
 
-    const { stop: stopTyping, sendTyping } = subscribeTyping(sb, me, friend.id, setFriendTyping);
+    const { stop: stopTyping, sendTyping } = subscribeTyping(client, me, friend.id, setFriendTyping);
     typingRef.current = { sendTyping };
 
     return () => {
@@ -276,6 +284,7 @@ function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, 
   const joinDate = friend.created_at ? new Date(friend.created_at).toLocaleDateString(locale, { month: "long", year: "numeric" }) : null;
   const [lessonsCount, setLessonsCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
+  const [friendReqStatus, setFriendReqStatus] = useState<"idle" | "sending" | "sent" | "exists">("idle");
 
   useEffect(() => {
     const sb = getSupabase();
@@ -301,17 +310,39 @@ function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, 
           <span className={clsx("inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-r", tier.gradient)} />
           <span className="text-xs font-bold text-ink-mute">{t(tier.nameKey)}</span>
         </div>
-        <button
-          type="button"
-          disabled={followBusy}
-          onClick={onToggleFollow}
-          className={clsx(
-            "mt-3 flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-black transition-colors disabled:opacity-50",
-            isFollowing ? "bg-panel-2 text-ink-dim hover:bg-panel-3" : "bg-accent text-white hover:bg-accent/80",
-          )}
-        >
-          {isFollowing ? <><UserCheck size={16} /> {t("following")}</> : <><UserPlus size={16} /> {t("follow")}</>}
-        </button>
+        <div className="mt-3 flex items-center justify-center gap-2">
+          <button
+            type="button"
+            disabled={followBusy}
+            onClick={onToggleFollow}
+            className={clsx(
+              "flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-black transition-colors disabled:opacity-50",
+              isFollowing ? "bg-panel-2 text-ink-dim hover:bg-panel-3" : "bg-accent text-white hover:bg-accent/80",
+            )}
+          >
+            {isFollowing ? <><UserCheck size={16} /> {t("following")}</> : <><UserPlus size={16} /> {t("follow")}</>}
+          </button>
+          <button
+            type="button"
+            disabled={friendReqStatus !== "idle"}
+            onClick={async () => {
+              const sb = getSupabase();
+              if (!sb || !friend.username) return;
+              setFriendReqStatus("sending");
+              try {
+                const res = await sendFriendRequest(sb, me, friend.username);
+                setFriendReqStatus(res === "sent" || res === "accepted" ? "sent" : "exists");
+              } catch { setFriendReqStatus("idle"); }
+            }}
+            className={clsx(
+              "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition-colors disabled:opacity-50",
+              friendReqStatus === "sent" ? "bg-success/20 text-success" : friendReqStatus === "exists" ? "bg-panel-2 text-ink-mute" : "bg-panel-2 text-ink hover:bg-panel-3",
+            )}
+          >
+            <UserRoundPlus size={16} />
+            {friendReqStatus === "sent" ? t("friendRequestSent") : friendReqStatus === "exists" ? t("friendRequestExists") : t("sendFriendRequest")}
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-center">
