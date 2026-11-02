@@ -6,7 +6,7 @@ import { Ban, Crown, HardHat, Gavel, Handshake, KeyRound, LogOut, Megaphone, Ref
 import { allLessons } from "@/content/course";
 import { todayKey } from "@/lib/date";
 import { adminAction, adminLogin, adminLogout, markGrace, useAdmin, type Announcement } from "@/lib/admin/client";
-import { useProgress } from "@/lib/progress/store";
+import { pickGameData, useProgress } from "@/lib/progress/store";
 import { useAuth, ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { ModSqueakScene } from "@/components/three/lazy";
@@ -457,6 +457,14 @@ function Tools() {
     </button>
   );
   const p = useProgress.getState;
+  const syncLocal = () => {
+    const sb = getSupabase();
+    const userId = useAuth.getState().userId;
+    if (!sb || !userId) return;
+    const s = useProgress.getState();
+    void sb.from("progress").upsert({ user_id: userId, data: pickGameData(s), updated_at: new Date().toISOString() });
+    void sb.from("profiles").update({ xp: s.xp, streak_count: s.streak.lastDay === todayKey() ? s.streak.count : 0, streak_last_day: s.streak.lastDay }).eq("id", userId);
+  };
   return (
     <div className="space-y-4">
       <label className="flex items-center justify-between gap-4 rounded-xl bg-black/30 p-4">
@@ -479,12 +487,12 @@ function Tools() {
       </label>
       <p className="text-xs font-bold uppercase tracking-wide text-[#80848e]">Il mio progresso (per fare test)</p>
       <div className="grid gap-2 sm:grid-cols-2">
-        {tool("+100 XP", () => useProgress.setState({ xp: p().xp + 100 }))}
-        {tool("+1000 XP", () => useProgress.setState({ xp: p().xp + 1000 }))}
-        {tool("Completa tutte le lezioni disponibili", () => p().completeLessons(allLessons.filter((l) => l.status === "available").map((l) => l.id), 0))}
+        {tool("+100 XP", () => { useProgress.setState({ xp: p().xp + 100 }); syncLocal(); })}
+        {tool("+1000 XP", () => { useProgress.setState({ xp: p().xp + 1000 }); syncLocal(); })}
+        {tool("Completa tutte le lezioni disponibili", () => { p().completeLessons(allLessons.filter((l) => l.status === "available").map((l) => l.id), 0); syncLocal(); })}
         {tool("Azzera il limite di lezioni di oggi", () => useProgress.setState({ daily: { day: todayKey(), lessonIds: [] } }))}
-        {tool("Serie di 30 giorni", () => useProgress.setState({ streak: { count: 30, lastDay: todayKey() }, bestStreak: Math.max(30, p().bestStreak) }))}
-        {tool("Azzera la serie", () => useProgress.setState({ streak: { count: 0, lastDay: null } }))}
+        {tool("Serie di 30 giorni", () => { useProgress.setState({ streak: { count: 30, lastDay: todayKey() }, bestStreak: Math.max(30, p().bestStreak) }); syncLocal(); })}
+        {tool("Azzera la serie", () => { useProgress.setState({ streak: { count: 0, lastDay: null } }); syncLocal(); })}
         {tool("Rivedi l'animazione d'apertura", () => {
           try {
             sessionStorage.removeItem("squeak-splash-shown");
@@ -492,7 +500,17 @@ function Tools() {
           }
           window.location.reload();
         })}
-        {tool("Ricomincia da zero (progressi)", () => window.confirm("Cancellare tutti i progressi di questo dispositivo?") && p().reset())}
+        {tool("Ricomincia da zero (progressi)", () => {
+          if (!window.confirm("Cancellare tutti i progressi di questo dispositivo?")) return;
+          p().reset();
+          const sb = getSupabase();
+          const userId = useAuth.getState().userId;
+          if (sb && userId) {
+            const data = pickGameData(useProgress.getState());
+            void sb.from("progress").upsert({ user_id: userId, data, updated_at: new Date().toISOString() });
+            void sb.from("profiles").update({ xp: 0, streak_count: 0, streak_last_day: null }).eq("id", userId);
+          }
+        })}
       </div>
       {done && <p className="text-sm font-bold text-[#57f287]">Fatto: {done}</p>}
     </div>

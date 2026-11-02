@@ -186,8 +186,16 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
     const { stop: stopTyping, sendTyping } = subscribeTyping(client, me, friend.id, setFriendTyping);
     typingRef.current = { sendTyping };
 
+    const poll = setInterval(() => {
+      if (!alive) return;
+      loadConversation(client, me, friend.id)
+        .then((list) => { if (alive) setMessages(list); })
+        .catch(() => {});
+    }, 5000);
+
     return () => {
       alive = false;
+      clearInterval(poll);
       stopIncoming();
       stopRead();
       stopTyping();

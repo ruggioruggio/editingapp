@@ -7,7 +7,6 @@ import { useHydrated } from "@/lib/hooks/useHydrated";
 import { todayState, useProgress } from "@/lib/progress/store";
 import { sfx } from "@/lib/settings/sfx";
 import { StatsBar } from "./StatsBar";
-import { AccountMenu } from "./AccountMenu";
 import { NotificationsDropdown } from "./NotificationsDropdown";
 import { useEffect, useState } from "react";
 
@@ -95,10 +94,7 @@ export function RightPanel() {
     <aside className="sticky top-0 hidden h-dvh w-80 shrink-0 overflow-y-auto border-l border-white/5 p-5 lg:block">
       <div className="mb-5 flex items-center justify-between">
         <StatsBar />
-        <div className="flex items-center gap-2">
-          <NotificationsDropdown />
-          <AccountMenu />
-        </div>
+        <NotificationsDropdown />
       </div>
       <DailyQuestsWidget />
     </aside>
