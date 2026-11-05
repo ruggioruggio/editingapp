@@ -1,8 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Camera, Flame, Settings, Zap } from "lucide-react";
+import clsx from "clsx";
+import { Camera, Flame, MessageCircle, Settings, UserRound, Zap } from "lucide-react";
+import { DmInbox } from "@/components/friends/DmInbox";
 import { FriendsPanel } from "@/components/friends/FriendsPanel";
+import { badgeLabel, useNotificationCounts } from "@/lib/hooks/useNotificationCount";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { useAuth } from "@/lib/supabase/auth";
 import { currentStreak, useProgress } from "@/lib/progress/store";
@@ -60,6 +63,15 @@ export function ProfileView() {
   const [followerCount, setFollowerCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatar_url ?? null);
+  const [tab, setTab] = useState<"profile" | "dm">("profile");
+  const [chatWith, setChatWith] = useState<string | null>(null);
+  const unreadMessages = useNotificationCounts((s) => s.unreadMessages);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("tab") === "dm") setTab("dm");
+    if (q.get("chat")) { setTab("dm"); setChatWith(q.get("chat")); }
+  }, []);
 
   useEffect(() => {
     setBio(profile?.bio ?? "");
@@ -201,8 +213,31 @@ export function ProfileView() {
         )}
       </div>
 
-      <div className="border-t border-line mx-auto max-w-xl px-4 py-6">
-        <FriendsPanel />
+      <div className="sticky top-14 z-20 border-b border-line bg-app/90 backdrop-blur-xl lg:top-0">
+        <div className="mx-auto grid max-w-xl grid-cols-2">
+          {(["profile", "dm"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setTab(k)}
+              className={clsx(
+                "relative flex items-center justify-center gap-2 py-3 text-sm font-black uppercase tracking-wide",
+                tab === k ? "text-ink" : "text-ink-mute hover:text-ink-dim",
+              )}
+            >
+              {k === "profile" ? <UserRound size={17} /> : <MessageCircle size={17} />}
+              {k === "profile" ? t("profile") : t("messagesTab")}
+              {k === "dm" && unreadMessages > 0 && (
+                <span className="grid h-[18px] min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[10px] font-black text-white">{badgeLabel(unreadMessages)}</span>
+              )}
+              {tab === k && <span className="absolute inset-x-6 bottom-0 h-[3px] rounded-full bg-accent" />}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-xl px-4 py-6">
+        {tab === "profile" ? <FriendsPanel /> : <DmInbox initialOpen={chatWith} />}
       </div>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}

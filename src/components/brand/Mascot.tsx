@@ -1,3 +1,4 @@
+import { useId } from "react";
 import clsx from "clsx";
 import { brand } from "@/config/brand";
 
@@ -96,10 +97,8 @@ export function Mascot({
   );
 }
 
-let iconIdCounter = 0;
-
 export function AppIcon({ size = 32, className }: { size?: number; className?: string }) {
-  const uid = `sq-${++iconIdCounter}`;
+  const uid = `sq-${useId().replace(/:/g, "")}`;
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className={clsx("shrink-0", className)} style={{ borderRadius: size * 0.24, overflow: "hidden" }} aria-hidden>
       <defs>

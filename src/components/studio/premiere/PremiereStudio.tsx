@@ -41,10 +41,10 @@ const PANEL_LABEL: Record<string, string> = {
   timeline: "Timeline",
 };
 const DESK_ZONES: Zones = {
-  TL: { tabs: ["source", "effectControls"], active: "source" },
-  TC: { tabs: ["program"], active: "program" },
-  TR: { tabs: ["properties", "graphics"], active: "properties" },
-  BL: { tabs: ["project", "effects", "history"], active: "project" },
+  TL: { tabs: ["source", "effectControls", "mixer", "metadata", "properties", "graphics"], active: "source" },
+  TC: { tabs: [], active: "" },
+  TR: { tabs: ["program"], active: "program" },
+  BL: { tabs: ["project", "media", "effects", "history", "info"], active: "project" },
   BR: { tabs: ["timeline"], active: "timeline" },
   T0: { tabs: [], active: "" },
   TX: { tabs: [], active: "" },
@@ -57,7 +57,7 @@ const DESK_ROWS = [
   { id: "top", zones: ["T0", "TL", "TC", "TR", "TX"] },
   { id: "bottom", zones: ["BL", "BC", "BR", "BX"] },
 ];
-const DESK_WEIGHTS = { top: 0.57, bottom: 0.43, T0: 0.25, TL: 0.36, TC: 0.36, TR: 0.28, TX: 0.25, BL: 0.27, BC: 0.3, BR: 0.73, BX: 0.3 };
+const DESK_WEIGHTS = { top: 0.55, bottom: 0.45, T0: 0.25, TL: 0.5, TC: 0.3, TR: 0.5, TX: 0.25, BL: 0.3, BC: 0.3, BR: 0.7, BX: 0.3 };
 const PHONE_ROWS = [
   { id: "a", zones: ["A"] },
   { id: "b", zones: ["B"] },
@@ -186,7 +186,7 @@ function ToolsPanel({ horizontal }: { horizontal?: boolean }) {
   const [fly, setFly] = useState<number | null>(null);
   const [chosen, setChosen] = useState<number[]>(TOOL_GROUPS.map(() => 0));
   return (
-    <div className={clsx("relative flex items-center gap-1.5 py-2", horizontal ? "flex-row px-2" : "flex-col")}>
+    <div className={clsx("relative flex items-center gap-[2px] py-1", horizontal ? "flex-row px-1" : "flex-col")}>
       {TOOL_GROUPS.map((g, gi) => {
         const activeIdx = g.tools.findIndex(([id]) => id === st.tool);
         const shown = g.tools[activeIdx >= 0 ? activeIdx : chosen[gi]];
@@ -208,7 +208,7 @@ function ToolsPanel({ horizontal }: { horizontal?: boolean }) {
                 const clear = () => clearTimeout(timer);
                 window.addEventListener("pointerup", clear, { once: true });
               }}
-              className={clsx("relative grid h-8 w-8 place-items-center rounded-[5px]", activeIdx >= 0 ? "bg-[#2d63d6] text-white" : "text-[#d0d0d0] hover:bg-white/10")}
+              className={clsx("relative grid h-[30px] w-[30px] place-items-center rounded-[3px]", activeIdx >= 0 ? "bg-[#3a3a3a] text-ppro-blue" : "text-[#c4c4c4] hover:bg-white/10 hover:text-white")}
             >
               {icon}
               {g.tools.length > 1 && <span className="absolute bottom-[3px] right-[3px] h-0 w-0 border-l-[4px] border-t-[4px] border-l-transparent border-t-current opacity-70" style={{ transform: "rotate(90deg)" }} />}
@@ -304,7 +304,7 @@ export function PremiereStudioEmbedded() {
 function PremiereInner() {
   const st = usePremiere();
   const wide = useWide();
-  const desk = useDockLayout("pr-dock-desktop-v2", DESK_ZONES, DESK_PANELS);
+  const desk = useDockLayout("pr-dock-desktop-v3", DESK_ZONES, DESK_PANELS);
   const phone = useDockLayout("pr-dock-phone-v2", PHONE_ZONES, PHONE_PANELS);
   const layout = wide ? desk : phone;
   const [sizes, setSizes] = useState({ top: 0.57, src: 0.36, prog: 0.36, proj: 0.27, meters: 110 });
@@ -564,7 +564,7 @@ function PremiereInner() {
   );
 
   const header = (
-    <div className="flex h-11 shrink-0 items-center gap-1 border-b border-[#0f0f0f] bg-[#1b1b1b] px-3 text-[14px]">
+    <div className="flex h-9 shrink-0 items-center gap-1 border-b border-[#151515] bg-[#1b1b1b] px-2 text-[12.5px]">
       <Link href="/practice" onClick={(e) => isEmbedded() && (e.preventDefault(), studioExit("/practice"))} title="Home (torna a Pratica)" className="grid h-8 w-8 place-items-center rounded text-[#d0d0d0] hover:bg-white/10">
         <Home size={17} />
       </Link>
@@ -662,14 +662,14 @@ function PremiereInner() {
       <DockRows
         layout={layout}
         rows={DESK_ROWS}
-        storageKey="pr-dock-sizes-v3"
+        storageKey="pr-dock-sizes-v4"
         defaults={DESK_WEIGHTS}
         zone={zone}
         extras={{
           bottom: {
             after: "BL",
             node: (
-              <div className="mx-[2px] h-full w-[52px] shrink-0 rounded-[4px] bg-[#1e1e1e]" onPointerDownCapture={() => st.set({ focus: "tools" })}>
+              <div className="mx-[3px] h-full w-[34px] shrink-0 rounded-[2px] border border-[#151515] bg-ppro-panel" onPointerDownCapture={() => st.set({ focus: "tools" })}>
                 <ToolsPanel />
               </div>
             ),
@@ -712,7 +712,7 @@ function PremiereInner() {
 
   return (
     <div
-      className={clsx("force-dark fixed inset-0 flex select-none flex-col bg-[#121212] text-[#d0d0d0]", !wide && "overflow-y-auto")}
+      className={clsx("force-dark fixed inset-0 flex select-none flex-col bg-ppro-window font-ppro text-[#d0d0d0]", !wide && "overflow-y-auto")}
       onDragOver={(e) => e.dataTransfer.types.includes("Files") && e.preventDefault()}
       onDrop={(e) => {
         if (!e.dataTransfer.files.length) return;

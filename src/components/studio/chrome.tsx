@@ -159,17 +159,18 @@ export function Panel<T extends string>({
     <section
       onPointerDownCapture={onFocus}
       style={style}
-      className={clsx("relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[4px] border bg-[#1e1e1e]", focused ? "border-[#2d8ceb]" : "border-[#1e1e1e]", className)}
+      className={clsx("relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[2px] border bg-ppro-panel font-ppro", focused ? "border-ppro-blue" : "border-[#151515]", className)}
     >
-      <div className="flex h-[34px] shrink-0 items-center gap-5 overflow-x-auto px-3 text-[12.5px] [scrollbar-width:none]">
+      <div className="flex h-[26px] shrink-0 items-stretch overflow-x-auto border-b border-[#151515] bg-ppro-header text-[11px] [scrollbar-width:none]">
         {tabs.map((t) => (
-          <div key={t} className="flex shrink-0 items-center gap-1.5">
+          <div key={t} className={clsx("relative flex shrink-0 items-center gap-1.5 px-2.5", t === tab && "bg-ppro-panel")}>
+            {t === tab && <span className={clsx("absolute inset-x-0 bottom-0 h-[2px]", focused ? "bg-ppro-blue" : "bg-[#6a6a6a]")} />}
             {onClose && t === tab && (
               <button type="button" onClick={() => onClose(t)} className="text-[#9a9a9a] hover:text-white" aria-label="Chiudi">
                 <X size={13} />
               </button>
             )}
-            <button type="button" onClick={() => onTab?.(t)} className={clsx("whitespace-nowrap", t === tab ? "text-white underline decoration-1 underline-offset-[5px]" : "text-[#bdbdbd] hover:text-white")}>
+            <button type="button" onClick={() => onTab?.(t)} className={clsx("whitespace-nowrap", t === tab ? "font-semibold text-ppro-tab-active" : "text-ppro-tab hover:text-ppro-tab-active")}>
               {t}
             </button>
             {t === tab && menu && (
@@ -179,7 +180,7 @@ export function Panel<T extends string>({
             )}
           </div>
         ))}
-        <div className="ml-auto flex shrink-0 items-center gap-1">{actions}</div>
+        <div className="ml-auto flex shrink-0 items-center gap-1 pr-2">{actions}</div>
       </div>
       <div className="relative min-h-0 flex-1">{children}</div>
       {m && menu && <ContextMenu x={m.x} y={m.y} items={menu} onClose={() => setM(null)} />}

@@ -93,6 +93,7 @@ if (!gotLock) { dbg("ALTRA ISTANZA - esco"); app.quit(); } else {
   app.on("second-instance", () => {
     if (mainWin) { if (mainWin.isMinimized()) mainWin.restore(); mainWin.focus(); }
   });
+  if (process.platform === "win32") app.setAppUserModelId("com.squeakedit.app");
   app.whenReady().then(() => {
     dbg("app.whenReady() - avvio server e finestra");
     startOAuthServer();

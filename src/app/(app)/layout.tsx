@@ -1,4 +1,5 @@
 import { Dock } from "@/components/app/Dock";
+import { NotificationManager } from "@/components/app/NotificationManager";
 import { Onboarding } from "@/components/app/Onboarding";
 import { RightPanel } from "@/components/app/RightPanel";
 import { Sidebar } from "@/components/app/Sidebar";
@@ -12,6 +13,7 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
   return (
     <div className="min-h-dvh">
       <Onboarding />
+      <NotificationManager />
       <Splash />
       <BanGate />
       <AnnouncementBar />

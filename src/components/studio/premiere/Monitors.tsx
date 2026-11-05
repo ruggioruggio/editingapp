@@ -16,7 +16,7 @@ const ZOOMS = ["fit", 10, 25, 50, 75, 100, 150, 200, 400] as const;
 
 function TransportButton({ title, onClick, children, active }: { title: string; onClick: () => void; children: ReactNode; active?: boolean }) {
   return (
-    <button type="button" title={title} aria-label={title} onClick={onClick} className={clsx("grid h-7 w-8 place-items-center rounded hover:bg-white/10", active ? "text-[#3d9cf0]" : "text-[#d0d0d0]")}>
+    <button type="button" title={title} aria-label={title} onClick={onClick} className={clsx("grid h-[26px] w-[28px] place-items-center rounded-[2px] hover:bg-white/10", active ? "text-ppro-blue" : "text-[#c4c4c4] hover:text-white")}>
       {children}
     </button>
   );
@@ -103,12 +103,13 @@ function TimeBar({ value, max, inP, outP, markers, onScrub, fps }: { value: numb
         {markers?.map((m, i) => (
           <div key={i} className="absolute top-0 h-[9px] w-[8px] -translate-x-1/2" style={{ left: pct(m.t), background: MARKER_COLORS[m.color], clipPath: "polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)" }} />
         ))}
-        <div className="absolute top-[6px] h-[12px] w-[11px] -translate-x-1/2 bg-[#3d9cf0]" style={{ left: pct(value), clipPath: "polygon(0 0,100% 0,100% 55%,50% 100%,0 55%)" }} />
+        <div className="absolute top-[4px] h-[14px] w-[13px] -translate-x-1/2 bg-ppro-playhead" style={{ left: pct(value), clipPath: "polygon(0 0,100% 0,100% 58%,50% 100%,0 58%)" }} />
+        <div className="absolute bottom-0 top-[16px] w-px -translate-x-1/2 bg-ppro-playhead" style={{ left: pct(value) }} />
       </div>
       <div className="relative mb-1 h-[10px]">
         <div className="absolute inset-x-1 top-1/2 h-[2px] -translate-y-1/2 rounded bg-[#3a3a3a]" />
-        <div className="absolute left-0 top-0 h-[10px] w-[10px] rounded-full border-2 border-[#d0d0d0] bg-[#1e1e1e]" />
-        <div className="absolute right-0 top-0 h-[10px] w-[10px] rounded-full border-2 border-[#d0d0d0] bg-[#1e1e1e]" />
+        <div className="absolute left-0 top-0 h-[10px] w-[10px] rounded-full border-2 border-[#d0d0d0] bg-ppro-panel" />
+        <div className="absolute right-0 top-0 h-[10px] w-[10px] rounded-full border-2 border-[#d0d0d0] bg-ppro-panel" />
       </div>
     </div>
   );
@@ -179,13 +180,13 @@ export function SourceMonitor() {
         <div className="pointer-events-none absolute left-3 top-2 text-[11px] text-white/70">{m.name}</div>
       </div>
       <div className="flex shrink-0 items-center gap-2 px-3 pt-1.5 text-[12px]">
-        <span className="font-mono text-[13px] text-[#3d9cf0] sm:text-[16px]">{timecode(source.t, fps)}</span>
+        <span className="font-mono text-[13px] tracking-tight text-ppro-timecode sm:text-[15px]">{timecode(source.t, fps)}</span>
         <ZoomSelect value={zoom} onChange={setZoom} />
         <span className="ml-auto hidden sm:inline">
           <ResSelect />
         </span>
         <Wrench size={13} className="hidden text-[#9a9a9a] sm:block" />
-        <span className="ml-auto font-mono text-[13px] text-[#d0d0d0] sm:ml-0 sm:text-[16px]">{timecode((source.out ?? dur) - (source.in ?? 0), fps)}</span>
+        <span className="ml-auto font-mono text-[13px] tracking-tight text-[#d0d0d0] sm:ml-0 sm:text-[15px]">{timecode((source.out ?? dur) - (source.in ?? 0), fps)}</span>
       </div>
       <TimeBar value={source.t} max={dur} inP={source.in} outP={source.out} fps={fps} onScrub={(t) => set({ t, playing: false })} />
       <div className="flex shrink-0 flex-wrap items-center justify-center gap-0.5 pb-1.5">
@@ -373,16 +374,16 @@ export function ProgramMonitor() {
         <SequenceAudio seq={seq} project={st.project} t={T} playing={st.playing} />
       </div>
       <div className="flex shrink-0 items-center gap-2 px-3 pt-1.5 text-[12px]">
-        <span className="font-mono text-[13px] text-[#3d9cf0] sm:text-[16px]">{timecode(T, seq.fps)}</span>
+        <span className="font-mono text-[13px] tracking-tight text-ppro-timecode sm:text-[15px]">{timecode(T, seq.fps)}</span>
         <ZoomSelect value={st.programZoom} onChange={(v) => st.set({ programZoom: v })} />
         <span className="ml-auto hidden sm:inline">
           <ResSelect />
         </span>
         <Wrench size={13} className="hidden text-[#9a9a9a] sm:block" />
-        <span className="ml-auto font-mono text-[13px] text-[#d0d0d0] sm:ml-0 sm:text-[16px]">{timecode(seq.outPoint !== null && seq.inPoint !== null ? seq.outPoint - seq.inPoint : seqDuration(seq), seq.fps)}</span>
+        <span className="ml-auto font-mono text-[13px] tracking-tight text-[#d0d0d0] sm:ml-0 sm:text-[15px]">{timecode(seq.outPoint !== null && seq.inPoint !== null ? seq.outPoint - seq.inPoint : seqDuration(seq), seq.fps)}</span>
       </div>
       <TimeBar value={T} max={dur} inP={seq.inPoint} outP={seq.outPoint} markers={seq.markers} fps={seq.fps} onScrub={(t) => (st.set({ playing: false }), st.setPlayhead(t))} />
-      <div className="flex shrink-0 flex-wrap items-center justify-center gap-0.5 pb-1.5">
+      <div className="flex shrink-0 flex-wrap items-center justify-center gap-0 pb-1">
         <TransportButton title="Aggiungi marcatore (M)" onClick={A.addMarker}>
           {I.marker}
         </TransportButton>

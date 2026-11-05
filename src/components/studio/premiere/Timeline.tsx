@@ -38,11 +38,27 @@ import { Scrub, timecode, useWide } from "../chrome";
 import { Thumb } from "../render";
 import * as A from "./actions";
 
-const HEAD_WIDE = 196;
-const HEAD_PHONE = 104;
-const TOP = 62;
-const DIV = 6;
-const MIX = 30;
+const HEAD_WIDE = 168;
+const HEAD_PHONE = 100;
+const TOP = 52;
+const DIV = 4;
+const MIX = 26;
+const CLIP_HEAD = 14;
+
+const DEFAULT_LABEL = 2;
+function clipColors(label: number, isV: boolean) {
+  if (label === DEFAULT_LABEL) return isV ? { body: "#9368aa", head: "#5d4b75" } : { body: "#3b8d8e", head: "#2d6a68" };
+  const c = LABELS[label]?.[1] ?? "#9368aa";
+  return { body: c, head: `color-mix(in srgb, ${c} 62%, #000)` };
+}
+
+function PlayheadHead() {
+  return (
+    <svg width="15" height="17" viewBox="0 0 15 17" className="absolute -left-[7px] bottom-0" aria-hidden>
+      <path d="M0.5 0.5H14.5V10L7.5 16.5L0.5 10Z" fill="#00aaff" stroke="#7fd4ff" strokeWidth="1" />
+    </svg>
+  );
+}
 
 type Row = { track: Track; y: number; h: number };
 
@@ -71,8 +87,8 @@ function Waveform({ seed, from, to, dense }: { seed: number; from: number; to: n
   });
   const d = pts.map((v, i) => `M${(i / n) * 100} ${50 - v * 45}V${50 + v * 45}`).join("");
   return (
-    <svg className="absolute inset-x-0 bottom-0 top-[14px] h-[calc(100%-14px)] w-full" preserveAspectRatio="none" viewBox="0 0 100 100">
-      <path d={d} stroke="rgb(170 230 240 / .75)" strokeWidth=".8" vectorEffect="non-scaling-stroke" />
+    <svg className="absolute inset-x-0 bottom-0 h-[calc(100%-14px)] w-full" style={{ top: CLIP_HEAD }} preserveAspectRatio="none" viewBox="0 0 100 100">
+      <path d={d} stroke="rgb(205 250 245 / .8)" strokeWidth=".8" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -464,8 +480,8 @@ function TimelineBody({ seq }: { seq: Sequence }) {
     });
   };
 
-  const secStep = [0.04, 0.2, 1, 2, 5, 10, 30, 60, 300].find((s) => s * pps >= 70) ?? 600;
-  const minor = secStep / 5;
+  const secStep = [0.04, 0.2, 0.4, 1, 2, 5, 10, 30, 60, 300].find((s) => s * pps >= 80) ?? 600;
+  const minor = secStep / 10;
   const ticks = Array.from({ length: Math.ceil(dur / minor) + 1 }, (_, i) => i * minor);
 
   const edgeCursor = tool === "ripple" ? "cursor-[w-resize]" : tool === "roll" ? "cursor-col-resize" : tool === "rate" ? "cursor-ew-resize" : "cursor-ew-resize";
@@ -534,7 +550,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
       <div
         ref={scroller}
         data-timeline-area
-        className={clsx("relative min-h-0 flex-1 overflow-auto [scrollbar-color:#4a4a4a_transparent]", tool === "razor" && "cursor-crosshair", tool === "hand" && "cursor-grab", tool === "zoom" && "cursor-zoom-in")}
+        className={clsx("relative min-h-0 flex-1 overflow-auto bg-[#1d1d1d] [scrollbar-color:#4a4a4a_transparent]",tool === "razor" && "cursor-crosshair", tool === "hand" && "cursor-grab", tool === "zoom" && "cursor-zoom-in")}
         onDragOver={(e) => {
           e.preventDefault();
           if (snapping) snap(xToTime(e.clientX));
@@ -553,12 +569,12 @@ function TimelineBody({ seq }: { seq: Sequence }) {
         <div className="relative" style={{ width: width + HEAD, height: total }}>
           {/* intestazione: codice di tempo, pulsanti e righello */}
           <div className="sticky top-0 z-30 flex" style={{ height: TOP }}>
-            <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-between overflow-hidden bg-[#1e1e1e] px-2 pb-1.5 pt-1 sm:px-3" style={{ width: HEAD }}>
+            <div className="sticky left-0 z-10 flex shrink-0 flex-col justify-between overflow-hidden border-b border-r border-ppro-track-line bg-ppro-panel px-2 pb-1 pt-0.5" style={{ width: HEAD }}>
               {editTc ? (
                 <input
                   autoFocus
                   defaultValue={timecode(playhead, fps)}
-                  className="w-32 rounded border border-[#2680eb] bg-[#111] px-1 font-mono text-[17px] text-[#3d9cf0] outline-none"
+                  className="w-32 rounded-[2px] border border-ppro-blue bg-[#111] px-1 font-mono text-[16px] text-ppro-timecode outline-none"
                   onBlur={() => setEditTc(false)}
                   onKeyDown={(e) => {
                     e.stopPropagation();
@@ -572,7 +588,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
                   }}
                 />
               ) : (
-                <button type="button" onClick={() => setEditTc(true)} className="text-left font-mono text-[13px] tracking-tight text-[#3d9cf0] sm:text-[17px]" title="Clic per scrivere un tempo">
+                <button type="button" onClick={() => setEditTc(true)} className="text-left font-mono text-[13px] leading-tight tracking-tight text-ppro-timecode sm:text-[16px]" title="Clic per scrivere un tempo">
                   {timecode(playhead, fps)}
                 </button>
               )}
@@ -585,11 +601,11 @@ function TimelineBody({ seq }: { seq: Sequence }) {
                     [Captions, "Mostra tracce sottotitoli", false, () => st.notify("Nessuna traccia sottotitoli in questa sequenza")],
                   ] as const
                 ).map(([Icon, title, on, fn]) => (
-                  <button key={title} type="button" title={title} onClick={fn} className={clsx("grid h-6 w-7 place-items-center rounded-[4px]", on ? "bg-[#3a3a3a] text-white" : "hover:bg-white/10")}>
-                    <Icon size={14} />
+                  <button key={title} type="button" title={title} onClick={fn} className={clsx("grid h-[20px] w-[22px] place-items-center rounded-[2px]", on ? "text-ppro-blue" : "text-[#a8a8a8] hover:bg-white/10 hover:text-white")}>
+                    <Icon size={13} />
                   </button>
                 ))}
-                <button type="button" title="Aggiungi marcatore (M)" onClick={A.addMarker} className="grid h-6 w-7 place-items-center rounded-[4px] hover:bg-white/10">
+                <button type="button" title="Aggiungi marcatore (M)" onClick={A.addMarker} className="grid h-[20px] w-[22px] place-items-center rounded-[2px] text-[#a8a8a8] hover:bg-white/10">
                   <svg width="11" height="13" viewBox="0 0 11 13">
                     <path d="M1 1h9v8l-4.5 3L1 9z" fill="currentColor" />
                   </svg>
@@ -611,14 +627,14 @@ function TimelineBody({ seq }: { seq: Sequence }) {
                       },
                     })
                   }
-                  className="grid h-6 w-7 place-items-center rounded-[4px] hover:bg-white/10"
+                  className="grid h-[20px] w-[22px] place-items-center rounded-[2px] text-[#a8a8a8] hover:bg-white/10"
                 >
-                  <Wrench size={13} />
+                  <Wrench size={12} />
                 </button>
               </div>
             </div>
             <div
-              className="relative shrink-0 cursor-default touch-none bg-[#1e1e1e]"
+              className="relative shrink-0 cursor-default touch-none border-b border-ppro-track-line bg-ppro-ruler"
               style={{ width }}
               onPointerDown={(e) => {
                 e.stopPropagation();
@@ -631,13 +647,14 @@ function TimelineBody({ seq }: { seq: Sequence }) {
             >
               {/* attacco/uscita della sequenza */}
               {(seq.inPoint !== null || seq.outPoint !== null) && (
-                <div className="absolute top-[34px] h-[7px] bg-[#7a7a7a]/70" style={{ left: (seq.inPoint ?? 0) * pps, width: ((seq.outPoint ?? dur) - (seq.inPoint ?? 0)) * pps }} />
+                <div className="absolute top-[24px] h-[6px] bg-[#7a7a7a]/70" style={{ left: (seq.inPoint ?? 0) * pps, width: ((seq.outPoint ?? dur) - (seq.inPoint ?? 0)) * pps }} />
               )}
               {ticks.map((t, i) => {
-                const major = i % 5 === 0;
+                const major = i % 10 === 0;
+                const half = i % 5 === 0;
                 return (
-                  <div key={i} className="absolute bottom-0 border-l border-[#5a5a5a]" style={{ left: t * pps, height: major ? 10 : 5 }}>
-                    {major && <span className="absolute -top-[18px] left-0 -translate-x-1/2 whitespace-nowrap font-mono text-[11px] text-[#bdbdbd]">{timecode(t, fps)}</span>}
+                  <div key={i} className={clsx("absolute bottom-0 border-l", major ? "border-[#8a8a8a]" : "border-[#4e4e4e]")} style={{ left: t * pps, height: major ? 14 : half ? 7 : 4 }}>
+                    {major && <span className="absolute -top-[3px] left-[3px] whitespace-nowrap font-mono text-[9.5px] leading-none text-[#a8a8a8]">{timecode(t, fps)}</span>}
                   </div>
                 );
               })}
@@ -645,7 +662,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
                 <div
                   key={mk.id}
                   title={mk.name || "Marcatore"}
-                  className="absolute top-[4px] h-[12px] w-[9px] -translate-x-1/2 cursor-pointer"
+                  className="absolute top-[12px] h-[11px] w-[9px] -translate-x-1/2 cursor-pointer"
                   style={{ left: mk.t * pps, background: MARKER_COLORS[mk.color], clipPath: "polygon(0 0,100% 0,100% 65%,50% 100%,0 65%)" }}
                   onPointerDown={(e) => {
                     e.stopPropagation();
@@ -666,21 +683,23 @@ function TimelineBody({ seq }: { seq: Sequence }) {
               ))}
               {/* testa dell'indicatore */}
               <div className="pointer-events-none absolute bottom-0 z-10" style={{ left: playhead * pps }}>
-                <div className="absolute -left-[6px] bottom-[2px] h-[13px] w-[13px] bg-[#3d9cf0]" style={{ clipPath: "polygon(0 0,100% 0,100% 60%,50% 100%,0 60%)" }} />
+                <PlayheadHead />
               </div>
             </div>
           </div>
 
           {/* intestazioni delle tracce */}
-          <div className="sticky left-0 z-20 bg-[#1e1e1e]" style={{ width: HEAD, height: total - TOP }}>
+          <div className="sticky left-0 z-20 border-r border-ppro-track-line bg-ppro-track-head" style={{ width: HEAD, height: total - TOP }}>
             {rows.map(({ track: t, y, h }) => {
               const isV = t.kind === "video";
               const label = (isV ? "V" : "A") + ((isV ? videoTracks(seq) : audioTracks(seq)).indexOf(t) + 1);
               const patched = isV ? seq.patchV === t.id : seq.patchA === t.id;
+              const sq = "grid h-[18px] w-[18px] shrink-0 place-items-center rounded-[2px] border text-[9.5px] font-bold leading-none";
+              const off = "border-[#3a3a3a] bg-[#2b2b2b] text-[#a8a8a8] hover:border-[#555] hover:text-white";
               return (
                 <div
                   key={t.id}
-                  className="absolute left-0 flex w-full items-center gap-1.5 border-b border-[#141414] overflow-hidden pl-1.5 pr-2 text-[12px]"
+                  className="absolute left-0 flex w-full items-center gap-[3px] overflow-hidden border-b border-ppro-track-line pl-1 pr-1.5 text-[11px]"
                   style={{ top: y - TOP, height: h }}
                   onContextMenu={(e) => trackMenu(e, t)}
                   onDoubleClick={() => A.updateTrack(t.id, { height: t.height > 60 ? 44 : 90 }, "Altezza traccia")}
@@ -689,50 +708,48 @@ function TimelineBody({ seq }: { seq: Sequence }) {
                     type="button"
                     title="Patch sorgente: dove vanno le clip del monitor sorgente"
                     onClick={() => st.commitSeq((q) => (isV ? { ...q, patchV: patched ? null : t.id } : { ...q, patchA: patched ? null : t.id }), "Patch sorgente")}
-                    className={clsx("grid h-[calc(100%-6px)] max-h-14 w-6 place-items-center rounded-[3px] text-[11px] font-semibold", patched ? "bg-[#2d63d6] text-white" : "text-transparent hover:bg-white/5")}
+                    className={clsx("grid h-[18px] w-[20px] shrink-0 place-items-center rounded-[2px] text-[9.5px] font-bold", patched ? "bg-ppro-blue text-white" : "text-transparent hover:bg-white/5")}
                   >
                     {label}
                   </button>
-                  <button type="button" title="Attiva/disattiva blocco traccia" onClick={() => A.updateTrack(t.id, { locked: !t.locked }, "Blocca traccia")} className={clsx(t.locked ? "text-[#e0e0e0]" : "text-[#8a8a8a] hover:text-white")}>
-                    {t.locked ? <Lock size={13} /> : <LockOpen size={13} />}
+                  <button type="button" title="Attiva/disattiva blocco traccia" onClick={() => A.updateTrack(t.id, { locked: !t.locked }, "Blocca traccia")} className={clsx(sq, t.locked ? "border-[#666] bg-[#4a4a4a] text-white" : off)}>
+                    {t.locked ? <Lock size={10} /> : <LockOpen size={10} />}
                   </button>
                   <button
                     type="button"
                     title="Indirizzamento traccia (destinazione)"
                     onClick={() => A.updateTrack(t.id, { target: !t.target }, "Destinazione traccia")}
-                    className={clsx("grid h-[calc(100%-6px)] max-h-14 w-7 place-items-center rounded-[3px] text-[11px] font-semibold", t.target ? "bg-[#2d63d6] text-white" : "bg-[#2e2e2e] text-[#bdbdbd]")}
+                    className={clsx("grid h-[18px] w-[24px] shrink-0 place-items-center rounded-[2px] border text-[9.5px] font-bold", t.target ? "border-ppro-blue bg-ppro-blue text-white" : off)}
                   >
                     {label}
                   </button>
-                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 pl-1">
-                    <div className="flex items-center gap-1.5 text-[#bdbdbd]">
-                      <button type="button" title="Blocco sincronizzazione" onClick={() => A.updateTrack(t.id, { sync: !t.sync }, "Blocco sincronizzazione")} className={clsx("text-[10px]", t.sync ? "text-[#bdbdbd]" : "text-[#5a5a5a]")}>
-                        <svg width="12" height="12" viewBox="0 0 12 12">
-                          <path d="M3 5V3.5a3 3 0 0 1 6 0V5M2 5h8v6H2z" fill="none" stroke="currentColor" strokeWidth="1.2" />
-                          {t.sync && <path d="M4.5 8l1 1 2-2" stroke="currentColor" strokeWidth="1.2" fill="none" />}
-                        </svg>
+                  <button type="button" title="Blocco sincronizzazione" onClick={() => A.updateTrack(t.id, { sync: !t.sync }, "Blocco sincronizzazione")} className={clsx(sq, off, !t.sync && "opacity-50")}>
+                    <svg width="10" height="10" viewBox="0 0 12 12">
+                      <path d="M3 5V3.5a3 3 0 0 1 6 0V5M2 5h8v6H2z" fill="none" stroke="currentColor" strokeWidth="1.3" />
+                      {t.sync && <path d="M4.5 8l1 1 2-2" stroke="currentColor" strokeWidth="1.3" fill="none" />}
+                    </svg>
+                  </button>
+                  {isV ? (
+                    <button type="button" title="Attiva/disattiva output traccia" onClick={() => A.updateTrack(t.id, { off: !t.off }, "Output traccia")} className={clsx(sq, t.off ? "border-[#e8862a] bg-[#3a2a1a] text-[#e8862a]" : off)}>
+                      {t.off ? <EyeOff size={10} /> : <Eye size={10} />}
+                    </button>
+                  ) : (
+                    <>
+                      <button type="button" title="Disattiva audio traccia (M)" onClick={() => A.updateTrack(t.id, { off: !t.off }, "Disattiva audio")} className={clsx(sq, t.off ? "border-[#3eaa52] bg-[#3eaa52] text-black" : off)}>
+                        M
                       </button>
-                      {isV ? (
-                        <button type="button" title="Attiva/disattiva output traccia" onClick={() => A.updateTrack(t.id, { off: !t.off }, "Output traccia")} className={t.off ? "text-[#e8862a]" : "hover:text-white"}>
-                          {t.off ? <EyeOff size={13} /> : <Eye size={13} />}
+                      <button type="button" title="Traccia solo (S)" onClick={() => A.updateTrack(t.id, { solo: !t.solo }, "Traccia solo")} className={clsx(sq, t.solo ? "border-[#e8d43a] bg-[#e8d43a] text-black" : off)}>
+                        S
+                      </button>
+                      {wide && (
+                        <button type="button" title="Registrazione voce fuori campo" onClick={() => st.notify("La registrazione dal microfono non è disponibile nel simulatore")} className={clsx(sq, off)}>
+                          <Mic size={10} />
                         </button>
-                      ) : (
-                        <>
-                          <button type="button" title="Disattiva audio traccia" onClick={() => A.updateTrack(t.id, { off: !t.off }, "Disattiva audio")} className={clsx("grid h-4 w-4 place-items-center rounded-[2px] text-[9px] font-bold", t.off ? "bg-[#3eaa52] text-black" : "bg-[#3a3a3a]")}>
-                            M
-                          </button>
-                          <button type="button" title="Traccia solo" onClick={() => A.updateTrack(t.id, { solo: !t.solo }, "Traccia solo")} className={clsx("grid h-4 w-4 place-items-center rounded-[2px] text-[9px] font-bold", t.solo ? "bg-[#e8d43a] text-black" : "bg-[#3a3a3a]")}>
-                            S
-                          </button>
-                          <button type="button" title="Registrazione voce fuori campo" onClick={() => st.notify("La registrazione dal microfono non è disponibile nel simulatore")} className="hover:text-white">
-                            <Mic size={12} />
-                          </button>
-                          <Diamond size={10} className="text-[#7a7a7a]" />
-                        </>
                       )}
-                    </div>
-                    {h >= 40 && <span className="truncate text-[11.5px] text-[#d0d0d0]">{t.name}</span>}
-                  </div>
+                    </>
+                  )}
+                  <span className="min-w-0 flex-1 truncate pl-1 text-[10.5px] text-[#9a9a9a]">{wide && h >= 30 ? t.name : ""}</span>
+                  {!isV && wide && <Diamond size={9} className="shrink-0 text-[#6a6a6a]" />}
                   {/* ridimensiona altezza */}
                   <div
                     className="absolute inset-x-0 bottom-0 h-1 cursor-row-resize"
@@ -750,8 +767,8 @@ function TimelineBody({ seq }: { seq: Sequence }) {
                 </div>
               );
             })}
-            <div className="absolute left-0 w-full bg-[#121212]" style={{ top: audioTop - DIV - TOP, height: DIV }} />
-            <div className="absolute left-0 flex w-full items-center justify-between border-t border-[#141414] px-12 text-[12px] text-[#d0d0d0]" style={{ top: total - MIX - 20 - TOP, height: MIX }}>
+            <div className="absolute left-0 w-full bg-ppro-track-line" style={{ top: audioTop - DIV - TOP, height: DIV }} />
+            <div className="absolute left-0 flex w-full items-center justify-between border-b border-ppro-track-line px-3 text-[11px] text-[#b0b0b0]" style={{ top: total - MIX - 20 - TOP, height: MIX }}>
               <span>Mix</span>
               <Scrub value={seq.master} min={-60} max={15} step={0.2} decimals={1} onChange={(v) => st.commitSeq((q) => ({ ...q, master: v }), "Volume master", "master")} />
             </div>
@@ -760,9 +777,9 @@ function TimelineBody({ seq }: { seq: Sequence }) {
           {/* area delle clip */}
           <div className="absolute top-0" style={{ left: HEAD, width, height: total }} onPointerDown={onBackgroundDown} onContextMenu={bgMenu}>
             {rows.map(({ track: t, y, h }) => (
-              <div key={t.id} className={clsx("absolute left-0 w-full border-b border-[#141414]", t.locked && "bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgb(255_255_255/.035)_6px_8px)]")} style={{ top: y, height: h }} />
+              <div key={t.id} className={clsx("absolute left-0 w-full border-b border-ppro-track-line bg-ppro-track", t.locked && "bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgb(255_255_255/.035)_6px_8px)]")} style={{ top: y, height: h }} />
             ))}
-            <div className="absolute left-0 w-full bg-[#121212]" style={{ top: audioTop - DIV, height: DIV }} />
+            <div className="absolute left-0 w-full bg-ppro-track-line" style={{ top: audioTop - DIV, height: DIV }} />
             {gap && (
               <div className="absolute bg-white/15 outline outline-1 outline-white/60" style={{ top: rowOf(gap.track).y, height: rowOf(gap.track).h, left: gap.from * pps, width: (gap.to - gap.from) * pps }} />
             )}
@@ -774,7 +791,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
               const sel = selection.includes(c.id);
               const w = Math.max(2, ((c.out - c.in) / c.speed) * pps);
               const isV = r.track.kind === "video";
-              const color = LABELS[c.label]?.[1] ?? "#1f6b86";
+              const col = clipColors(c.label, isV);
               const hasFx = c.effects.length > 0;
               const tall = r.h >= 56;
               const bandProp: Prop = isV ? c.opacity : c.volume;
@@ -788,57 +805,57 @@ function TimelineBody({ seq }: { seq: Sequence }) {
                     if (c.graphic) return st.set({ editingText: c.graphic[0]?.id ?? null, focus: "program" });
                     st.set({ source: { mediaId: c.mediaId, t: c.in, in: c.in, out: c.out, playing: false }, focus: "source" });
                   }}
-                  className={clsx("absolute overflow-hidden rounded-[3px] text-[11px] leading-none text-white select-none", !c.enabled && "opacity-50 grayscale", r.track.off && "opacity-60")}
+                  className={clsx("absolute overflow-hidden rounded-[1px] text-[10.5px] leading-none text-white select-none", !c.enabled && "opacity-50 grayscale", r.track.off && "opacity-60")}
                   style={{
                     left: c.start * pps,
                     width: w,
                     top: r.y + 1,
                     height: r.h - 2,
-                    background: m ? `color-mix(in srgb, ${color} 55%, #0d1b22)` : "#7a1d1d",
-                    boxShadow: sel ? "inset 0 0 0 1.5px #ffffff" : "inset 0 0 0 1px rgb(0 0 0 / .45)",
+                    background: m ? (sel ? `color-mix(in srgb, ${col.body} 78%, #fff)` : col.body) : "#7a1d1d",
+                    boxShadow: sel ? "inset 0 0 0 1px #ffffff" : "inset 0 0 0 1px rgb(0 0 0 / .55)",
                   }}
                 >
-                  <div className="relative flex h-[16px] items-center gap-1 truncate px-1.5" style={{ background: sel ? `color-mix(in srgb, ${color} 85%, white)` : color }}>
-                    {hasFx && c.effects.length > 0 && <span className="font-bold text-[#f4d03f]">fx</span>}
+                  <div className="relative flex items-center gap-1 truncate px-1 font-semibold [text-shadow:0_1px_0_rgb(0_0_0/.45)]" style={{ height: CLIP_HEAD, background: sel ? `color-mix(in srgb, ${col.head} 70%, #fff)` : col.head }}>
+                    {hasFx && <span className="font-bold text-[#f4d03f]">fx</span>}
                     <span className="truncate">{c.name}</span>
                     {c.speed !== 1 && <span className="text-white/80">[{Math.round(c.speed * 100)}%]</span>}
                     {c.reverse && <span className="text-white/80">(inv.)</span>}
                   </div>
-                  {isV && m && w > 30 && (
-                    <div className="absolute bottom-0 left-0 top-[16px] overflow-hidden" style={{ width: Math.min(w, (r.h - 18) * 1.78) }}>
+                  {isV && m && w > 30 && r.h >= 40 && (
+                    <div className="absolute bottom-[1px] left-[1px] overflow-hidden opacity-90" style={{ top: CLIP_HEAD, width: Math.min(w - 2, (r.h - CLIP_HEAD - 3) * 1.78) }}>
                       <div className="relative h-full w-full">{c.graphic ? <div className="h-full w-full bg-[#5a2b4d]" /> : <Thumb media={m} t={c.in + 0.5} />}</div>
                     </div>
                   )}
                   {!isV && m && <Waveform seed={c.mediaId.length + (m.subject?.length ?? 3)} from={c.in} to={c.out} dense={m.subject === "music"} />}
                   {tall && (
-                    <svg className="pointer-events-none absolute inset-x-0 bottom-0 top-[16px] h-[calc(100%-16px)] w-full overflow-visible" preserveAspectRatio="none">
+                    <svg className="pointer-events-none absolute inset-x-0 bottom-0 w-full overflow-visible" style={{ top: CLIP_HEAD, height: `calc(100% - ${CLIP_HEAD}px)` }} preserveAspectRatio="none">
                       {bandProp.keys && bandProp.keys.length > 0 ? (
                         <>
                           <polyline
-                            points={[[0, keyedValue(bandProp, 0)[0]], ...bandProp.keys.map((k) => [k.t, k.v[0]]), [(c.out - c.in) / c.speed, keyedValue(bandProp, 1e9)[0]]].map(([t, v]) => `${(t * pps).toFixed(1)},${(bandY(v) * (r.h - 18)).toFixed(1)}`).join(" ")}
+                            points={[[0, keyedValue(bandProp, 0)[0]], ...bandProp.keys.map((k) => [k.t, k.v[0]]), [(c.out - c.in) / c.speed, keyedValue(bandProp, 1e9)[0]]].map(([t, v]) => `${(t * pps).toFixed(1)},${(bandY(v) * (r.h - CLIP_HEAD - 2)).toFixed(1)}`).join(" ")}
                             fill="none"
                             stroke="#f4d03f"
                             strokeWidth="1.2"
                           />
                           {bandProp.keys.map((k) => (
-                            <circle key={k.id} cx={k.t * pps} cy={bandY(k.v[0]) * (r.h - 18)} r="3" fill="#f4d03f" />
+                            <circle key={k.id} cx={k.t * pps} cy={bandY(k.v[0]) * (r.h - CLIP_HEAD - 2)} r="3" fill="#f4d03f" />
                           ))}
                         </>
                       ) : (
-                        <line x1="0" x2="100%" y1={bandY(bandProp.value[0]) * (r.h - 18)} y2={bandY(bandProp.value[0]) * (r.h - 18)} stroke="#f4d03f" strokeWidth="1.2" />
+                        <line x1="0" x2="100%" y1={bandY(bandProp.value[0]) * (r.h - CLIP_HEAD - 2)} y2={bandY(bandProp.value[0]) * (r.h - CLIP_HEAD - 2)} stroke="#f4d03f" strokeWidth="1.2" />
                       )}
                     </svg>
                   )}
                   {tall && (tool === "select" || tool === "pen") && (
                     <div
                       className="absolute inset-x-2 h-2 -translate-y-1/2 cursor-ns-resize"
-                      style={{ top: 16 + bandY(keyedValue(bandProp, (hover ?? c.start) - c.start)[0]) * (r.h - 18) }}
+                      style={{ top: CLIP_HEAD + bandY(keyedValue(bandProp, (hover ?? c.start) - c.start)[0]) * (r.h - CLIP_HEAD - 2) }}
                       onPointerDown={(e) => {
                         if (e.ctrlKey || e.metaKey || tool === "pen") return;
                         e.stopPropagation();
                         st.select(c.id);
                         const v0 = keyedValue(bandProp, xToTime(e.clientX) - c.start)[0];
-                        const hh = r.h - 18;
+                        const hh = r.h - CLIP_HEAD - 2;
                         st.beginGesture();
                         drag(
                           e,
@@ -885,7 +902,7 @@ function TimelineBody({ seq }: { seq: Sequence }) {
             )}
             {hover !== null && tool === "razor" && <div className="pointer-events-none absolute z-20 w-px bg-white/80" style={{ left: hover * pps, top: TOP, height: total - TOP }} />}
             {/* indicatore */}
-            <div className="pointer-events-none absolute z-20 w-px bg-[#3d9cf0]" style={{ left: playhead * pps, top: TOP - 2, height: total - TOP }} />
+            <div className="pointer-events-none absolute z-20 w-px bg-ppro-playhead" style={{ left: playhead * pps, top: TOP, height: total - TOP }} />
           </div>
           {/* tratto che oscura le tracce prima dell'area: nessuno */}
         </div>

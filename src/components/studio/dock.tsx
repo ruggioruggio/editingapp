@@ -214,11 +214,12 @@ export function DockZone({
       data-dock-zone={id}
       onPointerDownCapture={() => active && onFocus?.(active)}
       style={style}
-      className={clsx("relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[4px] border bg-[#1e1e1e]", over ? "border-[#2d8ceb] ring-2 ring-[#2d8ceb]/40" : focused ? "border-[#2d8ceb]" : "border-[#1e1e1e]", className)}
+      className={clsx("relative flex min-h-0 min-w-0 flex-col overflow-hidden rounded-[2px] border bg-ppro-panel font-ppro", over ? "border-ppro-blue ring-2 ring-ppro-blue/40" : focused ? "border-ppro-blue" : "border-[#151515]", className)}
     >
-      <div className="flex h-[34px] shrink-0 items-center gap-4 overflow-x-auto px-3 text-[12.5px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex h-[26px] shrink-0 items-stretch gap-0 overflow-x-auto border-b border-[#151515] bg-ppro-header text-[11px] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {zone.tabs.map((t) => (
-          <div key={t} className="flex shrink-0 items-center gap-1.5">
+          <div key={t} className={clsx("relative flex shrink-0 items-center gap-1.5 px-2.5", t === active && "bg-ppro-panel")}>
+            {t === active && <span className={clsx("absolute inset-x-0 bottom-0 h-[2px]", focused ? "bg-ppro-blue" : "bg-[#6a6a6a]")} />}
             <button
               type="button"
               onPointerDown={(e) => startDrag(e, t)}
@@ -229,13 +230,13 @@ export function DockZone({
                 setM({ x: e.clientX, y: e.clientY, tab: t });
               }}
               title="Trascina per spostare · tasto destro per chiudere"
-              className={clsx("touch-pan-x select-none whitespace-nowrap [-webkit-touch-callout:none]", t === active ? "text-white underline decoration-1 underline-offset-[5px]" : "text-[#bdbdbd] hover:text-white")}
+              className={clsx("touch-pan-x select-none whitespace-nowrap [-webkit-touch-callout:none]", t === active ? "font-semibold text-ppro-tab-active" : "text-ppro-tab hover:text-ppro-tab-active")}
             >
               {labels[t] ?? t}
             </button>
             {t === active && (
-              <button type="button" onClick={(e) => setM({ x: e.clientX, y: e.clientY + 8, tab: t, panel: true })} className="text-[#bdbdbd] hover:text-white" aria-label="Menu pannello">
-                <MenuIcon size={13} />
+              <button type="button" onClick={(e) => setM({ x: e.clientX, y: e.clientY + 8, tab: t, panel: true })} className="text-ppro-tab hover:text-white" aria-label="Menu pannello">
+                <MenuIcon size={11} />
               </button>
             )}
           </div>
@@ -317,7 +318,7 @@ export function DockRows({
   const gutter = (dir: "x" | "y", a: string, b: string, sum: number) => (
     <div
       key={`g-${a}-${b}`}
-      className={clsx("shrink-0 touch-none bg-[#0f0f0f] hover:bg-[#2d8ceb]/60", dir === "x" ? "w-[4px] cursor-col-resize" : "h-[4px] cursor-row-resize")}
+      className={clsx("shrink-0 touch-none bg-ppro-window hover:bg-ppro-blue/60", dir === "x" ? "w-[3px] cursor-col-resize" : "h-[3px] cursor-row-resize")}
       onPointerDown={(e) => {
         const el = e.currentTarget;
         const box = (el.parentElement as HTMLElement).getBoundingClientRect();
@@ -381,5 +382,5 @@ export function DockRows({
     );
   });
   if (between && visibleRows.length < 2) out.push(<div key="between" className="shrink-0">{between}</div>);
-  return <div className="flex min-h-0 flex-1 flex-col p-1">{out}</div>;
+  return <div className="flex min-h-0 flex-1 flex-col bg-ppro-window p-[3px]">{out}</div>;
 }

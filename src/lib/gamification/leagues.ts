@@ -1,22 +1,37 @@
 import type { TKey } from "@/lib/settings/i18n";
 
+export type GemCut = "cabochon" | "emerald" | "oval" | "trillion" | "round" | "pear" | "marquise" | "heart";
+
 export interface LeagueTier {
   id: string;
   nameKey: TKey;
   minXp: number;
   color: string;
   gradient: string;
+  /** light, base, dark facet tones */
+  tones: [string, string, string];
+  cut: GemCut;
 }
 
+const tier = (id: string, nameKey: TKey, minXp: number, cut: GemCut, tones: [string, string, string]): LeagueTier => ({
+  id,
+  nameKey,
+  minXp,
+  cut,
+  tones,
+  color: tones[1],
+  gradient: `from-[${tones[0]}] to-[${tones[2]}]`,
+});
+
 export const LEAGUE_TIERS: LeagueTier[] = [
-  { id: "malachite",      nameKey: "tierMalachite",      minXp: 0,     color: "#3ecf8e", gradient: "from-[#3ecf8e] to-[#2a9d6a]" },
-  { id: "larimar",         nameKey: "tierLarimar",         minXp: 500,   color: "#7ec8e3", gradient: "from-[#7ec8e3] to-[#5ba3c4]" },
-  { id: "labradorite",     nameKey: "tierLabradorite",     minXp: 1500,  color: "#6b5cff", gradient: "from-[#6b5cff] to-[#4a3fcc]" },
-  { id: "tanzanite",       nameKey: "tierTanzanite",       minXp: 3000,  color: "#9b59b6", gradient: "from-[#9b59b6] to-[#7d3c98]" },
-  { id: "alexandrite",     nameKey: "tierAlexandrite",     minXp: 6000,  color: "#1abc9c", gradient: "from-[#1abc9c] to-[#16a085]" },
-  { id: "moldavite",       nameKey: "tierMoldavite",       minXp: 12000, color: "#2ecc71", gradient: "from-[#2ecc71] to-[#1a9850]" },
-  { id: "painite",         nameKey: "tierPainite",         minXp: 25000, color: "#e74c3c", gradient: "from-[#e74c3c] to-[#c0392b]" },
-  { id: "grandidierite",   nameKey: "tierGrandidierite",   minXp: 50000, color: "#00bcd4", gradient: "from-[#00bcd4] to-[#00838f]" },
+  tier("obsidian", "tierObsidian", 0, "cabochon", ["#8a8fa8", "#3d4058", "#1b1c2a"]),
+  tier("jade", "tierJade", 500, "oval", ["#a8f0c6", "#3fbf7f", "#1d7a4c"]),
+  tier("turquoise", "tierTurquoise", 1500, "pear", ["#b5f6f2", "#3fd0c9", "#1a8a8a"]),
+  tier("amethyst", "tierAmethyst", 3000, "emerald", ["#e2c6ff", "#9b5de5", "#5b2a9e"]),
+  tier("lapis", "tierLapis", 6000, "trillion", ["#a9c4ff", "#3557d4", "#16257a"]),
+  tier("topaz", "tierTopaz", 12000, "marquise", ["#ffe6a8", "#ffb43c", "#c06a00"]),
+  tier("aquamarine", "tierAquamarine", 25000, "round", ["#d9fbff", "#6fd8f2", "#2a8fb8"]),
+  tier("opal", "tierOpal", 50000, "heart", ["#fff3fb", "#f7a8e0", "#7c7cff"]),
 ];
 
 export function getTier(xp: number): LeagueTier {

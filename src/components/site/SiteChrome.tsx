@@ -37,7 +37,6 @@ const FOOTER: { title: string; links: { label: string; href: string }[] }[] = [
     title: "Prodotti",
     links: [
       { label: brand.appName, href: "/learn" },
-      { label: brand.aiName, href: "/pricing" },
       { label: "App desktop", href: "/download" },
     ],
   },

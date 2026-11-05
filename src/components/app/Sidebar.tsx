@@ -3,17 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
-import { BookOpen, Clapperboard, Sparkles, Target, Trophy, Users, type LucideIcon } from "lucide-react";
-import { AppIcon } from "@/components/brand/Mascot";
+import { BookOpen, Clapperboard, Target, Trophy, Users, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
-import { features } from "@/config/features";
 import { questProgress, questsForDay } from "@/lib/gamification/quests";
 import { useHydrated } from "@/lib/hooks/useHydrated";
+import { badgeLabel, useNotificationTotal } from "@/lib/hooks/useNotificationCount";
 import { todayState, useProgress } from "@/lib/progress/store";
-import { useAuth } from "@/lib/supabase/auth";
-import { getSupabase } from "@/lib/supabase/client";
 import { useT, type TKey } from "@/lib/settings/i18n";
-import { useCallback, useEffect, useState } from "react";
 
 type NavItem = { href: string; label: TKey; icon: LucideIcon; color: string };
 
@@ -24,33 +20,6 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/leaderboard", label: "leaderboard", icon: Trophy, color: "#ffc93c" },
   { href: "/profile", label: "profile", icon: Users, color: "#5ce1e6" },
 ];
-
-function usePendingRequests() {
-  const status = useAuth((s) => s.status);
-  const me = useAuth((s) => s.userId);
-  const [count, setCount] = useState(0);
-  const refresh = useCallback(async () => {
-    const sb = getSupabase();
-    if (!sb || !me) return;
-    try {
-      const { count: n } = await sb
-        .from("friendships")
-        .select("id", { count: "exact", head: true })
-        .eq("addressee_id", me)
-        .eq("status", "pending");
-      setCount(n ?? 0);
-    } catch {}
-  }, [me]);
-  useEffect(() => {
-    if (status !== "user") return;
-    void refresh();
-    const h = setInterval(() => void refresh(), 30_000);
-    const onFocus = () => void refresh();
-    window.addEventListener("focus", onFocus);
-    return () => { clearInterval(h); window.removeEventListener("focus", onFocus); };
-  }, [status, refresh]);
-  return count;
-}
 
 function useClaimableQuests() {
   const hydrated = useHydrated();
@@ -76,7 +45,7 @@ function SidebarItem({ item, active, badge }: { item: NavItem; active: boolean; 
         <Icon size={22} strokeWidth={2.3} style={{ color: active ? item.color : undefined }} />
         {!!badge && (
           <span className="absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-danger px-1 text-[11px] font-black text-white">
-            {badge}
+            {badgeLabel(badge)}
           </span>
         )}
       </span>
@@ -88,7 +57,7 @@ function SidebarItem({ item, active, badge }: { item: NavItem; active: boolean; 
 export function Sidebar() {
   const pathname = usePathname();
   const claimable = useClaimableQuests();
-  const pendingFriends = usePendingRequests();
+  const pendingFriends = useNotificationTotal();
   return (
     <nav
       aria-label="Navigazione principale"
@@ -107,21 +76,6 @@ export function Sidebar() {
             badge={item.href === "/goals" ? claimable : item.href === "/profile" ? pendingFriends : 0}
           />
         ))}
-
-        <Link
-          href="/ai"
-          aria-current={pathname.startsWith("/ai") ? "page" : undefined}
-          className={clsx(
-            "group flex items-center gap-3 rounded-2xl px-4 py-3 text-[15px] font-black uppercase tracking-wide transition-colors",
-            pathname.startsWith("/ai") ? "bg-white/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white",
-          )}
-        >
-          <span className="relative h-[22px] w-[22px]">
-            <AppIcon size={22} />
-            {features.squeakAi && <Sparkles size={10} className="absolute -right-1 -top-1 text-cheese" fill="currentColor" />}
-          </span>
-          <span>Squeak AI</span>
-        </Link>
       </div>
     </nav>
   );

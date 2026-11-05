@@ -21,6 +21,7 @@ import {
 import { useT } from "@/lib/settings/i18n";
 import { useSettings } from "@/lib/settings/store";
 import { getTier } from "@/lib/gamification/leagues";
+import { LeagueEmblem } from "@/components/gamification/LeagueEmblem";
 
 const LOCALE_MAP: Record<string, string> = { it: "it-IT", en: "en-US", fr: "fr-FR", es: "es-ES", zh: "zh-CN" };
 
@@ -94,7 +95,7 @@ export function FriendSheet({
                 </span>
               </p>
               <p className="mt-0.5 flex items-center gap-1 text-[10px] font-bold text-ink-mute">
-                <span className={clsx("inline-block h-2 w-2 rounded-full bg-gradient-to-r", friendTier.gradient)} />
+                <LeagueEmblem tier={friendTier} size={14} />
                 {t(friendTier.nameKey)}
               </p>
             </div>
@@ -147,7 +148,7 @@ export function FriendSheet({
   );
 }
 
-function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRead: () => void }) {
+export function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRead: () => void }) {
   const t = useT();
   const lang = useSettings((s) => s.lang);
   const locale = LOCALE_MAP[lang] ?? "en-US";
@@ -319,7 +320,7 @@ function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, 
         {friend.bio && <p className="mt-1 text-sm text-ink-dim">{friend.bio}</p>}
         {joinDate && <p className="text-xs text-ink-mute">{t("joinedSince")} {joinDate}</p>}
         <div className="mt-1 flex items-center gap-1">
-          <span className={clsx("inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-r", tier.gradient)} />
+          <LeagueEmblem tier={tier} size={18} />
           <span className="text-xs font-bold text-ink-mute">{t(tier.nameKey)}</span>
         </div>
         {me && <div className="mt-3 flex items-center justify-center gap-2">

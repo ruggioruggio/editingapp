@@ -199,7 +199,7 @@ export function ProjectPanel() {
           </div>
         ) : (
           <table className="w-full text-[12px]">
-            <thead className="sticky top-0 bg-[#1e1e1e] text-left text-[11px] text-[#9a9a9a]">
+            <thead className="sticky top-0 bg-ppro-panel text-left text-[11px] text-[#9a9a9a]">
               <tr>
                 <th className="py-1 pl-1 font-normal">Nome</th>
                 <th className="font-normal">Frequenza fotogrammi</th>
@@ -222,7 +222,7 @@ export function ProjectPanel() {
                     onClick={(e) => select(e, it)}
                     onDoubleClick={() => open(it)}
                     onContextMenu={(e) => itemMenu(e, it)}
-                    className={clsx("h-6", sel ? "bg-[#2d63d6]/60 text-white" : "text-[#d6d6d6] hover:bg-white/5")}
+                    className={clsx("h-[22px] text-[11.5px]", sel ? "bg-[#3e4f6e] text-white" : "text-[#d6d6d6] hover:bg-white/5")}
                   >
                     <td className="flex items-center gap-1.5 pl-1">
                       <span className="h-3 w-1 rounded-sm" style={{ background: LABELS[it.label]?.[1] }} />

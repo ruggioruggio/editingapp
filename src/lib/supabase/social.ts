@@ -60,6 +60,40 @@ export async function loadUnread(sb: SupabaseClient, me: string): Promise<Record
   return out;
 }
 
+export interface InboxThread {
+  other: { id: string; username: string; avatar_url: string | null; xp: number; streak_count: number; streak_last_day: string | null; bio: string | null; display_name: string | null; role: string | null; created_at: string | null };
+  last: ChatMessage;
+  unread: number;
+}
+
+export async function loadInbox(sb: SupabaseClient, me: string): Promise<InboxThread[]> {
+  const { data, error } = await sb
+    .from("messages")
+    .select("id, sender_id, recipient_id, body, created_at, read_at")
+    .or(`sender_id.eq.${me},recipient_id.eq.${me}`)
+    .order("created_at", { ascending: false })
+    .limit(500)
+    .returns<ChatMessage[]>();
+  if (error) throw error;
+  const byOther = new Map<string, { last: ChatMessage; unread: number }>();
+  for (const m of data ?? []) {
+    const other = m.sender_id === me ? m.recipient_id : m.sender_id;
+    const t = byOther.get(other) ?? { last: m, unread: 0 };
+    if (m.recipient_id === me && !m.read_at) t.unread++;
+    byOther.set(other, t);
+  }
+  if (!byOther.size) return [];
+  const { data: profiles } = await sb
+    .from("profiles")
+    .select("id, username, display_name, bio, avatar_url, xp, streak_count, streak_last_day, role, created_at")
+    .in("id", [...byOther.keys()])
+    .returns<InboxThread["other"][]>();
+  const map = new Map((profiles ?? []).map((p) => [p.id, p]));
+  return [...byOther.entries()]
+    .filter(([id]) => map.has(id))
+    .map(([id, t]) => ({ other: map.get(id)!, ...t }));
+}
+
 let _inboxSeq = 0;
 export function subscribeIncoming(sb: SupabaseClient, me: string, onMessage: (m: ChatMessage) => void): () => void {
   const channel: RealtimeChannel = sb

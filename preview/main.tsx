@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import AppLayout from "@/app/(app)/layout";
-import AiPage from "@/app/(app)/ai/page";
 import { ProfileView } from "@/components/profile/ProfileView";
 import { WorldLeaderboard } from "@/components/leaderboard/WorldLeaderboard";
 import LearnPage from "@/app/(app)/learn/page";
@@ -75,7 +74,7 @@ const APP_PAGES: Record<string, () => React.ReactNode> = {
   "/friends": () => <ProfileView />,
   "/profile": () => <ProfileView />,
   "/pricing": () => <PricingPage />,
-  "/ai": () => <AiPage />,
+  "/ai": () => <Redirect to="/learn" />,
   "/leaderboard": () => <WorldLeaderboard />,
 };
 

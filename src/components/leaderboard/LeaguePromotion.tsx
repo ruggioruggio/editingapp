@@ -69,7 +69,10 @@ export function LeaguePromotionModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className={clsx("animate-pop relative mx-4 w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 p-6 text-center bg-gradient-to-b", tier.gradient)}>
+      <div
+        className="animate-pop relative mx-4 w-full max-w-sm overflow-hidden rounded-3xl border border-white/10 p-6 text-center"
+        style={{ background: `radial-gradient(120% 70% at 50% 0%, ${tier.tones[1]}cc, ${tier.tones[2]} 60%, #14121f)` }}
+      >
         <button type="button" onClick={onClose} className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-black/20 text-white/80 hover:bg-black/40">
           <X size={18} />
         </button>
