@@ -1,0 +1,64 @@
+"use client";
+
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { Canvas } from "@react-three/fiber";
+import clsx from "clsx";
+
+const EDGES =
+  "linear-gradient(to right, transparent, #000 9%, #000 91%, transparent), linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent)";
+const FADE_EDGES: CSSProperties = {
+  maskImage: EDGES,
+  WebkitMaskImage: EDGES,
+  maskComposite: "intersect",
+  WebkitMaskComposite: "source-in",
+};
+
+export function Stage({
+  children,
+  className,
+  camera = [0, 2.4, 10],
+  target = [0, 1.2, 0],
+  fov = 30,
+  eager = false,
+  fade = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  camera?: [number, number, number];
+  target?: [number, number, number];
+  fov?: number;
+  eager?: boolean;
+  fade?: boolean;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(true);
+  void eager;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { rootMargin: "300px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className={clsx("relative", className)} style={fade ? FADE_EDGES : undefined}>
+      {(
+        <Canvas
+          frameloop={visible ? "always" : "never"}
+          dpr={[1.5, 2]}
+          camera={{ position: camera, fov }}
+          gl={{ alpha: true, antialias: true, powerPreference: "high-performance", toneMappingExposure: 1.08 }}
+          onCreated={({ camera: cam }) => cam.lookAt(...target)}
+        >
+          <hemisphereLight args={["#ffffff", "#3b3266", 1.15]} />
+          <directionalLight position={[4, 7, 6]} intensity={2.3} color="#fff3e6" />
+          <directionalLight position={[-5, 4, -6]} intensity={2.2} color="#a9a4ff" />
+          <directionalLight position={[-3, 2, 5]} intensity={0.6} color="#ffd9e6" />
+          {children}
+        </Canvas>
+      )}
+    </div>
+  );
+}

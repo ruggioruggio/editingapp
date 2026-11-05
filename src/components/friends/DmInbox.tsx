@@ -76,17 +76,6 @@ export function DmInbox({ initialOpen }: { initialOpen?: string | null }) {
 
   return (
     <div>
-      {friends.length > 0 && (
-        <div className="mb-4 flex gap-4 overflow-x-auto pb-2">
-          {friends.map((f) => (
-            <button key={f.id} type="button" onClick={() => setOpen(f)} className="flex w-16 shrink-0 flex-col items-center gap-1">
-              <Avatar name={f.username} url={f.avatar_url} size={56} ring={!withThread.has(f.id)} />
-              <span className="w-full truncate text-center text-[11px] font-semibold text-ink-dim">{f.username}</span>
-            </button>
-          ))}
-        </div>
-      )}
-
       {threads === null ? (
         <div className="space-y-2">
           {[0, 1, 2].map((i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-panel" />)}
@@ -125,7 +114,7 @@ export function DmInbox({ initialOpen }: { initialOpen?: string | null }) {
       )}
 
       {open && (
-        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[80] flex flex-col bg-app lg:inset-y-6 lg:left-1/2 lg:w-full lg:max-w-lg lg:-translate-x-1/2 lg:rounded-3xl lg:border lg:border-line">
+        <div role="dialog" aria-modal="true" className="fixed inset-0 z-[80] flex flex-col bg-app lg:left-56 lg:right-80 lg:z-40 lg:border-x lg:border-white/5">
           <header className="flex items-center gap-3 border-b border-line px-3 py-2.5 pt-[max(0.625rem,env(safe-area-inset-top))]">
             <button type="button" onClick={() => { setOpen(null); void refresh(); void refreshCounts(); }} aria-label={t("close")} className="grid h-10 w-10 place-items-center rounded-full hover:bg-panel-2">
               <ChevronLeft size={26} />

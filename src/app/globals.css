@@ -24,7 +24,7 @@
   --color-aclip: #2f8a57; /* clip audio in timeline */
   --color-marker: #ffc93c;
 
-  /* Premiere Pro (tema scuro) — simulatore */
+  /* Premiere Pro (tema scuro) â€” simulatore */
   --color-ppro-window: #1e1e1e;   /* gutter tra i pannelli */
   --color-ppro-panel: #232323;    /* corpo dei pannelli */
   --color-ppro-header: #2b2b2b;   /* barra schede */
@@ -80,7 +80,7 @@ body {
 }
 
 /* ---------- Stile Duolingo ----------
-   Pulsanti "fisici" con il bordo inferiore di una tinta più scura,
+   Pulsanti "fisici" con il bordo inferiore di una tinta piÃ¹ scura,
    schede con bordo spesso sotto, tutto maiuscolo e arrotondato. */
 .duo-btn {
   --face: var(--color-success);
@@ -131,7 +131,7 @@ body {
 .duo-bubble { position: relative; border: 2px solid var(--color-line); border-radius: 16px; background: var(--color-app); padding: 0.75rem 1rem; }
 .duo-bubble::before { content: ""; position: absolute; left: -10px; top: 50%; width: 16px; height: 16px; margin-top: -8px; background: var(--color-app); border-left: 2px solid var(--color-line); border-bottom: 2px solid var(--color-line); transform: rotate(45deg); }
 
-/* Liquid glass stile Apple: vetro scuro e fumé (così icone e testi restano
+/* Liquid glass stile Apple: vetro scuro e fumÃ© (cosÃ¬ icone e testi restano
    leggibili sopra qualsiasi contenuto), con riflesso sul bordo superiore. */
 .glass {
   background:
@@ -159,54 +159,6 @@ body {
 .animate-pop {
   animation: pop 0.18s ease-out;
 }
-
-/* ---------- Scene 2D stile flat (Squeak) ---------- */
-.fs * { transform-box: fill-box; }
-@keyframes fs-bob { 0%, 100% { transform: translateY(0) scale(1, 1); } 45% { transform: translateY(-7px) scale(0.98, 1.02); } 90% { transform: translateY(0) scale(1.03, 0.97); } }
-@keyframes fs-shadow { 0%, 100% { transform: scaleX(1); opacity: 0.35; } 45% { transform: scaleX(0.82); opacity: 0.22; } }
-@keyframes fs-blink { 0%, 90%, 100% { transform: scaleY(1); } 94% { transform: scaleY(0.08); } }
-@keyframes fs-ear-l { 0%, 80%, 100% { transform: rotate(0); } 86% { transform: rotate(-12deg); } 92% { transform: rotate(5deg); } }
-@keyframes fs-ear-r { 0%, 60%, 100% { transform: rotate(0); } 66% { transform: rotate(12deg); } 72% { transform: rotate(-5deg); } }
-@keyframes fs-wave { 0%, 100% { transform: rotate(-10deg); } 25% { transform: rotate(28deg); } 50% { transform: rotate(-4deg); } 75% { transform: rotate(28deg); } }
-@keyframes fs-float { 0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); } 50% { transform: translateY(-10px) rotate(calc(var(--r, 0deg) * -1)); } }
-@keyframes fs-bar { 0% { transform: translateX(-60px); opacity: 0; } 14%, 78% { transform: translateX(0); opacity: 1; } 92%, 100% { transform: translateX(40px); opacity: 0; } }
-@keyframes fs-pop { 0% { transform: scale(0.2); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
-@keyframes fs-spin { to { transform: rotate(360deg); } }
-@keyframes fs-hammer { 0%, 55%, 100% { transform: rotate(-35deg); } 70% { transform: rotate(40deg); } 78% { transform: rotate(30deg); } }
-@keyframes fs-impact { 0%, 66% { opacity: 0; transform: scale(0.4); } 72% { opacity: 1; transform: scale(1); } 90%, 100% { opacity: 0; transform: scale(1.3); } }
-@keyframes fs-run { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-6px) rotate(-8deg); } }
-@keyframes fs-leg-a { 0%, 100% { transform: rotate(-30deg); } 50% { transform: rotate(30deg); } }
-@keyframes fs-leg-b { 0%, 100% { transform: rotate(30deg); } 50% { transform: rotate(-30deg); } }
-@keyframes fs-dash { 0% { transform: translateX(40px); opacity: 0; } 30% { opacity: 1; } 100% { transform: translateX(-80px); opacity: 0; } }
-@keyframes fs-rise { 0% { transform: translateY(0) scale(0.6); opacity: 0; } 30% { opacity: 0.9; } 100% { transform: translateY(-34px) scale(1.2); opacity: 0; } }
-@keyframes fs-clap { 0%, 40%, 100% { transform: rotate(-28deg); } 50% { transform: rotate(0deg); } 56% { transform: rotate(-6deg); } 62% { transform: rotate(0deg); } }
-@keyframes fs-kf { 0%, 100% { fill: #4a4870; transform: scale(1); } 12% { fill: #ffc93c; transform: scale(1.35); } 30% { fill: #ffc93c; transform: scale(1); } }
-@keyframes fs-ease { 0%, 8% { transform: translateX(0); } 50%, 58% { transform: translateX(210px); } 100% { transform: translateX(0); } }
-@keyframes fs-nibble { 0%, 100% { transform: translateX(0) rotate(0); } 50% { transform: translateX(6px) rotate(4deg); } }
-@keyframes fs-crumb { 0% { transform: translate(0, 0); opacity: 1; } 100% { transform: translate(-14px, 34px); opacity: 0; } }
-.fs-bob { animation: fs-bob 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
-.fs-shadow { animation: fs-shadow 2.6s ease-in-out infinite; transform-origin: center; }
-.fs-blink { animation: fs-blink 4.2s infinite; transform-origin: center; }
-.fs-ear-l { animation: fs-ear-l 5s ease-in-out infinite; transform-origin: 70% 90%; }
-.fs-ear-r { animation: fs-ear-r 5s ease-in-out infinite; transform-origin: 30% 90%; }
-.fs-wave { animation: fs-wave 1.8s ease-in-out infinite; transform-origin: 15% 85%; }
-.fs-float { animation: fs-float 3.4s ease-in-out infinite; transform-origin: center; }
-.fs-bar { animation: fs-bar 4.8s cubic-bezier(.22, 1, .36, 1) infinite; }
-.fs-pop { animation: fs-pop 0.7s cubic-bezier(.34, 1.56, .64, 1) both; transform-origin: center; }
-.fs-spin { animation: fs-spin 6s linear infinite; transform-origin: center; }
-.fs-hammer { animation: fs-hammer 1.4s cubic-bezier(.5, 0, .3, 1) infinite; transform-origin: 10% 90%; }
-.fs-impact { animation: fs-impact 1.4s ease-out infinite; transform-origin: center; }
-.fs-run { animation: fs-run 0.42s ease-in-out infinite; transform-origin: 50% 100%; }
-.fs-leg-a { animation: fs-leg-a 0.42s ease-in-out infinite; transform-origin: 50% 0%; }
-.fs-leg-b { animation: fs-leg-b 0.42s ease-in-out infinite; transform-origin: 50% 0%; }
-.fs-dash { animation: fs-dash 0.9s linear infinite; }
-.fs-rise { animation: fs-rise 1.8s ease-out infinite; transform-origin: center; }
-.fs-clap { animation: fs-clap 2.2s cubic-bezier(.5, 0, .2, 1) infinite; transform-origin: 4% 100%; }
-.fs-kf { animation: fs-kf 3.2s ease-out infinite; transform-origin: center; }
-.fs-ease { animation: fs-ease 3.2s cubic-bezier(.65, 0, .35, 1) infinite; }
-.fs-nibble { animation: fs-nibble 0.5s ease-in-out infinite; transform-origin: 50% 100%; }
-.fs-crumb { animation: fs-crumb 1s ease-in infinite; }
-@media (prefers-reduced-motion: reduce) { .fs * { animation: none !important; } }
 
 /* ---------- Gemme delle leghe ---------- */
 @keyframes gem-shine { 0%, 70% { transform: translateX(0) skewX(-20deg); } 100% { transform: translateX(190px) skewX(-20deg); } }
@@ -362,7 +314,7 @@ body {
   .reveal { opacity: 1; transform: none; }
 }
 
-/* Tema bianco (Impostazioni → Tema). I simulatori di Premiere e After Effects
+/* Tema bianco (Impostazioni â†’ Tema). I simulatori di Premiere e After Effects
    restano scuri come i programmi veri, grazie a .force-dark. */
 html[data-theme="light"] {
   --color-app: #ffffff;

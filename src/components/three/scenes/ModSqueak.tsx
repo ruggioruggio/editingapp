@@ -1,0 +1,168 @@
+"use client";
+
+import { useMemo, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import * as THREE from "three";
+import { Stage } from "../Stage";
+import { Shadow, SqueakModel, createRig, easeInOut, phase, type SqueakRig } from "../SqueakModel";
+
+const CYCLE = 10;
+const IDENTITY = new THREE.Quaternion();
+
+function useShirtTexture() {
+  return useMemo(() => {
+    const c = document.createElement("canvas");
+    c.width = 256;
+    c.height = 256;
+    const g = c.getContext("2d")!;
+    g.fillStyle = "#f1e7c4";
+    g.fillRect(0, 0, 256, 256);
+    g.globalCompositeOperation = "destination-out";
+    const hole = (cx: number, cy: number, r: number) => {
+      g.beginPath();
+      for (let i = 0; i <= 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        const rr = r * (0.55 + ((i * 37) % 10) / 18);
+        g.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr * 0.8);
+      }
+      g.fill();
+    };
+    hole(95, 165, 20);
+    hole(185, 105, 14);
+    hole(140, 205, 18);
+    hole(30, 90, 10);
+    g.beginPath();
+    g.moveTo(0, 256);
+    for (let x = 0; x <= 256; x += 14) g.lineTo(x, 236 - ((x * 13) % 30));
+    g.lineTo(256, 256);
+    g.fill();
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return t;
+  }, []);
+}
+
+function Outfit() {
+  const shirt = useShirtTexture();
+  return (
+    <group>
+      <mesh position={[0, 0.98, 0]} scale={[1.04, 0.92, 1.16]}>
+        <sphereGeometry args={[1, 48, 32, 0, Math.PI * 2, Math.PI * 0.12, Math.PI * 0.5]} />
+        <meshStandardMaterial map={shirt} transparent alphaTest={0.4} side={THREE.DoubleSide} roughness={0.9} />
+      </mesh>
+      {/* pancione */}
+      <mesh position={[0, 0.62, 0.62]} scale={[0.9, 0.72, 0.62]}>
+        <sphereGeometry args={[1, 36, 28]} />
+        <meshStandardMaterial color="#e3e7ef" roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 0.55, 1.23]} scale={[1, 1.3, 0.5]}>
+        <sphereGeometry args={[0.06, 12, 10]} />
+        <meshStandardMaterial color="#9aa1b3" />
+      </mesh>
+    </group>
+  );
+}
+
+function ChipBag() {
+  return (
+    <group scale={0.6} rotation={[0.3, 0, 0.15]}>
+      {/* sacchetto */}
+      <mesh position={[0, 0.25, 0]} rotation={[0.1, 0, -0.15]}>
+        <cylinderGeometry args={[0.18, 0.22, 0.52, 12]} />
+        <meshStandardMaterial color="#e63946" roughness={0.75} />
+      </mesh>
+      {/* apertura accartocciata */}
+      <mesh position={[0, 0.52, 0]} rotation={[0.1, 0, -0.15]}>
+        <cylinderGeometry args={[0.15, 0.19, 0.08, 12]} />
+        <meshStandardMaterial color="#c62828" roughness={0.8} />
+      </mesh>
+      {/* patatine che sporgono */}
+      {[
+        [0.06, 0.58, 0.04, 0.3],
+        [-0.05, 0.56, -0.03, -0.2],
+        [0.02, 0.6, 0.06, 0.15],
+      ].map(([x, y, z, tilt], i) => (
+        <mesh key={i} position={[x, y, z]} rotation={[0.4, tilt, 0.2 * (i - 1)]}>
+          <boxGeometry args={[0.07, 0.14, 0.02]} />
+          <meshStandardMaterial color="#f9c74f" roughness={0.6} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+function ModSqueak() {
+  const rig = useRef<SqueakRig>(createRig());
+  const pos = useRef<THREE.Group>(null);
+  const roll = useRef<THREE.Group>(null);
+  const shadow = useRef<THREE.Group>(null);
+  const walk = useRef({ mode: "rest" as "rest" | "roll", wait: 1.5, pos: new THREE.Vector3(1, 0, 0), target: new THREE.Vector3(), q: new THREE.Quaternion() });
+
+  useFrame((state, delta) => {
+    const t = state.clock.elapsedTime % CYCLE;
+    void easeInOut;
+    void phase;
+    const r = rig.current;
+    const breath = Math.sin(state.clock.elapsedTime * 1.6);
+    if (r.body) {
+      r.body.rotation.x = -0.32;
+      r.body.scale.set(1 + breath * 0.015, 1 + breath * 0.025, 1 + breath * 0.02);
+    }
+    if (r.head) r.head.rotation.set(0.15, 0, 0.22 + breath * 0.03);
+    if (r.armL) r.armL.rotation.set(-0.7, 0, -0.55);
+    if (r.armR) r.armR.rotation.set(-0.85 + Math.max(0, Math.sin(state.clock.elapsedTime * 6)) * 0.25 * (t > 3 && t < 5 ? 1 : 0), 0, 0.5);
+
+    const w = walk.current;
+    const dt = Math.min(0.05, delta || 1 / 60);
+    if (w.mode === "rest") {
+      w.wait -= dt;
+      w.q.slerp(IDENTITY, Math.min(1, dt * 4));
+      if (w.wait <= 0) {
+        w.target.set(-2.2 + Math.random() * 6.6, 0, -1.6 + Math.random() * 2.8);
+        w.mode = "roll";
+      }
+    } else {
+      const to = w.target.clone().sub(w.pos);
+      const dist = to.length();
+      if (dist < 0.05) {
+        w.mode = "rest";
+        w.wait = 1.2 + Math.random() * 2.5;
+      } else {
+        const step = Math.min(dist, (1.2 + Math.min(dist, 2) * 0.6) * dt);
+        to.normalize();
+        w.pos.addScaledVector(to, step);
+        const axis = new THREE.Vector3(to.z, 0, -to.x).normalize();
+        w.q.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, step / 1.05));
+      }
+    }
+    const rolling = w.mode === "roll";
+    const bounce = rolling ? Math.abs(Math.sin(state.clock.elapsedTime * 9)) * 0.08 : 0;
+    if (pos.current) pos.current.position.set(w.pos.x, 1.05 + bounce, w.pos.z);
+    if (roll.current) roll.current.quaternion.copy(w.q);
+    if (shadow.current) shadow.current.position.set(w.pos.x, 0, w.pos.z);
+  });
+
+  return (
+    <>
+      <group ref={pos}>
+        <group ref={roll}>
+          {/* ciccione: più largo e più profondo */}
+          <group position={[0, -1.05, 0]} scale={[1.32, 1.02, 1.28]}>
+            <SqueakModel rig={rig} sitting sleepy outfit={<Outfit />} leftHand={<ChipBag />} />
+          </group>
+        </group>
+      </group>
+      <group ref={shadow}>
+        <Shadow radius={1.6} opacity={0.35} />
+      </group>
+    </>
+  );
+}
+
+export default function ModSqueakScene({ className }: { className?: string }) {
+  return (
+    <Stage eager className={className} camera={[0.2, 2.6, 8.6]} target={[1.2, 1.35, 0]} fov={32}>
+      <ModSqueak />
+    </Stage>
+  );
+}
