@@ -32,7 +32,7 @@ export function FriendSheet({
   onClose,
   onRead,
 }: {
-  me: string;
+  me: string | null;
   friend: FriendProfile;
   sharedStreak: number;
   streak: number;
@@ -46,11 +46,13 @@ export function FriendSheet({
   const [followBusy, setFollowBusy] = useState(false);
   const friendTier = getTier(friend.xp);
 
+  const isGuest = !me;
+
   useEffect(() => {
     const sb = getSupabase();
     if (!sb) return;
     void Promise.resolve(sb.from("follows").select("id", { count: "exact", head: true }).eq("following_id", friend.id)).then(({ count }) => setFollowerCount(count ?? 0)).catch(() => {});
-    void Promise.resolve(sb.from("follows").select("id").eq("follower_id", me).eq("following_id", friend.id).maybeSingle()).then(({ data }) => setIsFollowing(!!data)).catch(() => {});
+    if (me) void Promise.resolve(sb.from("follows").select("id").eq("follower_id", me).eq("following_id", friend.id).maybeSingle()).then(({ data }) => setIsFollowing(!!data)).catch(() => {});
   }, [friend.id, me]);
 
   useEffect(() => {
@@ -100,7 +102,7 @@ export function FriendSheet({
               <X size={20} />
             </button>
           </div>
-          <div className={clsx("mt-3 flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold", sharedStreak > 0 ? "bg-[#ff8a3d]/15 text-[#ffb27a]" : "bg-panel text-ink-mute")}>
+          {!isGuest && <><div className={clsx("mt-3 flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold", sharedStreak > 0 ? "bg-[#ff8a3d]/15 text-[#ffb27a]" : "bg-panel text-ink-mute")}>
             <Flame size={18} className={sharedStreak > 0 ? "text-[#ff8a3d]" : ""} />
             {sharedStreak > 0
               ? `${t("sharedStreakLabel")}: ${sharedStreak} ${sharedStreak === 1 ? t("day") : t("days")}. ${t("sharedStreakActive")}`
@@ -117,9 +119,11 @@ export function FriendSheet({
                 {tb === "profile" ? t("profile") : tb === "chat" ? t("chat") : t("goalsTab")}
               </button>
             ))}
-          </div>
+          </div></>}
         </header>
-        {tab === "profile" ? (
+        {isGuest || !me ? (
+          <FriendProfileTab friend={friend} me={null} isFollowing={false} followerCount={followerCount} followBusy={false} onToggleFollow={() => {}} />
+        ) : tab === "profile" ? (
           <FriendProfileTab friend={friend} me={me} isFollowing={isFollowing} followerCount={followerCount} followBusy={followBusy} onToggleFollow={async () => {
             const sb = getSupabase();
             if (!sb) return;
@@ -284,7 +288,7 @@ function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRea
   );
 }
 
-function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, onToggleFollow }: { friend: FriendProfile; me: string; isFollowing: boolean; followerCount: number; followBusy: boolean; onToggleFollow: () => void }) {
+function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, onToggleFollow }: { friend: FriendProfile; me: string | null; isFollowing: boolean; followerCount: number; followBusy: boolean; onToggleFollow: () => void }) {
   const t = useT();
   const lang = useSettings((s) => s.lang);
   const locale = LOCALE_MAP[lang] ?? "en-US";
@@ -318,7 +322,7 @@ function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, 
           <span className={clsx("inline-block h-2.5 w-2.5 rounded-full bg-gradient-to-r", tier.gradient)} />
           <span className="text-xs font-bold text-ink-mute">{t(tier.nameKey)}</span>
         </div>
-        <div className="mt-3 flex items-center justify-center gap-2">
+        {me && <div className="mt-3 flex items-center justify-center gap-2">
           <button
             type="button"
             disabled={followBusy}
@@ -335,7 +339,7 @@ function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, 
             disabled={friendReqStatus !== "idle"}
             onClick={async () => {
               const sb = getSupabase();
-              if (!sb || !friend.username) return;
+              if (!sb || !friend.username || !me) return;
               setFriendReqStatus("sending");
               try {
                 const res = await sendFriendRequest(sb, me, friend.username);
@@ -350,7 +354,7 @@ function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, 
             <UserRoundPlus size={16} />
             {friendReqStatus === "sent" ? t("friendRequestSent") : friendReqStatus === "exists" ? t("friendRequestExists") : t("sendFriendRequest")}
           </button>
-        </div>
+        </div>}
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-center">

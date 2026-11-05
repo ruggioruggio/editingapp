@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LessonPlayer } from "@/components/lesson/LessonPlayer";
+import "@/content/course";
 import { getLesson, lessons } from "@/content/lessons";
 
 type Props = { params: Promise<{ lessonId: string }> };

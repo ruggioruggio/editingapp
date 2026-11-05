@@ -1,7 +1,52 @@
-import type { LessonKind, LessonMeta, Section, Unit } from "@/lib/lessons/types";
+import type { Lesson, LessonKind, LessonMeta, LessonStep, Section, StudioStep, Unit } from "@/lib/lessons/types";
 import type { Lang } from "@/lib/settings/store";
 import { getCourseLang } from "./courseI18n";
-import { lessons } from "./lessons";
+import { getLesson, lessons, registerRecap } from "./lessons";
+
+const RECAP_TEXT: Record<string, { title: string; summary: string; intro: string; mega: string; megaIntro: string }> = {
+  it: { title: "Sfida riepilogo", summary: "Ripassa tutta l'unità e affronta il mega esercizio", intro: "Ecco tutto quello che hai imparato in questa unità:", mega: "Mega esercizio (facoltativo)", megaIntro: "Metti insieme tutto nel Premiere vero. Puoi saltarlo se vuoi." },
+  en: { title: "Recap challenge", summary: "Review the whole unit and take on the mega exercise", intro: "Here's everything you learned in this unit:", mega: "Mega exercise (optional)", megaIntro: "Put it all together in real Premiere. You can skip it if you want." },
+  fr: { title: "Défi récap", summary: "Révise toute l'unité et relève le méga exercice", intro: "Voici tout ce que tu as appris dans cette unité :", mega: "Méga exercice (facultatif)", megaIntro: "Assemble tout dans le vrai Premiere. Tu peux le passer." },
+  es: { title: "Desafío resumen", summary: "Repasa toda la unidad y afronta el mega ejercicio", intro: "Esto es todo lo que aprendiste en esta unidad:", mega: "Mega ejercicio (opcional)", megaIntro: "Júntalo todo en el Premiere real. Puedes saltarlo si quieres." },
+  zh: { title: "复习挑战", summary: "复习整个单元并完成超级练习", intro: "这是你在本单元学到的全部内容：", mega: "超级练习（可选）", megaIntro: "在真实的 Premiere 中综合运用。你可以跳过。" },
+};
+
+function buildRecap(unitId: string, lang?: Lang): Lesson | undefined {
+  const l = lang ?? "it";
+  const raw = rawSections.flatMap((s) => s.units).find((x) => x.id === unitId);
+  if (!raw) return undefined;
+  const ct = l === "it" ? null : getCourseLang(l);
+  const u = { ...raw, ...(ct?.units[unitId] ?? {}), lessons: raw.lessons.map((m) => ({ ...m, ...(ct?.lessons[m.id] ?? {}) })) };
+  const src = u.lessons.map((m) => getLesson(m.id, l)).filter((x): x is Lesson => !!x);
+  if (!src.length) return undefined;
+  const tx = RECAP_TEXT[l] ?? RECAP_TEXT.it;
+  const drills: LessonStep[] = src.flatMap((x) => x.steps.filter((s) => s.kind === "quiz" || s.kind === "match"));
+  const studios = src.flatMap((x) => x.steps.filter((s): s is StudioStep => s.kind === "studio"));
+  const pool = studios.some((s) => s.app === "premiere") ? studios.filter((s) => s.app === "premiere") : studios;
+  const mega = pool.reduce<StudioStep | undefined>((best, s) => (!best || s.goals.length >= best.goals.length ? s : best), undefined);
+  const avgMin = src.reduce((n, x) => n + x.minutes, 0) / src.length;
+  const avgXp = src.reduce((n, x) => n + x.xp, 0) / src.length;
+  return {
+    id: `recap-${unitId}`,
+    title: `${tx.title}: ${u.title}`,
+    summary: tx.summary,
+    minutes: Math.round(avgMin * 2.5),
+    xp: Math.round(avgXp * 2.5),
+    steps: [
+      { kind: "theory", title: `${tx.title}: ${u.title}`, body: [tx.intro, ...u.lessons.map((m) => `**${m.title}** — ${m.goal}`)] },
+      ...drills,
+      ...(mega ? [{ ...mega, title: `${tx.mega}: ${mega.title}`, instructions: `${tx.megaIntro}\n\n${mega.instructions}`, optional: true } as StudioStep] : []),
+    ],
+  };
+}
+
+function withRecap(u: Unit): Unit {
+  const id = `recap-${u.id}`;
+  registerRecap(id, (lang) => buildRecap(u.id, lang));
+  if (!(id in lessons)) return u;
+  const tx = RECAP_TEXT.it;
+  return { ...u, lessons: [...u.lessons, { id, title: tx.title, goal: tx.summary, kind: "project", status: "available" }] };
+}
 
 type Row = [id: string, title: string, goal: string, kind?: LessonKind];
 
@@ -20,7 +65,7 @@ const unit = (id: string, title: string, description: string, rows: Row[]): Unit
   ),
 });
 
-export const sections: Section[] = [
+const rawSections: Section[] = [
   {
     id: "s1",
     title: "Primi passi",
@@ -209,6 +254,8 @@ export const sections: Section[] = [
   },
 ];
 
+export const sections: Section[] = rawSections.map((s) => ({ ...s, units: s.units.map(withRecap) }));
+
 export const allLessons = sections.flatMap((s) => s.units.flatMap((u) => u.lessons));
 
 export function getTranslatedSections(lang: Lang): Section[] {
@@ -223,7 +270,7 @@ export function getTranslatedSections(lang: Lang): Section[] {
       ...(t.units[u.id] ?? {}),
       lessons: u.lessons.map((l) => ({
         ...l,
-        ...(t.lessons[l.id] ?? {}),
+        ...(l.id.startsWith("recap-") ? { title: (RECAP_TEXT[lang] ?? RECAP_TEXT.it).title, goal: (RECAP_TEXT[lang] ?? RECAP_TEXT.it).summary } : (t.lessons[l.id] ?? {})),
       })),
     })),
   }));

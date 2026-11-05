@@ -64,7 +64,7 @@ export interface Goal<S> {
   test: (s: S) => boolean;
 }
 
-export type StudioStep = { kind: "studio"; title: string; instructions: string; hint?: string } & (
+export type StudioStep = { kind: "studio"; title: string; instructions: string; hint?: string; optional?: boolean } & (
   | { app: "premiere"; setup: () => Partial<PrState>; goals: Goal<PrState>[] }
   | { app: "ae"; setup: () => Partial<AeState>; goals: Goal<AeState>[] }
 );

@@ -21,7 +21,16 @@ export const lessons: Record<string, Lesson> = Object.fromEntries(
   ].map((lesson) => [lesson.id, lesson]),
 );
 
+const recapBuilders: Record<string, (lang?: Lang) => Lesson | undefined> = {};
+
+export function registerRecap(id: string, build: (lang?: Lang) => Lesson | undefined) {
+  recapBuilders[id] = build;
+  const it = build();
+  if (it) lessons[id] = it;
+}
+
 export function getLesson(id: string, lang?: Lang): Lesson | undefined {
+  if (recapBuilders[id]) return lang && lang !== "it" ? recapBuilders[id](lang) : lessons[id];
   const lesson = lessons[id];
   if (!lesson || !lang || lang === "it") return lesson;
   const translations = getLessonTranslationsSync(lang);

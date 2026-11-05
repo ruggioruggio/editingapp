@@ -179,7 +179,7 @@ export function WorldLeaderboard() {
         })}
       </ul>
 
-      {openProfile && me && (
+      {openProfile && (
         <FriendSheet
           me={me}
           friend={openProfile}

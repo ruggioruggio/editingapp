@@ -260,6 +260,10 @@ export function LessonPlayer({ lessonId, unitTestId }: { lessonId?: string; unit
             <button type="button" onClick={skip} className="duo-btn duo-ghost hidden sm:inline-flex">
               {t("skip")}
             </button>
+          ) : step.kind === "studio" && step.optional ? (
+            <button type="button" onClick={next} className="duo-btn duo-ghost w-full sm:w-auto">
+              {t("skip")}
+            </button>
           ) : (
             <span className="hidden sm:block" />
           )}
