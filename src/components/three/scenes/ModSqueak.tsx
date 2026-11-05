@@ -96,7 +96,7 @@ function ModSqueak() {
   const pos = useRef<THREE.Group>(null);
   const roll = useRef<THREE.Group>(null);
   const shadow = useRef<THREE.Group>(null);
-  const walk = useRef({ mode: "rest" as "rest" | "roll", wait: 1.5, pos: new THREE.Vector3(1, 0, 0), target: new THREE.Vector3(), q: new THREE.Quaternion() });
+  const walk = useRef({ mode: "rest" as "rest" | "roll", wait: 1.5, speed: 0, pos: new THREE.Vector3(1, 0, 0), target: new THREE.Vector3(), q: new THREE.Quaternion(), dir: new THREE.Vector3(1, 0, 0) });
 
   useFrame((state, delta) => {
     const t = state.clock.elapsedTime % CYCLE;
@@ -114,9 +114,11 @@ function ModSqueak() {
 
     const w = walk.current;
     const dt = Math.min(0.05, delta || 1 / 60);
+    // accelerates and brakes like a heavy ball instead of starting/stopping instantly
+    let desired = 0;
     if (w.mode === "rest") {
       w.wait -= dt;
-      w.q.slerp(IDENTITY, Math.min(1, dt * 4));
+      if (w.speed < 0.05) w.q.slerp(IDENTITY, Math.min(1, dt * 1.5));
       if (w.wait <= 0) {
         w.target.set(-2.2 + Math.random() * 6.6, 0, -1.6 + Math.random() * 2.8);
         w.mode = "roll";
@@ -124,19 +126,22 @@ function ModSqueak() {
     } else {
       const to = w.target.clone().sub(w.pos);
       const dist = to.length();
-      if (dist < 0.05) {
+      if (dist < 0.08) {
         w.mode = "rest";
         w.wait = 1.2 + Math.random() * 2.5;
       } else {
-        const step = Math.min(dist, (1.2 + Math.min(dist, 2) * 0.6) * dt);
-        to.normalize();
-        w.pos.addScaledVector(to, step);
-        const axis = new THREE.Vector3(to.z, 0, -to.x).normalize();
-        w.q.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, step / 1.05));
+        desired = Math.min(1.8, Math.sqrt(2 * 1.6 * dist));
+        w.dir.lerp(to.normalize(), Math.min(1, dt * 3)).normalize();
       }
     }
-    const rolling = w.mode === "roll";
-    const bounce = rolling ? Math.abs(Math.sin(state.clock.elapsedTime * 9)) * 0.08 : 0;
+    w.speed += Math.max(-1.6 * dt, Math.min(1.6 * dt, desired - w.speed));
+    if (w.speed > 1e-4) {
+      const step = w.speed * dt;
+      w.pos.addScaledVector(w.dir, step);
+      const axis = new THREE.Vector3(w.dir.z, 0, -w.dir.x).normalize();
+      w.q.premultiply(new THREE.Quaternion().setFromAxisAngle(axis, step / 1.05));
+    }
+    const bounce = (1 - Math.cos(state.clock.elapsedTime * 18)) * 0.03 * Math.min(1, w.speed / 1.2);
     if (pos.current) pos.current.position.set(w.pos.x, 1.05 + bounce, w.pos.z);
     if (roll.current) roll.current.quaternion.copy(w.q);
     if (shadow.current) shadow.current.position.set(w.pos.x, 0, w.pos.z);

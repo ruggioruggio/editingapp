@@ -18,7 +18,7 @@ import {
   TrafficCone,
   WorkSign,
 } from "../props";
-import { createRig, easeInOut, easeOut, lerp, phase, resetRig, Shadow, SqueakModel, walkCycle } from "../SqueakModel";
+import { createRig, easeInOut, easeOut, lerp, phase, resetRig, Shadow, smoothstep, SqueakModel, walkCycle } from "../SqueakModel";
 
 const PROFILE_RIGHT = Math.PI / 2;
 
@@ -104,7 +104,7 @@ function SlideScene() {
   const START = curve.getPointAt(0);
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 6.8;
+    const t = state.clock.elapsedTime % 9.2;
     const r = rig.current;
     const b = body.current;
     const y = turn.current;
@@ -163,6 +163,17 @@ function SlideScene() {
       show(Math.min(1, p + 0.02), 1);
       fistAt = 1;
       flap = 1.3;
+    } else if (t >= 6.2) {
+      const end = curve.getPointAt(1);
+      const k = smoothstep(phase(t, 6.5, 8.6));
+      b.position.set(lerp(end.x + 0.15, START.x - 0.35, k), 0.2, 0);
+      b.rotation.z = 0;
+      const turnL = easeInOut(phase(t, 6.2, 6.6));
+      const turnR = easeInOut(phase(t, 8.6, 9.2));
+      y.rotation.y = lerp(lerp(0.2, -PROFILE_RIGHT, turnL), 0.25, turnR);
+      walkCycle(r, t, 11, Math.sin(k * Math.PI) ** 0.5);
+      show(0, 0);
+      flap = 0.35 + Math.sin(k * Math.PI) * 0.4;
     } else {
       const end = curve.getPointAt(1);
       const land = easeOut(phase(t, 4.4, 4.7));
@@ -194,12 +205,11 @@ function SlideScene() {
     if (hatBounce.current) hatBounce.current.position.y = (t > 2.5 && t < 4.4 ? Math.abs(Math.sin(t * 14)) * 0.1 : 0) + Math.sin(t * 6) * 0.02;
     lines.current.forEach((l, i) => {
       if (!l) return;
-      const on = t > 2.7 && t < 4.3;
-      l.visible = on;
-      if (on) {
-        l.position.set(b.position.x - 0.9 - i * 0.25, b.position.y + 0.6 + (i - 1.5) * 0.35 + Math.sin(t * 20 + i) * 0.1, 0.3);
-        l.rotation.z = b.rotation.z + Math.sin(t * 15 + i * 2) * 0.08;
-      }
+      const env = smoothstep(phase(t, 2.6, 2.9)) * (1 - smoothstep(phase(t, 4.1, 4.45)));
+      l.visible = env > 0.01;
+      (l.material as THREE.MeshBasicMaterial).opacity = 0.6 * env;
+      l.position.set(b.position.x - 0.9 - i * 0.25, b.position.y + 0.6 + (i - 1.5) * 0.35 + Math.sin(t * 20 + i) * 0.1, 0.3);
+      l.rotation.z = b.rotation.z + Math.sin(t * 15 + i * 2) * 0.08;
     });
   });
 
@@ -259,13 +269,14 @@ function ClapScene() {
   const rig = useRef(createRig());
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 3.4;
+    const t = state.clock.elapsedTime % 3.6;
     const r = rig.current;
     if (!mouse.current) return;
     resetRig(r);
-    mouse.current.rotation.y = lerp(0.9, 0.25, easeInOut(phase(t, 0, 0.6)));
+    const back = easeInOut(phase(t, 2.9, 3.6));
+    mouse.current.rotation.y = lerp(lerp(0.9, 0.25, easeInOut(phase(t, 0, 0.6))), 0.9, back);
     if (r.armR) r.armR.rotation.set(-1.5, 0, 0.15);
-    if (r.head) r.head.rotation.y = t < 1.2 ? 0.5 : lerp(0.5, -0.3, easeInOut(phase(t, 1.2, 1.6)));
+    if (r.head) r.head.rotation.y = lerp(lerp(0.5, -0.3, easeInOut(phase(t, 1.2, 1.6))), 0.5, back);
     if (stick.current) {
       const open = t < 0.3 ? 0 : t < 0.9 ? easeOut(phase(t, 0.3, 0.9)) : t < 1.02 ? 1 - phase(t, 0.9, 1.02) : 0;
       stick.current.rotation.z = open * 0.65;
@@ -297,25 +308,28 @@ function CheeseScene() {
   const bites = [0.5, 1.2, 1.9];
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 4.6;
+    const t = state.clock.elapsedTime % 5.6;
     const r = rig.current;
     if (!mouse.current || !cheese.current) return;
     resetRig(r);
 
-    const eaten = bites.filter((b) => t > b + 0.15).length;
-    cheese.current.scale.x = Math.max(0.001, 1 - eaten * 0.2);
+    // each bite takes a chunk gradually; leftovers slide away and a fresh wedge slides in off-screen
+    const eaten = bites.reduce((acc, b) => acc + smoothstep(phase(t, b + 0.12, b + 0.32)), 0);
+    const away = smoothstep(phase(t, 3.6, 4.4));
+    const back = 1 - easeOut(phase(t, 4.5, 5.5));
+    cheese.current.scale.x = t < 4.45 ? Math.max(0.001, 1 - eaten * 0.2) : 1;
+    cheese.current.position.x = 2.0 + (t < 4.45 ? away : back) * 3.4;
 
-    if (t < 2.4) {
-      mouse.current.rotation.y = PROFILE_RIGHT;
-      const lunge = bites.reduce((acc, b) => acc + Math.max(0, Math.sin(phase(t, b, b + 0.35) * Math.PI)), 0);
-      if (r.body) r.body.position.z = lunge * 0.35;
-      if (r.head) r.head.rotation.x = lunge * 0.25;
-    } else {
-      mouse.current.rotation.y = lerp(PROFILE_RIGHT, 0.2, easeInOut(phase(t, 2.4, 2.8)));
-      const pat = Math.sin(t * 12) * 0.12;
-      if (r.armL) r.armL.rotation.set(-0.7 + pat, 0, 0.5);
-      if (r.armR) r.armR.rotation.set(-0.7 - pat, 0, -0.5);
-    }
+    const lunge = bites.reduce((acc, b) => acc + Math.max(0, Math.sin(phase(t, b, b + 0.4) * Math.PI)), 0);
+    if (r.body) r.body.position.z = lunge * 0.35;
+    if (r.head) r.head.rotation.x = lunge * 0.25;
+    const face = easeInOut(phase(t, 2.4, 2.9)) * (1 - easeInOut(phase(t, 4.8, 5.5)));
+    mouse.current.rotation.y = lerp(PROFILE_RIGHT, 0.2, face);
+    const patting = smoothstep(phase(t, 2.6, 2.9)) * (1 - smoothstep(phase(t, 4.3, 4.8)));
+    const pat = Math.sin(t * 9) * 0.12;
+    if (r.armL) r.armL.rotation.set((-0.7 + pat) * patting, 0, 0.5 * patting);
+    if (r.armR) r.armR.rotation.set((-0.7 - pat) * patting, 0, -0.5 * patting);
+    if (r.head) r.head.rotation.y = -0.4 * smoothstep(phase(t, 3.6, 4.0)) * (1 - smoothstep(phase(t, 4.6, 5.2)));
   });
 
   return (
@@ -341,11 +355,29 @@ function KeyframeScene() {
   const rig = useRef(createRig());
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 4.6;
+    const t = state.clock.elapsedTime % 7;
     const r = rig.current;
     const m = mouse.current;
     if (!m || !r.body) return;
     resetRig(r);
+    if (t >= 3.9) {
+      // turns around and walks back to the first keyframe
+      const turnL = easeInOut(phase(t, 3.9, 4.3));
+      const turnR = easeInOut(phase(t, 6.4, 6.9));
+      m.rotation.y = lerp(lerp(0, -PROFILE_RIGHT, turnL), PROFILE_RIGHT, turnR);
+      const k = smoothstep(phase(t, 4.2, 6.5));
+      m.position.set(lerp(xs[3], xs[0], k), 0.56, 0);
+      walkCycle(r, t, 11, Math.sin(k * Math.PI) ** 0.5);
+      diamonds.current.forEach((d, i) => {
+        if (!d) return;
+        const mat = d.material as THREE.MeshStandardMaterial;
+        const fade = i === 0 ? 0 : smoothstep(phase(t, 4.3 + (3 - i) * 0.5, 4.9 + (3 - i) * 0.5));
+        mat.emissiveIntensity = 0.9 * (1 - fade);
+        mat.color.set("#555").lerp(new THREE.Color("#ffc93c"), 1 - fade);
+        d.rotation.y = state.clock.elapsedTime * 0.8;
+      });
+      return;
+    }
 
     const HOP = 0.9;
     const squash = (k: number) => r.body!.scale.set(1 + (1 - k) * 0.8, k, 1 + (1 - k) * 0.8);
@@ -394,10 +426,10 @@ function KeyframeScene() {
 
     diamonds.current.forEach((d, k) => {
       if (!d) return;
-      const lit = t >= k * HOP + (k === 0 ? 0 : -0.15);
+      const lit = k === 0 ? 1 : smoothstep(phase(t, k * HOP - 0.2, k * HOP + 0.05));
       const mat = d.material as THREE.MeshStandardMaterial;
-      mat.emissiveIntensity = lit ? 0.9 : 0;
-      mat.color.set(lit ? "#ffc93c" : "#555");
+      mat.emissiveIntensity = 0.9 * lit;
+      mat.color.set("#555").lerp(new THREE.Color("#ffc93c"), lit);
       d.rotation.y = state.clock.elapsedTime * 0.8;
     });
   });
@@ -437,17 +469,29 @@ function RunScene() {
     [],
   );
 
+  const clipRefs = useRef<(THREE.Mesh | null)[]>([]);
+
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 3;
+    const t = state.clock.elapsedTime;
     if (!runner.current) return;
-    runner.current.position.x = lerp(-4.5, 4.5, t / 3);
-    walkCycle(rig.current, state.clock.elapsedTime, 18, 1.2);
+    // runner stays in frame, the timeline scrolls under him like a treadmill
+    runner.current.position.x = Math.sin(t * 0.45) * 0.9;
+    runner.current.position.y = Math.abs(Math.sin(t * 9)) * 0.06;
+    walkCycle(rig.current, t, 18, 1.2);
+    if (rig.current.body) rig.current.body.rotation.x = 0.12;
+    clipRefs.current.forEach((m, i) => {
+      if (!m) return;
+      const span = 12;
+      const x = ((((clips[i].x - t * 2.4 + 6) % span) + span) % span) - 6;
+      m.position.x = x;
+      m.scale.y = Math.min(1, Math.max(0.001, (6 - Math.abs(x)) / 1.2));
+    });
   });
 
   return (
     <Diorama tilt={-0.3}>
       {clips.map((c, i) => (
-        <mesh key={i} position={[c.x, 0.06, 0.5 + c.lane * 0.55]}>
+        <mesh key={i} ref={(m) => void (clipRefs.current[i] = m)} position={[c.x, 0.06, 0.5 + c.lane * 0.55]}>
           <boxGeometry args={[c.w, 0.12, 0.45]} />
           <meshStandardMaterial color={TRACK_COLORS[c.lane]} roughness={0.5} />
         </mesh>
@@ -602,7 +646,7 @@ function AngryScene() {
       const side = i % 2 ? 1 : -1;
       p.position.set(side * (0.75 + k * 0.5), 2.85 + k * 1.3, 0.3);
       p.scale.setScalar(0.12 + k * 0.28);
-      (p.material as THREE.MeshStandardMaterial).opacity = 0.75 * (1 - k);
+      (p.material as THREE.MeshStandardMaterial).opacity = 0.75 * Math.sin(Math.min(1, k * 1.6) * Math.PI * 0.5) * (1 - k);
     });
   });
 

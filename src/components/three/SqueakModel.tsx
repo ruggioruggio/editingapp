@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type MutableRefObject, type ReactNode } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -89,9 +89,79 @@ function Ear({ side }: { side: 1 | -1 }) {
   );
 }
 
+/** Damped spring (slightly under-damped): gives inertia, follow-through and a soft settle instead of snapping. */
+export class Spring {
+  x = 0;
+  v = 0;
+  ready = false;
+  constructor(public w = 18, public z = 0.8) {}
+  step(target: number, dt: number) {
+    if (!this.ready) {
+      this.x = target;
+      this.ready = true;
+      return target;
+    }
+    const n = Math.max(1, Math.ceil(dt * 240));
+    const h = dt / n;
+    for (let i = 0; i < n; i++) {
+      this.v += (this.w * this.w * (target - this.x) - 2 * this.z * this.w * this.v) * h;
+      this.x += this.v * h;
+    }
+    return this.x;
+  }
+}
+
+export class TransformSpring {
+  private s: Spring[];
+  constructor(w = 18, z = 0.8, scaleW = w) {
+    this.s = Array.from({ length: 9 }, (_, i) => new Spring(i >= 6 ? scaleW : w, z));
+  }
+  follow(src: THREE.Object3D, dst: THREE.Object3D, dt: number) {
+    const s = this.s;
+    dst.position.set(s[0].step(src.position.x, dt), s[1].step(src.position.y, dt), s[2].step(src.position.z, dt));
+    dst.rotation.set(s[3].step(src.rotation.x, dt), s[4].step(src.rotation.y, dt), s[5].step(src.rotation.z, dt));
+    dst.scale.set(Math.max(0.001, s[6].step(src.scale.x, dt)), Math.max(0.001, s[7].step(src.scale.y, dt)), Math.max(0.001, s[8].step(src.scale.z, dt)));
+  }
+}
+
+/** A group whose transform is driven through `source` and reaches the screen via springs. */
+export function Follow({
+  source,
+  w = 12,
+  z = 0.85,
+  position,
+  rotation,
+  scale,
+  children,
+}: {
+  source: THREE.Object3D;
+  w?: number;
+  z?: number;
+  position?: [number, number, number];
+  rotation?: [number, number, number];
+  scale?: number | [number, number, number];
+  children?: ReactNode;
+}) {
+  const ref = useRef<THREE.Group>(null);
+  const spring = useMemo(() => new TransformSpring(w, z), [w, z]);
+  const init = useRef(false);
+  if (!init.current) {
+    init.current = true;
+    if (position) source.position.set(...position);
+    if (rotation) source.rotation.set(...rotation);
+    if (scale !== undefined) typeof scale === "number" ? source.scale.setScalar(scale) : source.scale.set(...scale);
+  }
+  useFrame((_, dt) => {
+    if (ref.current) spring.follow(source, ref.current, Math.min(dt, 0.1));
+  });
+  return <group ref={ref}>{children}</group>;
+}
+
+export const useProxy = () => useRef(new THREE.Group());
+
 function Arm({ side, refCb, children }: { side: 1 | -1; refCb: (g: THREE.Group | null) => void; children?: ReactNode }) {
   return (
-    <group ref={refCb} position={[0.7 * side, 1.3, 0.35]}>
+    <group ref={refCb}>
       <mesh position={[0, -0.22, 0]}>
         <capsuleGeometry args={[0.1, 0.32, 8, 20]} />
         <Fur color={C.fur} />
@@ -129,11 +199,57 @@ export function SqueakModel({
 }) {
   const eyes = useRef<THREE.Group>(null);
   const torso = useRef<THREE.Group>(null);
+  const footMeshes = useRef<(THREE.Mesh | null)[]>([]);
+  const sitSpring = useMemo(() => new Spring(9, 0.9), []);
+
+  // Scenes animate invisible proxies; the visible parts chase them with springs, so nothing ever snaps.
+  const parts = useMemo(() => {
+    const mk = (p: [number, number, number]) => {
+      const g = new THREE.Group();
+      g.position.set(...p);
+      return g;
+    };
+    return {
+      proxy: {
+        body: mk([0, 0, 0]),
+        head: mk([0, 1.9, 0.3]),
+        armL: mk([-0.7, 1.3, 0.35]),
+        armR: mk([0.7, 1.3, 0.35]),
+        footL: mk([-0.42, 0.1, 0.45]),
+        footR: mk([0.42, 0.1, 0.45]),
+      } satisfies Record<keyof SqueakRig, THREE.Group>,
+      springs: {
+        body: new TransformSpring(20, 0.82, 16),
+        head: new TransformSpring(14, 0.62),
+        armL: new TransformSpring(17, 0.72, 14),
+        armR: new TransformSpring(17, 0.72, 14),
+        footL: new TransformSpring(30, 0.9),
+        footR: new TransformSpring(30, 0.9),
+      } satisfies Record<keyof SqueakRig, TransformSpring>,
+    };
+  }, []);
+  if (rig) Object.assign(rig.current, parts.proxy);
+  const visual = useRef<Partial<Record<keyof SqueakRig, THREE.Group | null>>>({});
   const set = (key: keyof SqueakRig) => (g: THREE.Group | null) => {
-    if (rig) rig.current[key] = g;
+    visual.current[key] = g;
   };
 
-  useFrame((state) => {
+  useEffect(() => {
+    for (const s of [-1, 1] as const) {
+      const f = parts.proxy[s === -1 ? "footL" : "footR"];
+      if (sitting) f.position.set(0.42 * s, 0.45, 1.0);
+      else f.position.set(0.42 * s, 0.1, 0.45);
+    }
+  }, [sitting, parts]);
+
+  useFrame((state, delta) => {
+    const dt = Math.min(delta, 0.1);
+    for (const key of Object.keys(parts.proxy) as (keyof SqueakRig)[]) {
+      const v = visual.current[key];
+      if (v) parts.springs[key].follow(parts.proxy[key], v, dt);
+    }
+    const sit = sitSpring.step(sitting ? 1 : 0, dt);
+    for (const m of footMeshes.current) if (m) m.rotation.x = -0.9 * sit;
     const t = state.clock.elapsedTime;
     if (eyes.current) eyes.current.scale.y = sleepy ? 0.12 : angry ? 0.72 * blinkAt(t) : blinkAt(t);
     if (torso.current) {
@@ -160,12 +276,8 @@ export function SqueakModel({
 
       {/* zampe: da seduto vanno in avanti */}
       {([-1, 1] as const).map((s) => (
-        <group
-          key={s}
-          ref={set(s === -1 ? "footL" : "footR")}
-          position={sitting ? [0.42 * s, 0.45, 1.0] : [0.42 * s, 0.1, 0.45]}
-        >
-          <mesh scale={[0.28, 0.13, 0.42]} rotation={sitting ? [-0.9, 0, 0] : [0, 0, 0]}>
+        <group key={s} ref={set(s === -1 ? "footL" : "footR")}>
+          <mesh ref={(m) => void (footMeshes.current[s === -1 ? 0 : 1] = m)} scale={[0.28, 0.13, 0.42]}>
             <sphereGeometry args={[1, 32, 24]} />
             <meshPhysicalMaterial color={C.pink} roughness={0.5} sheen={0.6} />
           </mesh>
@@ -182,7 +294,7 @@ export function SqueakModel({
       <Tail />
 
       {/* testa: gruppo separato così può girarsi e annuire */}
-      <group ref={set("head")} position={[0, 1.9, 0.3]}>
+      <group ref={set("head")}>
         <mesh scale={[1, 0.94, 0.98]}>
           <sphereGeometry args={[0.78, 64, 48]} />
           <Fur color={C.fur} />
@@ -287,9 +399,14 @@ export function walkCycle(rig: SqueakRig, t: number, speed = 9, amount = 1) {
   if (rig.armR) rig.armR.rotation.x = s * 0.4;
 }
 
+export const smoothstep = (t: number) => {
+  const x = clamp01(t);
+  return x * x * (3 - 2 * x);
+};
+
 export function resetRig(rig: SqueakRig) {
-  if (rig.footL) rig.footL.position.z = 0.45;
-  if (rig.footR) rig.footR.position.z = 0.45;
+  rig.footL?.position.set(-0.42, 0.1, 0.45);
+  rig.footR?.position.set(0.42, 0.1, 0.45);
   if (rig.body) {
     rig.body.position.set(0, 0, 0);
     rig.body.rotation.set(0, 0, 0);
@@ -297,5 +414,7 @@ export function resetRig(rig: SqueakRig) {
   }
   rig.armL?.rotation.set(0, 0, 0);
   rig.armR?.rotation.set(0, 0, 0);
+  rig.armL?.scale.set(1, 1, 1);
+  rig.armR?.scale.set(1, 1, 1);
   rig.head?.rotation.set(0, 0, 0);
 }

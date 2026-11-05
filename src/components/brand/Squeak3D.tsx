@@ -26,9 +26,9 @@ function Solo({ mode }: { mode: Squeak3DMode }) {
     const ly = -state.pointer.y * 0.2 + Math.sin(t * 0.9 + 1) * 0.05;
     look.current.x += (lx - look.current.x) * 0.06;
     look.current.y += (ly - look.current.y) * 0.06;
-    const idle = (from: number) => {
+    const idle = (from: number, turns = 0) => {
       const k = easeOut(clamp01((t - from) / 0.8));
-      g.rotation.y = g.rotation.y * (1 - k) + (Math.sin(t * 0.55) * 0.35 + look.current.x * 0.4) * k;
+      g.rotation.y = g.rotation.y * (1 - k) + (turns * Math.PI * 2 + Math.sin((t - from) * 0.55) * 0.35 + look.current.x * 0.4) * k;
       if (r.head) {
         r.head.rotation.y = look.current.x * k;
         r.head.rotation.x = look.current.y * k;
@@ -62,7 +62,7 @@ function Solo({ mode }: { mode: Squeak3DMode }) {
       const back = 1 + 2.2 * (p - 1) ** 3 + 1.2 * (p - 1) ** 2;
       g.rotation.y = back * Math.PI * 2;
       r.body.position.y = Math.sin(p * Math.PI) * 0.45;
-      if (t > 1.6) idle(1.6);
+      if (t > 1.6) idle(1.6, 1);
       if (t > 1.5) wave(1.5);
     }
   });
