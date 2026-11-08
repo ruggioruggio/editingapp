@@ -10,11 +10,11 @@ const isInstalledApp = () => /Electron/i.test(navigator.userAgent) || !!process.
 
 export function CookieBanner() {
   const t = useT();
-  const { choice, loaded, load, choose } = useCookieConsent();
+  const { choice, loaded, suppressed, load, choose } = useCookieConsent();
 
   useEffect(load, [load]);
 
-  if (!loaded || choice || isInstalledApp()) return null;
+  if (!loaded || choice || suppressed || isInstalledApp()) return null;
 
   return (
     <div role="dialog" aria-label={t("cookieTitle")} className="animate-pop fixed inset-x-3 bottom-3 z-[90] mx-auto max-w-lg rounded-2xl border border-line bg-panel-2 p-4 shadow-2xl sm:bottom-5">
