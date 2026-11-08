@@ -5,7 +5,7 @@ import clsx from "clsx";
 import { Camera, Flame, MessageCircle, Settings, UserRound, Zap } from "lucide-react";
 import { DmInbox } from "@/components/friends/DmInbox";
 import { FriendsPanel } from "@/components/friends/FriendsPanel";
-import { badgeLabel, useNotificationCounts } from "@/lib/hooks/useNotificationCount";
+import { badgeLabel, useChatTarget, useNotificationCounts } from "@/lib/hooks/useNotificationCount";
 import { SettingsModal } from "@/components/settings/SettingsModal";
 import { useAuth } from "@/lib/supabase/auth";
 import { currentStreak, useProgress } from "@/lib/progress/store";
@@ -64,14 +64,12 @@ export function ProfileView() {
   const [followingCount, setFollowingCount] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatar_url ?? null);
   const [tab, setTab] = useState<"profile" | "dm">("profile");
-  const [chatWith, setChatWith] = useState<string | null>(null);
+  const chatWith = useChatTarget((s) => s.chat);
   const unreadMessages = useNotificationCounts((s) => s.unreadMessages);
 
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search);
-    if (q.get("tab") === "dm") setTab("dm");
-    if (q.get("chat")) { setTab("dm"); setChatWith(q.get("chat")); }
-  }, []);
+    if (chatWith) setTab("dm");
+  }, [chatWith]);
 
   useEffect(() => {
     setBio(profile?.bio ?? "");

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { todayKey } from "@/lib/date";
+import { useChatTarget } from "@/lib/hooks/useNotificationCount";
 import { currentStreak, todayState, useProgress } from "@/lib/progress/store";
 import { translate, type TKey } from "@/lib/settings/i18n";
 import { useSettings } from "@/lib/settings/store";
@@ -80,6 +82,14 @@ export function NotificationManager() {
   const bannedUntil = useProgress((s) => s.bannedUntil);
   const lastLessons = useProgress((s) => s.stats.lessons);
   const permitted = useRef(false);
+  const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
+  // installed apps are a single page: a real navigation would land on a missing file (grey screen)
+  const openTarget = useRef((extra?: Record<string, string>) => {
+    if (extra?.chat) useChatTarget.setState({ chat: extra.chat });
+    if (extra?.url) routerRef.current.push(extra.url);
+  }).current;
 
   // Native: permissions, tap handling, reminders.
   useEffect(() => {
@@ -92,8 +102,7 @@ export function NotificationManager() {
       permitted.current = p.display === "granted";
       if (!permitted.current) return;
       const h = await ln.addListener("localNotificationActionPerformed", (a) => {
-        const url = a.notification.extra?.url;
-        if (url) window.location.assign(url);
+        openTarget(a.notification.extra);
       });
       removeListener = h.remove;
       await scheduleReminders(ln);
@@ -134,12 +143,15 @@ export function NotificationManager() {
       const lang = useSettings.getState().lang;
       const title = fill(translate(lang, "pushMsgTitle"), { user: await senderName(m.sender_id) });
       const body = m.body.length > 120 ? `${m.body.slice(0, 117)}…` : m.body;
-      const url = `/profile?chat=${m.sender_id}`;
+      const extra = { url: "/profile", chat: m.sender_id };
       if (ln) {
-        void ln.schedule({ notifications: [{ id: 4000 + (m.id % 100000), title, body, extra: { url } }] }).catch(() => {});
+        void ln.schedule({ notifications: [{ id: 4000 + (m.id % 100000), title, body, extra }] }).catch(() => {});
       } else if (typeof Notification !== "undefined" && Notification.permission === "granted") {
         const n = new Notification(title, { body, tag: `dm-${m.sender_id}` });
-        n.onclick = () => { window.focus(); window.location.assign(url); };
+        n.onclick = () => {
+          window.focus();
+          openTarget(extra);
+        };
       }
     };
     return subscribeIncoming(sb, me, (m) => void onMessage(m));

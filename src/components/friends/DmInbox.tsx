@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { loadFriends, type FriendProfile } from "@/lib/supabase/friends";
 import { loadInbox, subscribeIncoming, type InboxThread } from "@/lib/supabase/social";
-import { useNotificationCounts } from "@/lib/hooks/useNotificationCount";
+import { useChatTarget, useNotificationCounts } from "@/lib/hooks/useNotificationCount";
 import { useT } from "@/lib/settings/i18n";
 import { Chat } from "./FriendSheet";
 
@@ -64,10 +64,12 @@ export function DmInbox({ initialOpen }: { initialOpen?: string | null }) {
   }, [me, refresh]);
 
   useEffect(() => {
-    if (!initialOpen || open) return;
+    if (!initialOpen) return;
     const p = threads?.find((x) => x.other.id === initialOpen)?.other ?? friends.find((f) => f.id === initialOpen);
-    if (p) setOpen(p as FriendProfile);
-  }, [initialOpen, threads, friends, open]);
+    if (!p) return;
+    setOpen(p as FriendProfile);
+    useChatTarget.setState({ chat: null });
+  }, [initialOpen, threads, friends]);
 
   if (!me) return null;
 

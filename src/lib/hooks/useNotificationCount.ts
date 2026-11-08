@@ -24,7 +24,10 @@ export const useNotificationCounts = create<Counts & { refresh: () => Promise<vo
   },
 }));
 
-export const badgeLabel = (n: number) => (n > 9 ? "9+" : String(n));
+// chat to open once the profile page is showing (set when a message notification is tapped)
+export const useChatTarget = create<{ chat: string | null }>(() => ({ chat: null }));
+
+export const badgeLabel =(n: number) => (n > 9 ? "9+" : String(n));
 
 export function useNotificationPolling() {
   const status = useAuth((s) => s.status);
