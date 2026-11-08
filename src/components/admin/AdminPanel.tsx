@@ -6,6 +6,7 @@ import { Ban, Crown, HardHat, Gavel, Handshake, KeyRound, LogOut, Megaphone, Ref
 import { allLessons } from "@/content/course";
 import { todayKey } from "@/lib/date";
 import { adminAction, adminLogin, adminLogout, markGrace, useAdmin, type Announcement } from "@/lib/admin/client";
+import { MAX_XP } from "@/lib/progress/merge";
 import { pickGameData, useProgress } from "@/lib/progress/store";
 import { useAuth, ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
@@ -68,7 +69,7 @@ function StatsEditor({ initial, onSave, busy, label = "Salva valori" }: { initia
       className="flex flex-wrap items-end gap-2"
       onSubmit={(e) => {
         e.preventDefault();
-        onSave({ xp: n(v.xp), streak: n(v.streak), ...(initial.best !== undefined ? { best: Math.max(n(v.best), n(v.streak)) } : {}) });
+        onSave({ xp: Math.min(n(v.xp), MAX_XP), streak: n(v.streak), ...(initial.best !== undefined ? { best: Math.max(n(v.best), n(v.streak)) } : {}) });
       }}
     >
       {field("xp", "XP")}

@@ -1,5 +1,9 @@
 import { emptyStats, initialGameData, type GameData, type Stats, type TodayState } from "./store";
 
+// profiles.xp is a 32-bit integer: a larger value could never be saved and would block every profile update
+export const MAX_XP = 2147483647;
+const storableXp = (xp: number) => (xp <= MAX_XP ? xp : 0);
+
 const maxStats = (a: Stats, b: Stats): Stats => {
   const out = emptyStats();
   for (const k of Object.keys(out) as (keyof Stats)[]) out[k] = Math.max(a[k] ?? 0, b[k] ?? 0);
@@ -53,7 +57,7 @@ export function mergeGameData(a: GameData, b: GameData): GameData {
         : b.daily;
 
   return {
-    xp: Math.max(a.xp, b.xp),
+    xp: Math.max(storableXp(a.xp), storableXp(b.xp)),
     completed,
     streak,
     bestStreak: Math.max(a.bestStreak, b.bestStreak),
