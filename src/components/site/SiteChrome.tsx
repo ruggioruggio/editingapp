@@ -29,7 +29,6 @@ const FOOTER: { title: string; links: { label: string; href: string }[] }[] = [
     title: "Chi siamo",
     links: [
       { label: "Il progetto", href: "/" },
-      { label: "Prezzi e Pro", href: "/pricing" },
       { label: "Community Discord", href: brand.discordUrl },
     ],
   },
@@ -43,7 +42,6 @@ const FOOTER: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "App",
     links: [
-      { label: "iPhone e iPad", href: "/download" },
       { label: "Android", href: "/download" },
       { label: "Windows e Mac", href: "/download" },
       { label: "Accedi", href: "/login" },

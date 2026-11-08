@@ -17,6 +17,7 @@ import { LessonPlayer } from "@/components/lesson/LessonPlayer";
 import { AfterEffectsStudio } from "@/components/studio/ae/AfterEffectsStudio";
 import { PremiereStudio } from "@/components/studio/premiere/PremiereStudio";
 import { SupabaseSync } from "@/components/app/SupabaseSync";
+import { CookieBanner } from "@/components/app/CookieBanner";
 import { useAuth } from "@/lib/supabase/auth";
 import { getLesson } from "@/content/lessons";
 import { getLegalDoc } from "@/content/legal";
@@ -118,6 +119,7 @@ createRoot(document.getElementById("root")!).render(
         <SupabaseSync />
         <ThemeSync />
         <MaintenanceGate />
+        <CookieBanner />
         {!NO_ADMIN && <AdminGate />}
         <NativeAuthGate path={path}>
           <div key={APP_PAGES[path.split("?")[0]] ? "app" : path}>{render(path)}</div>

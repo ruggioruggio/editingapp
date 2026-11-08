@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useCookieConsent } from "@/lib/settings/cookieConsent";
 import { authErrorMessage } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { FormMessage, NotConfigured, SubmitButton, fieldClass } from "./AuthShell";
@@ -10,6 +11,7 @@ import { OAuthButtons } from "./OAuthButtons";
 import { ResendEmail } from "./ResendEmail";
 
 export const USERNAME_RE = /^[a-z0-9_.]{3,20}$/;
+const COOKIES_REQUIRED = "Per creare un account devi accettare i cookie.";
 
 function ConfirmCode({ email }: { email: string }) {
   const router = useRouter();
@@ -55,14 +57,29 @@ export function SignupForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [cookies, setCookies] = useState(false);
+  const choice = useCookieConsent((s) => s.choice);
+  const load = useCookieConsent((s) => s.load);
+
+  useEffect(load, [load]);
+  useEffect(() => {
+    if (choice === "accepted") setCookies(true);
+  }, [choice]);
 
   const sb = getSupabase();
   if (!sb) return <NotConfigured />;
 
   if (sentTo) return <ConfirmCode email={sentTo} />;
 
+  const requireCookies = () => {
+    if (cookies) return true;
+    setError(COOKIES_REQUIRED);
+    return false;
+  };
+
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!requireCookies()) return;
     const form = new FormData(e.currentTarget);
     const username = String(form.get("username")).trim().toLowerCase().replace(/^@/, "");
     const email = String(form.get("email")).trim();
@@ -89,6 +106,7 @@ export function SignupForm() {
     });
     setBusy(false);
     if (err) return setError(authErrorMessage(err));
+    useCookieConsent.getState().choose("accepted");
     if (data.session) router.replace("/learn");
     else setSentTo(email);
   };
@@ -107,10 +125,28 @@ export function SignupForm() {
           autoComplete="new-password"
           className={fieldClass}
         />
+        <label className="flex cursor-pointer items-start gap-2.5 text-left text-sm text-ink-dim">
+          <input
+            type="checkbox"
+            checked={cookies}
+            onChange={(e) => {
+              setCookies(e.target.checked);
+              if (e.target.checked) setError(null);
+            }}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-success)]"
+          />
+          <span>
+            Accetto i{" "}
+            <Link href="/legal/cookie" className="font-bold text-ink underline">
+              cookie
+            </Link>{" "}
+            (obbligatorio per creare un account)
+          </span>
+        </label>
         <SubmitButton busy={busy}>Crea account</SubmitButton>
       </form>
       {error && <FormMessage tone="error">{error}</FormMessage>}
-      <OAuthButtons next="/learn" />
+      <OAuthButtons next="/learn" canProceed={requireCookies} />
       <p className="pt-4 text-center text-sm text-ink-dim">
         Hai già un account?{" "}
         <Link href="/login" className="font-black text-pr hover:underline">

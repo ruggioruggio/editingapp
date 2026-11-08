@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { JetBrains_Mono, Nunito } from "next/font/google";
+import { CookieBanner } from "@/components/app/CookieBanner";
 import { SupabaseSync } from "@/components/app/SupabaseSync";
 import { AdminGate } from "@/components/admin/AdminGate";
 import { MaintenanceGate } from "@/components/app/Maintenance";
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {children}
         <MaintenanceGate />
         <AdminGate />
+        <CookieBanner />
       </body>
     </html>
   );

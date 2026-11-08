@@ -1,7 +1,7 @@
 
 import { features } from "@/config/features";
 
-export const LEGAL_UPDATED = "25 ottobre 2026";
+export const LEGAL_UPDATED = "8 novembre 2026";
 
 const COMPANY = "[RAGIONE SOCIALE], con sede in [INDIRIZZO], P.IVA [P.IVA]";
 const EMAIL = "[EMAIL DI CONTATTO]";
@@ -183,10 +183,11 @@ Per i contenuti e servizi digitali si applicano le tutele di legge sulla conform
     summary: "Quali cookie e archivi locali usiamo.",
     body: `
 ## Cookie tecnici
-Usiamo solo cookie e archivi locali **tecnici**, necessari al funzionamento. Per questi non serve il consenso:
+Usiamo solo cookie e archivi locali **tecnici**, necessari al funzionamento. Quando apri il sito ti chiediamo di accettarli o rifiutarli: se rifiuti puoi comunque usare il sito come ospite, ma per creare un account devi accettarli, perché senza la sessione di accesso l'account non può funzionare. Ecco quali sono:
 - **Sessione di accesso** (cookie del fornitore di autenticazione Supabase): ti mantengono collegato al tuo account.
 - **Progressi locali** (memoria del browser, "localStorage"): salvano lezioni, XP e serie anche quando giochi come ospite.
 - **Preferenze di sessione** (es. se hai già visto l'animazione di apertura).
+- **Scelta sui cookie** (memoria del browser): ricorda la tua risposta, così non te lo chiediamo di nuovo.
 
 ## Cookie di analisi e marketing
 Al momento **non** usiamo cookie di profilazione, pubblicità o analisi di terze parti. Se in futuro li introdurremo, ti chiederemo prima il consenso con un banner e potrai cambiare idea in qualsiasi momento.

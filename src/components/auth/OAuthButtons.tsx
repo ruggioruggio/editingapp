@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { Provider } from "@supabase/supabase-js";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useCookieConsent } from "@/lib/settings/cookieConsent";
 import { authErrorMessage } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { FormMessage } from "./AuthShell";
@@ -35,7 +37,7 @@ const PROVIDERS: { id: Provider; label: string }[] = [
   { id: "discord", label: "Discord" },
 ];
 
-export function OAuthButtons({ next }: { next: string }) {
+export function OAuthButtons({ next, canProceed }: { next: string; canProceed?: () => boolean }) {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
@@ -66,6 +68,8 @@ export function OAuthButtons({ next }: { next: string }) {
   const signIn = async (provider: Provider) => {
     const sb = getSupabase();
     if (!sb) return;
+    if (canProceed && !canProceed()) return;
+    useCookieConsent.getState().choose("accepted");
     if (IS_ELECTRON) {
       const port = (window as unknown as { __OAUTH_PORT__?: number }).__OAUTH_PORT__ || 19274;
       const redirectTo = `http://localhost:${port}`;
@@ -99,6 +103,7 @@ export function OAuthButtons({ next }: { next: string }) {
           </button>
         ))}
       </div>
+      {!canProceed && <p className="text-center text-xs text-ink-mute">Continuando con Google o Discord accetti i <Link href="/legal/cookie" className="font-bold text-ink-dim underline">cookie tecnici</Link>.</p>}
       {error && <FormMessage tone="error">{error}</FormMessage>}
     </div>
   );
