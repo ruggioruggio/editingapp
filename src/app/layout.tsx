@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { JetBrains_Mono, Nunito } from "next/font/google";
+import localFont from "next/font/local";
 import { CookieBanner } from "@/components/app/CookieBanner";
 import { SupabaseSync } from "@/components/app/SupabaseSync";
 import { AdminGate } from "@/components/admin/AdminGate";
@@ -9,8 +9,8 @@ import { THEME_BOOT } from "@/lib/settings/store";
 import { brand } from "@/config/brand";
 import "./globals.css";
 
-const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", weight: ["400", "600", "700", "800", "900"] });
-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
+const nunito = localFont({ src: "../fonts/nunito.woff2", variable: "--font-nunito", weight: "200 1000", display: "swap" });
+const mono = localFont({ src: "../fonts/jetbrains-mono.woff2", variable: "--font-jetbrains", weight: "100 800", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: `${brand.appName} — ${brand.tagline}`, template: `%s · ${brand.appName}` },

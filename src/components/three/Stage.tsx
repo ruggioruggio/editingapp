@@ -32,6 +32,7 @@ export function Stage({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(true);
+  const [ready, setReady] = useState(false);
   void eager;
 
   useEffect(() => {
@@ -50,7 +51,11 @@ export function Stage({
           dpr={[1.5, 2]}
           camera={{ position: camera, fov }}
           gl={{ alpha: true, antialias: true, powerPreference: "high-performance", toneMappingExposure: 1.08 }}
-          onCreated={({ camera: cam }) => cam.lookAt(...target)}
+          onCreated={({ camera: cam }) => {
+            cam.lookAt(...target);
+            setReady(true);
+          }}
+          style={{ opacity: ready ? 1 : 0, transition: "opacity 220ms ease-out" }}
         >
           <hemisphereLight args={["#ffffff", "#3b3266", 1.15]} />
           <directionalLight position={[4, 7, 6]} intensity={2.3} color="#fff3e6" />

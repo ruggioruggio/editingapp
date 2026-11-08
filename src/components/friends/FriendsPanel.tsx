@@ -111,7 +111,11 @@ function SignedInFriends() {
     void refresh();
     const onFocus = () => void refresh();
     window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    const poll = setInterval(() => void refresh(), 20_000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      clearInterval(poll);
+    };
   }, [refresh]);
 
   useEffect(() => {

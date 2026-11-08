@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { Squeak3D } from "@/components/brand/Squeak3DLazy";
+import Squeak3D from "@/components/brand/Squeak3D";
 
 const SESSION_KEY = "squeak-splash-shown";
 const PLAY_MS = 2400;

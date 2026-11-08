@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import clsx from "clsx";
-import { ArrowUp, BookOpen, Flame, Heart, Star, UserCheck, UserPlus, UserRoundPlus, Users, X, Zap } from "lucide-react";
+import { ArrowUp, Flame, Heart, Star, UserCheck, UserPlus, UserRoundPlus, Users, X, Zap } from "lucide-react";
 import { ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
 import { ACHIEVEMENTS } from "@/lib/gamification/achievements";
 import { getSupabase } from "@/lib/supabase/client";
-import { sendFriendRequest, type FriendProfile } from "@/lib/supabase/friends";
+import { loadFriendRelation, sendFriendRequest, type FriendProfile, type FriendRelation } from "@/lib/supabase/friends";
 import {
   loadConversation,
   loadFriendAchievements,
@@ -295,16 +295,33 @@ function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, 
   const locale = LOCALE_MAP[lang] ?? "en-US";
   const tier = getTier(friend.xp);
   const joinDate = friend.created_at ? new Date(friend.created_at).toLocaleDateString(locale, { month: "long", year: "numeric" }) : null;
-  const [lessonsCount, setLessonsCount] = useState(0);
   const [followingCount, setFollowingCount] = useState(0);
-  const [friendReqStatus, setFriendReqStatus] = useState<"idle" | "sending" | "sent" | "exists">("idle");
+  const [relation, setRelation] = useState<FriendRelation | null>(null);
+  const [friendBusy, setFriendBusy] = useState(false);
+  const [friendError, setFriendError] = useState(false);
 
   useEffect(() => {
     const sb = getSupabase();
     if (!sb) return;
-    void Promise.resolve(sb.from("progress").select("completed", { count: "exact", head: true }).eq("user_id", friend.id)).then(({ count }) => setLessonsCount(count ?? 0)).catch(() => {});
     void Promise.resolve(sb.from("follows").select("id", { count: "exact", head: true }).eq("follower_id", friend.id)).then(({ count }) => setFollowingCount(count ?? 0)).catch(() => {});
-  }, [friend.id]);
+    setRelation(null);
+    if (me) loadFriendRelation(sb, me, friend.id).then(setRelation).catch(() => setRelation("none"));
+  }, [friend.id, me]);
+
+  const friendAction = async () => {
+    const sb = getSupabase();
+    if (!sb || !me) return;
+    setFriendBusy(true);
+    setFriendError(false);
+    try {
+      await sendFriendRequest(sb, me, friend.username);
+      // show what the database now holds, not what we hope happened
+      setRelation(await loadFriendRelation(sb, me, friend.id));
+    } catch {
+      setFriendError(true);
+    }
+    setFriendBusy(false);
+  };
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -337,25 +354,18 @@ function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, 
           </button>
           <button
             type="button"
-            disabled={friendReqStatus !== "idle"}
-            onClick={async () => {
-              const sb = getSupabase();
-              if (!sb || !friend.username || !me) return;
-              setFriendReqStatus("sending");
-              try {
-                const res = await sendFriendRequest(sb, me, friend.username);
-                setFriendReqStatus(res === "sent" || res === "accepted" ? "sent" : "exists");
-              } catch { setFriendReqStatus("idle"); }
-            }}
+            disabled={friendBusy || relation === null || relation === "sent" || relation === "friends"}
+            onClick={friendAction}
             className={clsx(
-              "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition-colors disabled:opacity-50",
-              friendReqStatus === "sent" ? "bg-success/20 text-success" : friendReqStatus === "exists" ? "bg-panel-2 text-ink-mute" : "bg-panel-2 text-ink hover:bg-panel-3",
+              "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-black transition-colors disabled:opacity-60",
+              relation === "sent" || relation === "friends" ? "bg-success/20 text-success" : relation === "incoming" ? "bg-success text-[#08311f]" : "bg-panel-2 text-ink hover:bg-panel-3",
             )}
           >
-            <UserRoundPlus size={16} />
-            {friendReqStatus === "sent" ? t("friendRequestSent") : friendReqStatus === "exists" ? t("friendRequestExists") : t("sendFriendRequest")}
+            {relation === "friends" ? <UserCheck size={16} /> : <UserRoundPlus size={16} />}
+            {relation === "sent" ? t("friendRequestSent") : relation === "friends" ? t("alreadyFriends") : relation === "incoming" ? t("accept") : t("sendFriendRequest")}
           </button>
         </div>}
+        {friendError && <p className="mt-2 text-sm font-semibold text-danger">{t("sendFailed")}</p>}
       </div>
 
       <div className="grid grid-cols-3 gap-2 text-center">
@@ -376,9 +386,6 @@ function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, 
       <div className="flex gap-3">
         <span className="flex items-center gap-1 rounded-xl bg-panel-2 px-3 py-1.5 text-sm font-bold text-[#ff8a3d]">
           <Flame size={16} /> {friend.streak_count} {t("days")}
-        </span>
-        <span className="flex items-center gap-1 rounded-xl bg-panel-2 px-3 py-1.5 text-sm font-bold text-ink-dim">
-          <BookOpen size={16} /> {lessonsCount} {t("lessons")}
         </span>
       </div>
     </div>

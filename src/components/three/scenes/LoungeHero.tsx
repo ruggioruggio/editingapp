@@ -64,9 +64,9 @@ function Lounge({ yaw }: { yaw: () => number }) {
     // 1. walks in and slows down to a stop
     if (t < 1.7) {
       const k = phase(t, 0, 1.7);
-      m.position.set(lerp(3.6, 0, 1 - (1 - k) ** 2), 0, 1.7);
+      m.position.set(lerp(2.3, 0, 1 - (1 - k) ** 2), 0, 1.7);
       m.rotation.y = -Math.PI / 2;
-      walkCycle(r, t, 10, (1 - k) ** 0.6);
+      walkCycle(r, t, 8, (1 - k) ** 0.6);
     } else if (t < 2.2) {
       // 2. turns to face us, weight shifting
       m.rotation.y = lerp(-Math.PI / 2, 0, easeInOut(phase(t, 1.7, 2.15)));

@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useMemo, useRef, type ReactNode } from "react";
+import { useMemo, useRef, type ReactNode, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { Stage } from "../Stage";
@@ -18,7 +18,7 @@ import {
   TrafficCone,
   WorkSign,
 } from "../props";
-import { createRig, easeInOut, easeOut, lerp, phase, resetRig, Shadow, smoothstep, SqueakModel, walkCycle } from "../SqueakModel";
+import { createRig, easeInOut, easeOut, lerp, phase, resetRig, Shadow, smoothstep, Spring, SqueakModel, walkCycle } from "../SqueakModel";
 
 const PROFILE_RIGHT = Math.PI / 2;
 
@@ -54,27 +54,59 @@ function StrawHat() {
   );
 }
 
-const Cape = forwardRef<THREE.Group>(function Cape(_props, ref) {
+const CAPE_COLS = 18;
+const CAPE_ROWS = 14;
+
+function Cape({ flap }: { flap: RefObject<number> }) {
+  const geometry = useMemo(() => {
+    const g = new THREE.PlaneGeometry(1, 1, CAPE_COLS, CAPE_ROWS);
+    const red = new THREE.Color("#a81d28");
+    const gold = new THREE.Color("#f2c14e");
+    const colors: number[] = [];
+    for (let r = 0; r <= CAPE_ROWS; r++) {
+      const c = r >= CAPE_ROWS - 1 ? gold : red;
+      for (let k = 0; k <= CAPE_COLS; k++) colors.push(c.r, c.g, c.b);
+    }
+    g.setAttribute("color", new THREE.Float32BufferAttribute(colors, 3));
+    return g;
+  }, []);
+  const swing = useMemo(() => new Spring(5, 0.65), []);
+
+  useFrame((state, dt) => {
+    const f = swing.step(flap.current, Math.min(dt, 0.1));
+    const t = state.clock.elapsedTime;
+    const pos = geometry.attributes.position;
+    let i = 0;
+    for (let r = 0; r <= CAPE_ROWS; r++) {
+      const v = r / CAPE_ROWS;
+      for (let k = 0; k <= CAPE_COLS; k++) {
+        const u = k / CAPE_COLS - 0.5;
+        const y = lerp(1.6, 0.6, v);
+        const x = u * 2 * lerp(0.5, 0.85, v);
+        // wraps the back of the body with a gap, then hangs free below the widest point
+        const ny = Math.max(0, (y - 0.9) / 0.88);
+        const back = -1.12 * Math.sqrt(Math.max(0.03, 1 - x * x - ny * ny)) - 0.08;
+        const lift = f * v * v;
+        const wave = Math.sin(t * 7 - v * 6 + u * 3) * (0.035 + 0.09 * f) * v;
+        pos.setXYZ(i++, x + Math.sin(t * 4 + v * 5) * 0.02 * v, y + lift * 0.35, back - lift * 1.25 - wave);
+      }
+    }
+    pos.needsUpdate = true;
+    geometry.computeVertexNormals();
+  });
+
   return (
-    <group ref={ref} position={[0, 1.55, -0.55]}>
-      {/* colletto */}
-      <mesh position={[0, 0.02, 0.08]} rotation={[-Math.PI / 2, 0, 0.05 * Math.PI]}>
-        <torusGeometry args={[0.74, 0.06, 10, 36, Math.PI * 0.8]} />
-        <meshStandardMaterial color="#7a121b" roughness={0.6} />
+    <group>
+      <mesh geometry={geometry} frustumCulled={false}>
+        <meshPhysicalMaterial vertexColors side={THREE.DoubleSide} roughness={0.7} sheen={0.5} />
       </mesh>
-      {/* mantello unico */}
-      <mesh position={[0, -0.75, 0]} rotation={[0.05, 0, 0]}>
-        <cylinderGeometry args={[0.62, 0.95, 1.5, 32, 1, true, Math.PI * 0.6, Math.PI * 0.8]} />
-        <meshStandardMaterial color="#9e1b25" roughness={0.7} side={THREE.DoubleSide} />
-      </mesh>
-      {/* bordo dorato in basso */}
-      <mesh position={[0, -1.48, 0]} rotation={[0.05, 0, 0]}>
-        <cylinderGeometry args={[0.94, 0.96, 0.06, 32, 1, true, Math.PI * 0.6, Math.PI * 0.8]} />
-        <meshStandardMaterial color="#f2c14e" roughness={0.6} side={THREE.DoubleSide} />
+      <mesh position={[0, 1.58, 0.02]} rotation={[Math.PI / 2, 0, 0]} scale={[1, 1.12, 1]}>
+        <torusGeometry args={[0.63, 0.05, 12, 48]} />
+        <meshPhysicalMaterial color="#7a121b" roughness={0.6} sheen={0.5} />
       </mesh>
     </group>
   );
-});
+}
 
 function SlideScene() {
   const curve = useMemo(
@@ -97,7 +129,7 @@ function SlideScene() {
   const fist = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const turn = useRef<THREE.Group>(null);
-  const cape = useRef<THREE.Group>(null);
+  const capeFlap = useRef(0.15);
   const hatBounce = useRef<THREE.Group>(null);
   const lines = useRef<(THREE.Mesh | null)[]>([]);
   const rig = useRef(createRig());
@@ -199,9 +231,7 @@ function SlideScene() {
       fist.current.position.copy(fp);
       fist.current.visible = fistAt > 0.01;
     }
-    if (cape.current) {
-      cape.current.rotation.x = -flap * 0.35 + Math.sin(state.clock.elapsedTime * 8) * 0.06;
-    }
+    capeFlap.current = flap;
     if (hatBounce.current) hatBounce.current.position.y = (t > 2.5 && t < 4.4 ? Math.abs(Math.sin(t * 14)) * 0.1 : 0) + Math.sin(t * 6) * 0.02;
     lines.current.forEach((l, i) => {
       if (!l) return;
@@ -246,7 +276,7 @@ function SlideScene() {
           <group ref={turn}>
             <SqueakModel
               rig={rig}
-              outfit={<Cape ref={cape} />}
+              outfit={<Cape flap={capeFlap} />}
               hat={
                 <group ref={hatBounce}>
                   <StrawHat />

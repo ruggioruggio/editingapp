@@ -49,9 +49,15 @@ export function NotificationsDropdown() {
   useEffect(() => {
     if (status !== "user") return;
     void loadNotifs();
-    const h = setInterval(() => void loadNotifs(), 30_000);
-    return () => clearInterval(h);
-  }, [status, loadNotifs]);
+    const h = setInterval(() => void loadNotifs(), 15_000);
+    const onFocus = () => void loadNotifs();
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(h);
+      window.removeEventListener("focus", onFocus);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, me]);
 
   useEffect(() => {
     if (!open) return;

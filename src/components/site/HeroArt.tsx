@@ -1,5 +1,5 @@
 import { Clapperboard, Diamond, Film, Music2, Palette, Scissors, type LucideIcon } from "lucide-react";
-import { LoungeHero } from "@/components/three/lazy";
+import LoungeHero from "@/components/three/scenes/LoungeHero";
 
 const ORBIT: { icon: LucideIcon; color: string; x: string; y: string; delay: string; size: number }[] = [
   { icon: Scissors, color: "#ff5f5f", x: "2%", y: "8%", delay: "0s", size: 56 },

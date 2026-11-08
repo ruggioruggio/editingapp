@@ -160,6 +160,11 @@ body {
   animation: pop 0.18s ease-out;
 }
 
+/* ---------- Pagina 404 ---------- */
+@keyframes nf-playhead { 0%, 100% { left: 6%; } 50% { left: 94%; } }
+.nf-playhead { animation: nf-playhead 7s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .nf-playhead { animation: none; left: 54%; } }
+
 /* ---------- Gemme delle leghe ---------- */
 @keyframes gem-shine { 0%, 70% { transform: translateX(0) skewX(-20deg); } 100% { transform: translateX(190px) skewX(-20deg); } }
 @keyframes gem-twinkle { 0%, 60%, 100% { opacity: 0; transform: scale(0.3); } 75% { opacity: 1; transform: scale(1) rotate(45deg); } }

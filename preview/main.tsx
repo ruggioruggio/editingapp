@@ -18,6 +18,7 @@ import { AfterEffectsStudio } from "@/components/studio/ae/AfterEffectsStudio";
 import { PremiereStudio } from "@/components/studio/premiere/PremiereStudio";
 import { SupabaseSync } from "@/components/app/SupabaseSync";
 import { CookieBanner } from "@/components/app/CookieBanner";
+import { NotFoundView } from "@/components/site/NotFoundView";
 import { useAuth } from "@/lib/supabase/auth";
 import { getLesson } from "@/content/lessons";
 import { getLegalDoc } from "@/content/legal";
@@ -90,7 +91,7 @@ const SITE_PAGES: Record<string, () => React.ReactNode> = {
 };
 
 // al posto del 404 di Next: su desktop/mobile il login, mai la landing
-const notFoundPage = () => (IS_NATIVE ? SITE_PAGES["/login"] : SITE_PAGES["/"])();
+const notFoundPage = () => (IS_NATIVE ? SITE_PAGES["/login"]() : <NotFoundView />);
 
 function render(fullPath: string) {
   const path = fullPath.split("?")[0];

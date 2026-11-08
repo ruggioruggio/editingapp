@@ -16,9 +16,12 @@ interface LeaderboardRow {
   id: string;
   username: string;
   display_name: string | null;
+  bio: string | null;
   avatar_url: string | null;
   xp: number;
   streak_count: number;
+  role: string | null;
+  created_at: string | null;
 }
 
 function TierBadge({ tier }: { tier: LeagueTier }) {
@@ -51,6 +54,7 @@ function RankIcon({ rank }: { rank: number }) {
 export function WorldLeaderboard() {
   const t = useT();
   const me = useAuth((s) => s.userId);
+  const authStatus = useAuth((s) => s.status);
   const myXp = useProgress((s) => s.xp);
   const [rows, setRows] = useState<LeaderboardRow[] | null>(null);
   const [error, setError] = useState(false);
@@ -59,17 +63,17 @@ export function WorldLeaderboard() {
 
   const load = useCallback(async () => {
     const sb = getSupabase();
-    if (!sb) return;
+    if (!sb || authStatus === "loading") return;
     try {
-      const { data, error: err } = await sb
-        .from("profiles")
-        .select("id, username, display_name, avatar_url, xp, streak_count")
-        .order("xp", { ascending: false })
-        .limit(50);
+      // profiles is closed to anonymous users: guests read the public fields through an RPC
+      const { data, error: err } = me
+        ? await sb.from("profiles").select("id, username, display_name, bio, avatar_url, xp, streak_count, role, created_at").order("xp", { ascending: false }).limit(50)
+        : await sb.rpc("public_leaderboard", { max_rows: 50 });
       if (err) throw err;
-      setRows(data ?? []);
+      setRows((data as LeaderboardRow[] | null) ?? []);
+      setError(false);
       if (me && data) {
-        const idx = data.findIndex((r) => r.id === me);
+        const idx = (data as LeaderboardRow[]).findIndex((r) => r.id === me);
         if (idx >= 0) setMyRank(idx + 1);
         else {
           const { count } = await sb.from("profiles").select("id", { count: "exact", head: true }).gt("xp", myXp);
@@ -79,7 +83,7 @@ export function WorldLeaderboard() {
     } catch {
       setError(true);
     }
-  }, [me, myXp]);
+  }, [me, myXp, authStatus]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -143,13 +147,13 @@ export function WorldLeaderboard() {
                   id: row.id,
                   username: row.username,
                   display_name: row.display_name,
-                  bio: null,
+                  bio: row.bio,
                   avatar_url: row.avatar_url,
                   xp: row.xp,
                   streak_count: row.streak_count,
                   streak_last_day: null,
-                  role: null,
-                  created_at: null,
+                  role: row.role,
+                  created_at: row.created_at,
                 });
               }}
               className={clsx(

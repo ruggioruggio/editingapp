@@ -88,6 +88,20 @@ export async function sendFriendRequest(sb: SupabaseClient, me: string, username
   return "sent";
 }
 
+export type FriendRelation = "none" | "sent" | "incoming" | "friends";
+
+export async function loadFriendRelation(sb: SupabaseClient, me: string, other: string): Promise<FriendRelation> {
+  const { data, error } = await sb
+    .from("friendships")
+    .select("status, requester_id")
+    .or(`and(requester_id.eq.${me},addressee_id.eq.${other}),and(requester_id.eq.${other},addressee_id.eq.${me})`)
+    .maybeSingle<{ status: string; requester_id: string }>();
+  if (error) throw error;
+  if (!data) return "none";
+  if (data.status === "accepted") return "friends";
+  return data.requester_id === me ? "sent" : "incoming";
+}
+
 export async function acceptFriendRequest(sb: SupabaseClient, id: number) {
   const { error } = await sb.from("friendships").update({ status: "accepted" }).eq("id", id);
   if (error) throw error;

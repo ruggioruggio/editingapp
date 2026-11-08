@@ -11,8 +11,6 @@ import { OAuthButtons } from "./OAuthButtons";
 import { ResendEmail } from "./ResendEmail";
 
 export const USERNAME_RE = /^[a-z0-9_.]{3,20}$/;
-const COOKIES_REQUIRED = "Per creare un account devi accettare i cookie.";
-
 function ConfirmCode({ email }: { email: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -58,12 +56,16 @@ export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [cookies, setCookies] = useState(false);
+  const [cookieError, setCookieError] = useState(false);
   const choice = useCookieConsent((s) => s.choice);
   const load = useCookieConsent((s) => s.load);
 
   useEffect(load, [load]);
   useEffect(() => {
-    if (choice === "accepted") setCookies(true);
+    if (choice === "accepted") {
+      setCookies(true);
+      setCookieError(false);
+    }
   }, [choice]);
 
   const sb = getSupabase();
@@ -72,9 +74,8 @@ export function SignupForm() {
   if (sentTo) return <ConfirmCode email={sentTo} />;
 
   const requireCookies = () => {
-    if (cookies) return true;
-    setError(COOKIES_REQUIRED);
-    return false;
+    setCookieError(!cookies);
+    return cookies;
   };
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -131,7 +132,7 @@ export function SignupForm() {
             checked={cookies}
             onChange={(e) => {
               setCookies(e.target.checked);
-              if (e.target.checked) setError(null);
+              if (e.target.checked) setCookieError(false);
             }}
             className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-success)]"
           />
@@ -145,6 +146,7 @@ export function SignupForm() {
         </label>
         <SubmitButton busy={busy}>Crea account</SubmitButton>
       </form>
+      {cookieError && <FormMessage tone="error">Per creare un account devi accettare i cookie.</FormMessage>}
       {error && <FormMessage tone="error">{error}</FormMessage>}
       <OAuthButtons next="/learn" canProceed={requireCookies} />
       <p className="pt-4 text-center text-sm text-ink-dim">
