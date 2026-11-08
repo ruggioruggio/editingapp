@@ -7,7 +7,7 @@ import { DmInbox } from "@/components/friends/DmInbox";
 import { FriendsPanel } from "@/components/friends/FriendsPanel";
 import { badgeLabel, useChatTarget, useNotificationCounts } from "@/lib/hooks/useNotificationCount";
 import { SettingsModal } from "@/components/settings/SettingsModal";
-import { useAuth } from "@/lib/supabase/auth";
+import { useAuth, type Profile } from "@/lib/supabase/auth";
 import { currentStreak, useProgress } from "@/lib/progress/store";
 import { useHydrated } from "@/lib/hooks/useHydrated";
 import { getSupabase } from "@/lib/supabase/client";
@@ -44,7 +44,11 @@ function LetterAvatar({ name, size, url }: { name: string; size: number; url?: s
   );
 }
 
-const LOCALE_MAP: Record<string, string> = { it: "it-IT", en: "en-US", fr: "fr-FR", es: "es-ES", zh: "zh-CN" };
+// keep the shared profile in step with the database, or remounting this page restores the old values
+const patchProfile = (patch: Partial<Profile>) =>
+  useAuth.setState((s) => (s.profile ? { profile: { ...s.profile, ...patch } } : s));
+
+const LOCALE_MAP: Record<string, string> ={ it: "it-IT", en: "en-US", fr: "fr-FR", es: "es-ES", zh: "zh-CN" };
 
 export function ProfileView() {
   const t = useT();
@@ -95,7 +99,10 @@ export function ProfileView() {
     setEditingBio(false);
     const sb = getSupabase();
     if (sb && userId) {
-      try { await sb.from("profiles").update({ bio }).eq("id", userId); } catch {}
+      try {
+        const { error } = await sb.from("profiles").update({ bio }).eq("id", userId);
+        if (!error) patchProfile({ bio });
+      } catch {}
     }
   };
 
@@ -114,6 +121,7 @@ export function ProfileView() {
       const { error: updErr } = await sb.from("profiles").update({ avatar_url: url }).eq("id", userId);
       if (updErr) { alert(`${t("uploadFailed")}: ${updErr.message}`); return; }
       setAvatarUrl(url);
+      patchProfile({ avatar_url: url });
       try { await sb.from("avatar_reviews").upsert({ user_id: userId, avatar_url: url, status: "pending" }).select(); } catch {}
     } catch {
       alert(t("uploadFailed"));

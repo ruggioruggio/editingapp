@@ -141,7 +141,8 @@ export function Onboarding() {
           await sb.storage.from("avatars").upload(path, avatarFile, { upsert: true, contentType: avatarFile.type });
           const { data } = sb.storage.from("avatars").getPublicUrl(path);
           const url = `${data.publicUrl}?t=${Date.now()}`;
-          await sb.from("profiles").update({ avatar_url: url }).eq("id", userId);
+          const { error } = await sb.from("profiles").update({ avatar_url: url }).eq("id", userId);
+          if (!error) useAuth.setState((s) => (s.profile ? { profile: { ...s.profile, avatar_url: url } } : s));
         } catch {}
       }
     }
