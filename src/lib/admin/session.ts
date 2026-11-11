@@ -36,14 +36,26 @@ export async function isAdminSession(): Promise<boolean> {
   return want.length === have.length && timingSafeEqual(want, have);
 }
 
+// Per-IP limit plus a global one: X-Forwarded-For can be forged or rotated, the global cap cannot.
+const WINDOW_MS = 15 * 60_000;
+const PER_IP = 5;
+const GLOBAL = 25;
 const attempts = new Map<string, { n: number; until: number }>();
+let globalFails: number[] = [];
+
 export function tooManyAttempts(ip: string) {
+  const now = Date.now();
+  globalFails = globalFails.filter((t) => now - t < WINDOW_MS);
+  if (globalFails.length >= GLOBAL) return true;
   const a = attempts.get(ip);
-  return !!a && a.n >= 5 && a.until > Date.now();
+  return !!a && a.n >= PER_IP && a.until > now;
 }
 export function recordFailure(ip: string) {
+  const now = Date.now();
+  globalFails.push(now);
+  if (attempts.size > 5000) for (const [k, v] of attempts) if (v.until < now) attempts.delete(k);
   const a = attempts.get(ip);
-  const fresh = !a || a.until < Date.now();
-  attempts.set(ip, { n: fresh ? 1 : a!.n + 1, until: Date.now() + 15 * 60_000 });
+  const fresh = !a || a.until < now;
+  attempts.set(ip, { n: fresh ? 1 : a!.n + 1, until: now + WINDOW_MS });
 }
 export const clearFailures = (ip: string) => attempts.delete(ip);

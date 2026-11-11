@@ -1,7 +1,7 @@
 
 import { features } from "@/config/features";
 
-export const LEGAL_UPDATED = "8 novembre 2026";
+export const LEGAL_UPDATED = "11 novembre 2026";
 
 const COMPANY = "[RAGIONE SOCIALE], con sede in [INDIRIZZO], P.IVA [P.IVA]";
 const EMAIL = "[EMAIL DI CONTATTO]";
@@ -33,8 +33,8 @@ Usando SqueakEdit (sito, app web, app per telefono e computer) accetti questi Te
 
 ## 4. Il tuo account
 - Devi fornire dati veri e tenere al sicuro la password. Sei responsabile di ciò che succede con il tuo account.
-- Il nome utente è pubblico per gli altri utenti: non usare nomi offensivi o che imitano altre persone.
-- Puoi eliminare l'account quando vuoi scrivendo a ${EMAIL}; i dati vengono cancellati come indicato nell'Informativa privacy.
+- Nome utente, foto profilo e bio sono pubblici, anche per chi non ha un account: non usare nomi o immagini offensivi o che imitano altre persone.
+- Puoi eliminare l'account quando vuoi da **Impostazioni → Elimina account** (oppure scrivendo a ${EMAIL}); i dati vengono cancellati come indicato nell'Informativa privacy.
 
 ## 5. Cosa offriamo
 - Lezioni di montaggio, quiz ed esercizi in un editor nel browser che simula programmi professionali.
@@ -79,7 +79,9 @@ Si applica la legge italiana. Se sei un consumatore, è competente il foro del t
 ${COMPANY}. Contatto per la privacy: ${PRIVACY_EMAIL}.
 
 ## 2. Quali dati trattiamo
-- **Account**: email, nome utente, password (salvata solo in forma cifrata dal fornitore di autenticazione), eventuale nome mostrato.
+- **Account**: email, nome utente, password (salvata solo in forma cifrata dal fornitore di autenticazione), eventuale nome mostrato. Se accedi con **Google** o **Discord** riceviamo da loro solo email e identificativo dell'account.
+- **Profilo**: foto profilo e bio, se le aggiungi. Le foto caricate possono essere controllate dai moderatori per far rispettare le Regole della community.
+- **Preferenze iniziali**: livello, programmi che usi, obiettivo e come ci hai conosciuto, per adattare il percorso.
 - **Progressi**: lezioni completate, XP, serie, quest, obiettivi, statistiche degli esercizi.
 - **Social**: richieste di amicizia, elenco amici, messaggi in chat, attività condivise con gli amici (lezioni completate, obiettivi sbloccati, serie).
 - **Squeak AI** (quando sarà disponibile): le domande che scrivi e i file che carichi (immagini, PDF, progetti Premiere o After Effects). I file di progetto possono contenere nomi di file e percorsi del tuo computer.
@@ -104,13 +106,19 @@ Solo con fornitori che ci aiutano a erogare il servizio, nominati responsabili d
 - **Anthropic** (Squeak AI);
 - **Stripe**, **Apple**, **Google** (pagamenti);
 - fornitore email per le comunicazioni dell'account.
-Gli altri utenti vedono solo ciò che è pubblico o condiviso con gli amici: nome utente, XP, serie, obiettivi e attività (agli amici), messaggi (solo al destinatario).
+Cosa vedono gli altri:
+- **Chiunque**, anche senza account, nella classifica pubblica: nome utente, foto profilo, bio, XP, serie, lega, ruolo e data di iscrizione.
+- **Gli amici**: obiettivi e attività (lezioni completate, serie).
+- **Solo il destinatario**: i messaggi in chat.
+
+## 5-bis. Notifiche
+Le app per telefono e computer mostrano notifiche (nuovi messaggi, serie in scadenza, promemoria) generate **sul tuo dispositivo**: non usiamo servizi di notifica di terze parti. Puoi disattivarle dalle impostazioni del sistema.
 
 ## 6. Trasferimenti fuori dall'UE
 Alcuni fornitori hanno sede negli Stati Uniti. I trasferimenti avvengono sulla base del Data Privacy Framework UE-USA o delle clausole contrattuali standard della Commissione europea.
 
 ## 7. Per quanto tempo
-- Account, progressi e attività: finché l'account è attivo; cancellati entro 30 giorni dalla chiusura.
+- Account, progressi, attività e foto profilo: finché l'account è attivo. Se elimini l'account dall'app vengono cancellati subito; in ogni caso entro 30 giorni dalla chiusura.
 - Messaggi in chat: finché tu o il destinatario non li eliminate, o fino alla chiusura dell'account.
 - Dati di pagamento e fatture: 10 anni, come richiesto dalla legge fiscale.
 - Registri tecnici e di sicurezza: fino a 12 mesi.

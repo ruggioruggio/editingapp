@@ -19,29 +19,33 @@ let mainWin = null;
 // Il browser di sistema fa il login → Supabase redirige a http://localhost:19274?code=xxx
 // → il server locale lo cattura e lo manda alla finestra Electron.
 function startOAuthServer() {
-  const server = http.createServer((req, res) => {
+  const handler = (req, res) => {
     const url = new URL(req.url, "http://localhost");
     const code = url.searchParams.get("code");
-    dbg("Richiesta ricevuta: " + req.url + " code: " + (code ? "SI" : "NO"));
+    // never write the auth code to disk
+    dbg("Richiesta ricevuta: " + url.pathname + " code: " + (code ? "SI" : "NO"));
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     if (code && mainWin && !mainWin.isDestroyed()) {
       res.end(`<html><body style="background:#121212;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center"><div><h2 style="color:#3ecf8e">Login riuscito!</h2><p>Torna a SqueakEdit. Puoi chiudere questa pagina.</p></div></body></html>`);
       const payload = JSON.stringify({ code });
-      dbg("Invio code alla finestra: " + code.substring(0, 8) + "...");
+      dbg("Invio code alla finestra");
       mainWin.webContents.executeJavaScript(
         `console.log("[OAuth main→renderer] code ricevuto"); window.dispatchEvent(new CustomEvent("squeakedit-oauth",{detail:${JSON.stringify(payload)}}));`
       ).then(() => dbg("executeJavaScript OK")).catch((e) => dbg("executeJavaScript ERRORE: " + e.message));
       if (mainWin.isMinimized()) mainWin.restore();
       mainWin.focus();
     } else {
-      const err = url.searchParams.get("error_description") || url.searchParams.get("error") || "Errore sconosciuto";
+      const raw = url.searchParams.get("error_description") || url.searchParams.get("error") || "Errore sconosciuto";
+      const err = raw.slice(0, 200).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
       res.end(`<html><body style="background:#121212;color:#fff;font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0"><h2 style="color:#ed4245">Errore: ${err}</h2></body></html>`);
     }
-  });
-  server.listen(OAUTH_PORT, () => {
-    dbg("Server OAuth in ascolto su porta " + OAUTH_PORT);
-  });
-  server.on("error", (e) => { dbg("ERRORE server: " + e.message); });
+  };
+  // loopback only (IPv4 and IPv6, since "localhost" may resolve to either): the network must not reach the callback
+  for (const host of ["127.0.0.1", "::1"]) {
+    const server = http.createServer(handler);
+    server.on("error", (e) => dbg(`ERRORE server ${host}: ${e.message}`));
+    server.listen(OAUTH_PORT, host, () => dbg(`Server OAuth in ascolto su ${host}:${OAUTH_PORT}`));
+  }
 }
 
 // --- Finestra principale ---
