@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { isAdminSession } from "@/lib/admin/session";
+import { clientIp, hashIp, isAdminSession } from "@/lib/admin/session";
 import { getServiceSupabase } from "@/lib/supabase/service";
 
 export const runtime = "nodejs";
@@ -14,7 +14,11 @@ export async function POST(req: NextRequest) {
   if (!sb) return NextResponse.json({ error: "Manca SUPABASE_SERVICE_ROLE_KEY nel server: le azioni sugli utenti non sono disponibili" }, { status: 503 });
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const action = str(body.action, 40);
-  const log = (target: string | null, details: Record<string, unknown> = {}) => sb.from("admin_log").insert({ action, target, details });
+  const ipHash = hashIp(clientIp(req.headers));
+  // audit trail: target as UUID only, details without names, emails or free text (GDPR data minimisation)
+  const UUID = /^[0-9a-f-]{36}$/i;
+  const log = (targetId: string | null, details: Record<string, unknown> = {}) =>
+    sb.from("admin_log").insert({ action, actor: "admin_panel", ip_hash: ipHash, target_id: targetId && UUID.test(targetId) ? targetId : null, details });
   const idOf = async (username: string) => {
     const { data } = await sb.from("profiles").select("id").eq("username", username.toLowerCase().replace(/^@/, "")).maybeSingle<{ id: string }>();
     return data?.id ?? null;
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest) {
         const reason = str(body.reason) || "Violazione delle regole della community";
         const { error } = await sb.from("profiles").update({ banned_until: until(body.days), ban_reason: reason }).eq("id", userId);
         if (error) throw error;
-        await log(userId, { days: body.days ?? "per sempre", reason });
+        await log(userId, { days: body.days ?? "per sempre", reason_length: reason.length });
         return NextResponse.json({ ok: true });
       }
       case "banByName": {
@@ -75,7 +79,7 @@ export async function POST(req: NextRequest) {
         const reason = str(body.reason) || "Violazione delle regole della community";
         const { error } = await sb.from("profiles").update({ banned_until: until(body.days), ban_reason: reason }).eq("id", id);
         if (error) throw error;
-        await log(id, { days: body.days ?? "per sempre", reason });
+        await log(id, { days: body.days ?? "per sempre", reason_length: reason.length });
         return NextResponse.json({ ok: true });
       }
       case "unban": {
@@ -95,7 +99,7 @@ export async function POST(req: NextRequest) {
           const { error } = await sb.from("friendships").insert({ requester_id: a, addressee_id: b, status: "accepted" });
           if (error) throw error;
         }
-        await log(`${str(body.a, 30)} ↔ ${str(body.b, 30)}`);
+        await log(a, { other_id: b });
         return NextResponse.json({ ok: true });
       }
       case "setStats": {
@@ -162,7 +166,7 @@ export async function POST(req: NextRequest) {
         if (dup) return NextResponse.json({ error: `Il nome @${newName} è già in uso` }, { status: 409 });
         const { error } = await sb.from("profiles").update({ username: newName }).eq("id", userId);
         if (error) throw error;
-        await log(userId, { newName });
+        await log(userId, { username_changed: true });
         return NextResponse.json({ ok: true });
       }
       case "announce": {
@@ -170,7 +174,7 @@ export async function POST(req: NextRequest) {
         const tone = ["info", "success", "warning"].includes(str(body.tone, 10)) ? str(body.tone, 10) : "info";
         const res = text ? await sb.from("app_settings").upsert({ key: "announcement", value: { text, tone, at: new Date().toISOString() }, updated_at: new Date().toISOString() }) : await sb.from("app_settings").delete().eq("key", "announcement");
         if (res.error) throw res.error;
-        await log(null, { text, tone });
+        await log(null, { tone, length: text.length });
         return NextResponse.json({ ok: true });
       }
       case "maintenance": {
@@ -178,7 +182,7 @@ export async function POST(req: NextRequest) {
         const message = str(body.message, 280);
         const res = await sb.from("app_settings").upsert({ key: "maintenance", value: { on, message }, updated_at: new Date().toISOString() });
         if (res.error) throw res.error;
-        await log(null, { on, message });
+        await log(null, { on, message_length: message.length });
         return NextResponse.json({ ok: true });
       }
       case "getSettings": {
@@ -187,7 +191,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ settings: Object.fromEntries((data ?? []).map((r) => [r.key, r.value])) });
       }
       case "log": {
-        const { data, error } = await sb.from("admin_log").select("id, action, target, details, created_at").order("created_at", { ascending: false }).limit(60);
+        const { data, error } = await sb.from("admin_log").select("id, action, actor, target, target_id, details, created_at").order("created_at", { ascending: false }).limit(60);
         if (error) throw error;
         return NextResponse.json({ log: data });
       }

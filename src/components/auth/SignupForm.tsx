@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { buildConsents, savePendingConsents } from "@/lib/account/consents";
 import { useCookieConsent } from "@/lib/settings/cookieConsent";
 import { authErrorMessage } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
@@ -55,32 +56,25 @@ export function SignupForm() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
-  const [cookies, setCookies] = useState(false);
-  const [cookieError, setCookieError] = useState(false);
-  const choice = useCookieConsent((s) => s.choice);
-  const load = useCookieConsent((s) => s.load);
-
-  useEffect(load, [load]);
-  useEffect(() => {
-    if (choice === "accepted") {
-      setCookies(true);
-      setCookieError(false);
-    }
-  }, [choice]);
+  // every box starts unticked: consent must be an explicit action (GDPR art. 4.11 and 7)
+  const [agree, setAgree] = useState({ terms: false, privacy: false, cookies: false, marketing: false });
+  const [consentError, setConsentError] = useState(false);
+  const requiredOk = agree.terms && agree.privacy && agree.cookies;
 
   const sb = getSupabase();
   if (!sb) return <NotConfigured />;
 
   if (sentTo) return <ConfirmCode email={sentTo} />;
 
-  const requireCookies = () => {
-    setCookieError(!cookies);
-    return cookies;
+  const requireConsents = () => {
+    setConsentError(!requiredOk);
+    if (requiredOk) savePendingConsents(buildConsents(agree.marketing));
+    return requiredOk;
   };
 
   const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!requireCookies()) return;
+    if (!requireConsents()) return;
     const form = new FormData(e.currentTarget);
     const username = String(form.get("username")).trim().toLowerCase().replace(/^@/, "");
     const email = String(form.get("email")).trim();
@@ -101,7 +95,7 @@ export function SignupForm() {
       email,
       password,
       options: {
-        data: { username },
+        data: { username, consents: buildConsents(agree.marketing) },
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/learn`,
       },
     });
@@ -126,29 +120,27 @@ export function SignupForm() {
           autoComplete="new-password"
           className={fieldClass}
         />
-        <label className="flex cursor-pointer items-start gap-2.5 text-left text-sm text-ink-dim">
-          <input
-            type="checkbox"
-            checked={cookies}
-            onChange={(e) => {
-              setCookies(e.target.checked);
-              if (e.target.checked) setCookieError(false);
-            }}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-success)]"
-          />
-          <span>
-            Accetto i{" "}
-            <Link href="/legal/cookie" className="font-bold text-ink underline">
-              cookie
-            </Link>{" "}
-            (obbligatorio per creare un account)
-          </span>
-        </label>
+        <fieldset className="space-y-2 pt-1">
+          <legend className="sr-only">Consensi</legend>
+          <ConsentBox checked={agree.terms} onChange={(v) => setAgree({ ...agree, terms: v })}>
+            Ho almeno 14 anni e accetto i <DocLink href="/legal/termini">Termini di servizio</DocLink> e le{" "}
+            <DocLink href="/legal/community">Regole della community</DocLink> <Req />
+          </ConsentBox>
+          <ConsentBox checked={agree.privacy} onChange={(v) => setAgree({ ...agree, privacy: v })}>
+            Ho letto l&apos;<DocLink href="/legal/privacy">Informativa privacy</DocLink> <Req />
+          </ConsentBox>
+          <ConsentBox checked={agree.cookies} onChange={(v) => setAgree({ ...agree, cookies: v })}>
+            Accetto i <DocLink href="/legal/cookie">cookie tecnici</DocLink>, necessari per restare collegato <Req />
+          </ConsentBox>
+          <ConsentBox checked={agree.marketing} onChange={(v) => setAgree({ ...agree, marketing: v })}>
+            Voglio ricevere email con novità e consigli (facoltativo, puoi cambiare idea nelle impostazioni)
+          </ConsentBox>
+        </fieldset>
         <SubmitButton busy={busy}>Crea account</SubmitButton>
       </form>
-      {cookieError && <FormMessage tone="error">Per creare un account devi accettare i cookie.</FormMessage>}
+      {consentError && !requiredOk && <FormMessage tone="error">Per creare un account devi spuntare le caselle obbligatorie (*).</FormMessage>}
       {error && <FormMessage tone="error">{error}</FormMessage>}
-      <OAuthButtons next="/learn" canProceed={requireCookies} />
+      <OAuthButtons next="/learn" canProceed={requireConsents} />
       <p className="pt-4 text-center text-sm text-ink-dim">
         Hai già un account?{" "}
         <Link href="/login" className="font-black text-pr hover:underline">
@@ -158,21 +150,25 @@ export function SignupForm() {
       <p className="text-center text-xs text-ink-mute">
         I progressi fatti come ospite su questo dispositivo vengono salvati nel tuo nuovo account.
       </p>
-      <p className="text-center text-xs text-ink-mute">
-        Creando un account accetti i{" "}
-        <Link href="/legal/termini" className="font-bold text-ink-dim underline">
-          Termini di servizio
-        </Link>{" "}
-        e le{" "}
-        <Link href="/legal/community" className="font-bold text-ink-dim underline">
-          Regole della community
-        </Link>
-        , e dichiari di avere almeno 14 anni. Leggi come trattiamo i tuoi dati nell&apos;
-        <Link href="/legal/privacy" className="font-bold text-ink-dim underline">
-          Informativa privacy
-        </Link>
-        .
-      </p>
     </div>
   );
 }
+
+function ConsentBox({ checked, onChange, children }: { checked: boolean; onChange: (v: boolean) => void; children: React.ReactNode }) {
+  return (
+    <label className="flex cursor-pointer items-start gap-2.5 text-left text-sm text-ink-dim">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--color-success)]" />
+      <span>{children}</span>
+    </label>
+  );
+}
+
+function DocLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} target="_blank" className="font-bold text-ink underline">
+      {children}
+    </Link>
+  );
+}
+
+const Req = () => <span className="font-black text-danger" aria-label="obbligatorio">*</span>;

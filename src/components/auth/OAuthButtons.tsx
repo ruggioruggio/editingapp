@@ -103,7 +103,11 @@ export function OAuthButtons({ next, canProceed }: { next: string; canProceed?: 
           </button>
         ))}
       </div>
-      {!canProceed && <p className="text-center text-xs text-ink-mute">Continuando con Google o Discord accetti i <Link href="/legal/cookie" className="font-bold text-ink-dim underline">cookie tecnici</Link>.</p>}
+      {!canProceed && (
+        <p className="text-center text-xs text-ink-mute">
+          Continuando con Google o Discord usiamo i <Link href="/legal/cookie" className="font-bold text-ink-dim underline">cookie tecnici</Link> necessari per l&apos;accesso. Se è il tuo primo accesso ti chiederemo di accettare Termini e Informativa privacy.
+        </p>
+      )}
       {error && <FormMessage tone="error">{error}</FormMessage>}
     </div>
   );

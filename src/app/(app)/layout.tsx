@@ -1,4 +1,5 @@
 import { Dock } from "@/components/app/Dock";
+import { ConsentCheck } from "@/components/app/ConsentCheck";
 import { NotificationManager } from "@/components/app/NotificationManager";
 import { Onboarding } from "@/components/app/Onboarding";
 import { RightPanel } from "@/components/app/RightPanel";
@@ -14,6 +15,7 @@ export default function AppLayout({ children }: Readonly<{ children: React.React
     <div className="min-h-dvh">
       <Onboarding />
       <NotificationManager />
+      <ConsentCheck />
       <Splash />
       <BanGate />
       <AnnouncementBar />

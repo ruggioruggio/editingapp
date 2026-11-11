@@ -121,10 +121,10 @@ Alcuni fornitori hanno sede negli Stati Uniti. I trasferimenti avvengono sulla b
 - Account, progressi, attività e foto profilo: finché l'account è attivo. Se elimini l'account dall'app vengono cancellati subito; in ogni caso entro 30 giorni dalla chiusura.
 - Messaggi in chat: finché tu o il destinatario non li eliminate, o fino alla chiusura dell'account.
 - Dati di pagamento e fatture: 10 anni, come richiesto dalla legge fiscale.
-- Registri tecnici e di sicurezza: fino a 12 mesi.
+- Registri tecnici e di sicurezza (comprese le azioni dei moderatori): fino a 12 mesi, poi cancellati automaticamente. Contengono solo identificativi pseudonimi, mai nomi o email, e l'indirizzo IP solo in forma cifrata non reversibile.
 
 ## 8. I tuoi diritti
-Puoi chiedere accesso, rettifica, cancellazione, limitazione, portabilità dei dati e opporti ai trattamenti basati sul legittimo interesse, scrivendo a ${PRIVACY_EMAIL}. Rispondiamo entro 30 giorni. Hai anche diritto di presentare reclamo al **Garante per la protezione dei dati personali** (www.garanteprivacy.it).
+Puoi chiedere accesso, rettifica, cancellazione, limitazione, portabilità dei dati e opporti ai trattamenti basati sul legittimo interesse, scrivendo a ${PRIVACY_EMAIL}. Molte cose puoi farle da solo, in **Impostazioni → Sicurezza**: scaricare tutti i tuoi dati in un file (accesso e portabilità), attivare o disattivare le email promozionali (revoca del consenso) ed eliminare l'account. I consensi che dai all'iscrizione vengono registrati con data e versione dei documenti, come prova. Rispondiamo entro 30 giorni. Hai anche diritto di presentare reclamo al **Garante per la protezione dei dati personali** (www.garanteprivacy.it).
 
 ## 9. Minori
 Il servizio non è destinato ai minori di 14 anni. Se scopriamo che un account appartiene a un minore di 14 anni senza consenso dei genitori, lo eliminiamo.
@@ -199,6 +199,9 @@ Usiamo solo cookie e archivi locali **tecnici**, necessari al funzionamento. Qua
 
 ## Cookie di analisi e marketing
 Al momento **non** usiamo cookie di profilazione, pubblicità o analisi di terze parti. Se in futuro li introdurremo, ti chiederemo prima il consenso con un banner e potrai cambiare idea in qualsiasi momento.
+
+## Cambiare idea
+Puoi rivedere o ritirare la tua scelta in qualsiasi momento dal link **Preferenze cookie** in fondo al sito o in **Impostazioni → Sicurezza**. Eventuali strumenti di terze parti (oggi nessuno) verrebbero caricati solo dopo il tuo consenso e rimossi appena lo ritiri.
 
 ## Come cancellarli
 Puoi eliminare cookie e dati salvati dalle impostazioni del browser. Se lo fai, uscirai dall'account e, se giocavi come ospite, perderai i progressi non salvati in un account.

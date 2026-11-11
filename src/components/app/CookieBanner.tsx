@@ -10,9 +10,21 @@ const isInstalledApp = () => /Electron/i.test(navigator.userAgent) || !!process.
 
 export function CookieBanner() {
   const t = useT();
-  const { choice, loaded, suppressed, load, choose } = useCookieConsent();
+  const { choice, loaded, suppressed, load, choose, reopen } = useCookieConsent();
 
   useEffect(load, [load]);
+
+  // any link to #cookie-preferences (footer, settings) reopens the choice, so opting out is always one click away
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement | null)?.closest?.('a[href$="#cookie-preferences"]');
+      if (!a) return;
+      e.preventDefault();
+      reopen();
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [reopen]);
 
   if (!loaded || choice || suppressed || isInstalledApp()) return null;
 
@@ -23,7 +35,7 @@ export function CookieBanner() {
         <div className="min-w-0">
           <p className="font-black">{t("cookieTitle")}</p>
           <p className="mt-1 text-sm text-ink-dim">
-            {t("cookieBody")}{" "}
+            {t("cookieBody")} {t("cookieChange")}{" "}
             <Link href="/legal/cookie" className="font-bold text-pr underline">
               {t("cookieLearn")}
             </Link>

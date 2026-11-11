@@ -36,6 +36,15 @@ export async function isAdminSession(): Promise<boolean> {
   return want.length === have.length && timingSafeEqual(want, have);
 }
 
+// Pseudonymized IP for the audit log: keyed hash, so it can link repeated events without storing the address.
+export function hashIp(ip: string) {
+  const key = process.env.AUDIT_LOG_SECRET || process.env.ADMIN_SESSION_SECRET || "";
+  if (!key) return null;
+  return createHmac("sha256", key).update(ip).digest("hex").slice(0, 16);
+}
+
+export const clientIp = (h: Headers) => h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "local";
+
 // Per-IP limit plus a global one: X-Forwarded-For can be forged or rotated, the global cap cannot.
 const WINDOW_MS = 15 * 60_000;
 const PER_IP = 5;

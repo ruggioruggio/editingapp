@@ -3,7 +3,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
-import { KeyRound, LogOut, Mail, Monitor, Moon, Play, ShieldCheck, Sun, Trash2, Volume2, VolumeX, X } from "lucide-react";
+import { Cookie, Download, KeyRound, LogOut, Mail, Monitor, Moon, Play, ShieldCheck, Sun, Trash2, Volume2, VolumeX, X } from "lucide-react";
+import { setMarketingConsent } from "@/lib/account/consents";
+import { collectUserData, exportFileName } from "@/lib/account/exportData";
 import { useAuth } from "@/lib/supabase/auth";
 import { getSupabase } from "@/lib/supabase/client";
 import { LANGS, useT } from "@/lib/settings/i18n";
@@ -65,6 +67,87 @@ function Section({ title, children, note }: { title: string; children: ReactNode
       {children}
       {note && <p className="mt-2 text-xs text-ink-mute">{note}</p>}
     </section>
+  );
+}
+
+const isInstalledApp = () => /Electron/i.test(navigator.userAgent) || !!process.env.SQUEAK_DESKTOP;
+const isCapacitor = () => !!(globalThis as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+
+// GDPR art. 15/20 (export), art. 7.3 (withdraw marketing and cookie consent as easily as given)
+function PrivacySection() {
+  const t = useT();
+  const sb = getSupabase();
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<[string, boolean]>(["", true]);
+  const [marketing, setMarketing] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void sb?.auth.getUser().then(({ data }) => setMarketing(!!(data.user?.user_metadata as { consents?: { marketing?: boolean } } | undefined)?.consents?.marketing));
+  }, [sb]);
+
+  if (!sb) return null;
+
+  const download = async () => {
+    setBusy(true);
+    setMsg(["", true]);
+    try {
+      let json: string;
+      if (isInstalledApp()) {
+        // installed apps have no server of their own: gather the same data with the user's session
+        const { data } = await sb.auth.getUser();
+        if (!data.user) throw new Error("no user");
+        json = JSON.stringify(await collectUserData(sb, data.user), null, 2);
+      } else {
+        const res = await fetch("/api/account/export", { credentials: "same-origin" });
+        if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error ?? "export");
+        json = await res.text();
+      }
+      if (isCapacitor()) {
+        await navigator.clipboard.writeText(json);
+        setMsg([t("dataExportCopied"), true]);
+      } else {
+        const url = URL.createObjectURL(new Blob([json], { type: "application/json" }));
+        const a = Object.assign(document.createElement("a"), { href: url, download: exportFileName() });
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+        setMsg([t("dataExportDone"), true]);
+      }
+    } catch (e) {
+      setMsg([e instanceof Error && e.message !== "export" && e.message !== "no user" ? e.message : t("dataExportFail"), false]);
+    }
+    setBusy(false);
+  };
+
+  return (
+    <Section title={t("yourData")} note={t("dataExportNote")}>
+      <div className="space-y-3">
+        <button type="button" disabled={busy} onClick={download} className="duo-btn duo-ghost w-full">
+          <Download size={16} /> {t("dataExportBtn")}
+        </button>
+        <Msg text={msg[0]} ok={msg[1]} />
+        <label className="flex items-center justify-between gap-3 rounded-2xl bg-panel px-4 py-3 text-sm font-bold">
+          {t("marketingEmails")}
+          <input
+            type="checkbox"
+            disabled={marketing === null}
+            checked={!!marketing}
+            onChange={async (e) => {
+              const on = e.target.checked;
+              const { data } = await sb.auth.getUser();
+              if (!data.user) return;
+              const { error } = await setMarketingConsent(sb, data.user, on);
+              if (!error) setMarketing(on);
+            }}
+            className="h-5 w-5 accent-[var(--color-success)]"
+          />
+        </label>
+        {!isInstalledApp() && (
+          <a href="#cookie-preferences" className="duo-btn duo-ghost w-full" title={t("cookiePrefsNote")}>
+            <Cookie size={16} /> {t("cookiePrefs")}
+          </a>
+        )}
+      </div>
+    </Section>
   );
 }
 
@@ -305,6 +388,8 @@ function SecurityTab({ onClose }: { onClose: () => void }) {
           <LogOut size={16} /> {t("signOutAll")}
         </button>
       </Section>
+
+      <PrivacySection />
 
       <Section title={t("deleteAccount")} note={t("deleteWarn")}>
         <div className="flex gap-2">

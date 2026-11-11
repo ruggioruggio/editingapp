@@ -54,6 +54,7 @@ const FOOTER: { title: string; links: { label: string; href: string }[] }[] = [
       { label: "Privacy", href: "/legal/privacy" },
       ...(features.payments ? [{ label: "Acquisti e abbonamenti", href: "/legal/acquisti" }] : []),
       { label: "Cookie", href: "/legal/cookie" },
+      { label: "Preferenze cookie", href: "#cookie-preferences" },
       { label: "Regole della community", href: "/legal/community" },
     ],
   },
