@@ -131,9 +131,9 @@ function drawPage(ctx: CanvasRenderingContext2D, kind: PageKind, n: number) {
   }
 }
 
-function PagePair({ outside, inside, side }: { outside: PageKind; inside: number; side: 1 | -1 }) {
-  const out = useCanvasTexture(256, 320, (ctx) => drawPage(ctx, outside, inside), [outside, inside]);
-  const inn = useCanvasTexture(256, 320, (ctx) => drawPage(ctx, "inside", inside), [inside]);
+function PagePair({ outside, inside, side }: { outside: [PageKind, number]; inside: [PageKind, number]; side: 1 | -1 }) {
+  const out = useCanvasTexture(256, 320, (ctx) => drawPage(ctx, outside[0], outside[1]), [outside[0], outside[1]]);
+  const inn = useCanvasTexture(256, 320, (ctx) => drawPage(ctx, inside[0], inside[1]), [inside[0], inside[1]]);
   // hinged on the fold (x = 0); the outer edge bends toward the reader, who stands at -z
   return (
     <group rotation={[0, 0.3 * side, 0]}>
@@ -149,12 +149,13 @@ function PagePair({ outside, inside, side }: { outside: PageKind; inside: number
   );
 }
 
-/** An open newspaper seen from the outside (+z); its reader is behind it, on the -z side. */
+/** An open newspaper seen from the outside (+z); its reader is behind it, on the -z side and reads the headline. */
 export function Newspaper() {
   return (
     <group>
-      <PagePair side={-1} outside="back" inside={2} />
-      <PagePair side={1} outside="front" inside={3} />
+      {/* side -1 is on the reader's right: the reader sees "SQUEAK TIMES" on the left and page 3 on the right; we see the backs */}
+      <PagePair side={-1} outside={["back", 8]} inside={["inside", 3]} />
+      <PagePair side={1} outside={["inside", 2]} inside={["front", 1]} />
     </group>
   );
 }

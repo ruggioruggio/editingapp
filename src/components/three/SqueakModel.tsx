@@ -49,8 +49,8 @@ export const TAIL_STANDING: [number, number, number][] = [
   [-0.05, 1.35, -1.5],
 ];
 const TAIL_SITTING: [number, number, number][] = [
-  [0.25, 0.3, -0.9],
-  [0.6, 0.15, -0.7],
+  [0.25, 0.4, -0.9],
+  [0.6, 0.27, -0.7],
   [0.86, 0.11, -0.35],
   [0.9, 0.11, 0.05],
   [0.7, 0.13, 0.32],

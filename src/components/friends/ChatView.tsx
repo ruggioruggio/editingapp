@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
-import { ArrowUp, CornerUpLeft, Flame, ImagePlus, Mic, Pause, Play, Square, Trash2, X } from "lucide-react";
+import { ArrowUp, CornerUpLeft, ImagePlus, Mic, Pause, Play, Square, Trash2, X } from "lucide-react";
 import { todayKey } from "@/lib/date";
 import { flameTier, messagePreview } from "@/lib/gamification/streakFlame";
 import { getSupabase } from "@/lib/supabase/client";
@@ -32,7 +32,7 @@ import {
 } from "@/lib/supabase/social";
 import { useT } from "@/lib/settings/i18n";
 import { useSettings } from "@/lib/settings/store";
-import { StreakFlame } from "./StreakFlame";
+import { FlameIcon, StreakFlame } from "./StreakFlame";
 
 const LOCALE_MAP: Record<string, string> = { it: "it-IT", en: "en-US", fr: "fr-FR", es: "es-ES", zh: "zh-CN" };
 const MAX_VOICE_S = 60;
@@ -150,8 +150,8 @@ function InviteCard({ m, mine, friendName, pact, onAccept }: { m: ChatMessage; m
   return (
     <div className="w-60 rounded-2xl border border-[#ff8a3d]/40 bg-gradient-to-br from-[#ff8a3d]/25 to-[#ff4d4d]/10 p-3 text-ink">
       <div className="flex items-center gap-2">
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-[#ff8a3d]/25">
-          <Flame size={22} fill="#ff8a3d" className="text-[#ff8a3d]" />
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[#ff8a3d]/20">
+          <FlameIcon size={26} />
         </span>
         <p className="text-sm font-black leading-tight">{fill(mine ? t("streakInviteSent") : t("streakInviteReceived"), { user: mine ? `@${friendName}` : `@${friendName}` })}</p>
       </div>
@@ -419,11 +419,11 @@ export function ChatView({ me, friend, onRead }: { me: string; friend: FriendPro
             </>
           ) : pact?.status === "pending" ? (
             <span className="flex items-center gap-1.5 text-ink-mute">
-              <Flame size={16} /> {t("streakPending")}
+              <FlameIcon size={16} muted /> {t("streakPending")}
             </span>
           ) : (
             <button type="button" onClick={invite} className="flex items-center gap-1.5 rounded-full bg-[#ff8a3d]/15 px-3 py-1.5 text-[#ffb27a] hover:bg-[#ff8a3d]/25">
-              <Flame size={15} fill="currentColor" /> {t("streakInviteBtn")}
+              <FlameIcon size={16} /> {t("streakInviteBtn")}
             </button>
           )}
         </div>

@@ -9,8 +9,9 @@ import { createRig, easeInOut, lerp, phase, resetRig, Shadow, smoothstep, Squeak
 import { useDragYaw } from "../useDragYaw";
 
 const SEAT_Y = 0.56;
-const SEAT_Z = 0.5;
-const LEAN = -0.14;
+// solved against the deckchair fabric (x1.25): the back rests on the backrest, the bottom on the seat, with ~5cm to spare
+const SEAT_Z = 0.74;
+const LEAN = -0.22;
 const GRIP_Z = 0.26;
 // short arms can't hold the paper past the snout: it is read at chest height, head bent over it
 const READ_ARM = -1.0;
@@ -18,6 +19,33 @@ const LOWER_ARM = -0.55;
 const PAPER_GRIP = new THREE.Vector3(0, -0.04, 0.22);
 const POCKET_ROT = new THREE.Euler(-0.25, 0.6, 0.12);
 const READ_ROT = new THREE.Euler(-0.1, 0, 0);
+const PAPER_SCALE = 0.86;
+// volumes the paper may never enter, in the leaned body's space: body, belly, pocket
+const KEEP_OUT: { c: THREE.Vector3; r: THREE.Vector3 }[] = [
+  { c: new THREE.Vector3(0, 0.9, 0), r: new THREE.Vector3(1.04, 0.92, 1.16) },
+  { c: new THREE.Vector3(0, 0.8, 0.55), r: new THREE.Vector3(0.7, 0.66, 0.5) },
+  { c: new THREE.Vector3(0.56, 0.56, 0.88), r: new THREE.Vector3(0.3, 0.3, 0.14) },
+];
+// sample points over the open sheet (outer edges curl back toward the reader)
+const PAPER_SAMPLES = [-0.8, -0.4, 0, 0.4, 0.8].flatMap((x) => [-0.52, -0.26, 0, 0.26].map((y) => new THREE.Vector3(x, y, -Math.abs(x) * 0.3)));
+
+/** How far the paper must move forward (+z) so that no sample point is inside the body. */
+function paperPush(paper: THREE.Object3D, lean: THREE.Object3D, inv: THREE.Matrix4, v: THREE.Vector3) {
+  paper.updateMatrix();
+  lean.updateMatrix();
+  inv.copy(lean.matrix).invert();
+  let push = 0;
+  for (const s of PAPER_SAMPLES) {
+    v.copy(s).applyMatrix4(paper.matrix).applyMatrix4(inv);
+    for (const { c, r } of KEEP_OUT) {
+      const q = ((v.x - c.x) / r.x) ** 2 + ((v.y - c.y) / r.y) ** 2;
+      if (q >= 1) continue;
+      const surface = c.z + r.z * Math.sqrt(1 - q);
+      if (v.z < surface) push = Math.max(push, surface - v.z);
+    }
+  }
+  return push;
+}
 
 function Pocket({ anchor }: { anchor: RefObject<THREE.Group | null> }) {
   return (
@@ -54,7 +82,7 @@ function Lounge({ yaw }: { yaw: () => number }) {
   const sat = useRef(false);
   const handL = useRef<THREE.Group>(null);
   const nose = useRef<THREE.Mesh>(null);
-  const tmp = useMemo(() => ({ rest: new THREE.Vector3(), held: new THREE.Vector3(), heldL: new THREE.Vector3(), read: new THREE.Vector3(), out: new THREE.Vector3(), nose: new THREE.Vector3() }), []);
+  const tmp = useMemo(() => ({ inv: new THREE.Matrix4(), v: new THREE.Vector3(), rest: new THREE.Vector3(), held: new THREE.Vector3(), heldL: new THREE.Vector3(), read: new THREE.Vector3(), out: new THREE.Vector3(), nose: new THREE.Vector3() }), []);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -141,8 +169,8 @@ function Lounge({ yaw }: { yaw: () => number }) {
     p.rotation.set(lerp(POCKET_ROT.x, READ_ROT.x, raise), lerp(POCKET_ROT.y, READ_ROT.y, Math.max(grab * 0.4, raise)), lerp(POCKET_ROT.z, READ_ROT.z, raise));
     const openX = smoothstep(phase(t, 4.1, 4.55));
     const openY = smoothstep(phase(t, 4.25, 4.75));
-    const sx = lerp(0.22, 1, openX);
-    p.scale.set(sx, lerp(0.26, 1, openY), sx);
+    const sx = lerp(0.22, 1, openX) * PAPER_SCALE;
+    p.scale.set(sx, lerp(0.26, 1, openY) * PAPER_SCALE, sx);
 
     // 5. reads, now and then lowers the paper to look at us (the paper simply follows the paws)
     if (t >= 4.6) {
@@ -160,6 +188,11 @@ function Lounge({ yaw }: { yaw: () => number }) {
         r.head.rotation.x = lerp(0.12 + Math.sin(t * 0.9) * 0.03, -state.pointer.y * 0.3, down);
       }
       lean.current.position.y = Math.sin(t * 1.6) * 0.02;
+    }
+
+    // collision: once out of the pocket the sheet may not sink into the belly or the pocket; it is pushed out forward
+    if (grab > 0.5) {
+      for (let i = 0; i < 2; i++) p.position.z += paperPush(p, lean.current, tmp.inv, tmp.v);
     }
   });
 
