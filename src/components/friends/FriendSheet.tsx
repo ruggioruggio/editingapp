@@ -362,7 +362,7 @@ function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, 
             )}
           >
             {relation === "friends" ? <UserCheck size={16} /> : <UserRoundPlus size={16} />}
-            {relation === "sent" ? t("friendRequestSent") : relation === "friends" ? t("alreadyFriends") : relation === "incoming" ? t("accept") : t("sendFriendRequest")}
+            {relation === "sent" ? t("friendRequestSent") : relation === "friends" ? t("friendsBadge") : relation === "incoming" ? t("accept") : t("sendFriendRequest")}
           </button>
         </div>}
         {friendError && <p className="mt-2 text-sm font-semibold text-danger">{t("sendFailed")}</p>}
