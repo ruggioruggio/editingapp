@@ -11,6 +11,7 @@ import { loadInbox, subscribeIncoming, type InboxThread } from "@/lib/supabase/s
 import { useChatTarget, useNotificationCounts } from "@/lib/hooks/useNotificationCount";
 import { useT } from "@/lib/settings/i18n";
 import { Chat } from "./FriendSheet";
+import { messagePreview } from "@/lib/gamification/streakFlame";
 
 function Avatar({ name, url, size = 52, ring }: { name: string; url?: string | null; size?: number; ring?: boolean }) {
   return (
@@ -103,7 +104,7 @@ export function DmInbox({ initialOpen }: { initialOpen?: string | null }) {
                   <span className="min-w-0 flex-1">
                     <span className={clsx("block truncate", th.unread ? "font-black" : "font-semibold")}>{th.other.username}</span>
                     <span className={clsx("flex min-w-0 gap-1 text-sm", th.unread ? "font-bold text-ink" : "text-ink-mute")}>
-                      <span className="truncate">{mine && `${t("youPrefix")} `}{th.last.body}</span>
+                      <span className="truncate">{mine && `${t("youPrefix")} `}{messagePreview(th.last.kind, th.last.body, { photo: t("chatPhoto"), voice: t("chatVoice"), invite: t("chatInviteLabel") })}</span>
                       <span className="shrink-0">· {ago(th.last.created_at)}</span>
                     </span>
                   </span>

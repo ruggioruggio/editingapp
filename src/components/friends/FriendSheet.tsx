@@ -1,23 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { ArrowUp, Flame, Heart, Star, UserCheck, UserPlus, UserRoundPlus, Users, X, Zap } from "lucide-react";
+import { Flame, Star, UserCheck, UserPlus, UserRoundPlus, Users, X, Zap } from "lucide-react";
 import { ROLE_LABELS, ROLE_COLORS, type UserRole } from "@/lib/supabase/auth";
 import { ACHIEVEMENTS } from "@/lib/gamification/achievements";
 import { getSupabase } from "@/lib/supabase/client";
 import { loadFriendRelation, sendFriendRequest, type FriendProfile, type FriendRelation } from "@/lib/supabase/friends";
-import {
-  loadConversation,
-  loadFriendAchievements,
-  markRead,
-  MAX_MESSAGE,
-  sendMessage,
-  subscribeIncoming,
-  subscribeReadReceipts,
-  subscribeTyping,
-  type ChatMessage,
-} from "@/lib/supabase/social";
+import { loadFriendAchievements } from "@/lib/supabase/social";
+import { ChatView } from "./ChatView";
+import { StreakFlame } from "./StreakFlame";
 import { useT } from "@/lib/settings/i18n";
 import { useSettings } from "@/lib/settings/store";
 import { getTier } from "@/lib/gamification/leagues";
@@ -104,7 +96,7 @@ export function FriendSheet({
             </button>
           </div>
           {!isGuest && <><div className={clsx("mt-3 flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-bold", sharedStreak > 0 ? "bg-[#ff8a3d]/15 text-[#ffb27a]" : "bg-panel text-ink-mute")}>
-            <Flame size={18} className={sharedStreak > 0 ? "text-[#ff8a3d]" : ""} />
+            <StreakFlame days={sharedStreak} size={18} withCount={false} />
             {sharedStreak > 0
               ? `${t("sharedStreakLabel")}: ${sharedStreak} ${sharedStreak === 1 ? t("day") : t("days")}. ${t("sharedStreakActive")}`
               : t("noSharedStreak")}
@@ -148,145 +140,8 @@ export function FriendSheet({
   );
 }
 
-export function Chat({ me, friend, onRead }: { me: string; friend: FriendProfile; onRead: () => void }) {
-  const t = useT();
-  const lang = useSettings((s) => s.lang);
-  const locale = LOCALE_MAP[lang] ?? "en-US";
-  const sb = getSupabase();
-  const [messages, setMessages] = useState<ChatMessage[] | null>(null);
-  const [text, setText] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [friendTyping, setFriendTyping] = useState(false);
-  const [newIds, setNewIds] = useState<Set<number>>(new Set());
-  const typingRef = useRef<{ sendTyping: () => void } | null>(null);
-  const bottom = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const client = sb ?? getSupabase();
-    if (!client) return;
-    let alive = true;
-    const load = () => {
-      loadConversation(client, me, friend.id)
-        .then((list) => alive && setMessages(list))
-        .catch(() => {
-          if (alive) {
-            setTimeout(() => alive && load(), 2000);
-          }
-        });
-    };
-    load();
-    void markRead(client, me, friend.id).then(onRead).catch(() => {});
-
-    const stopIncoming = subscribeIncoming(client, me, (m) => {
-      if (m.sender_id !== friend.id) return;
-      setMessages((list) => (list && !list.some((x) => x.id === m.id) ? [...list, m] : list));
-      setNewIds((s) => new Set(s).add(m.id));
-      void markRead(client, me, friend.id).catch(() => {});
-    });
-
-    const stopRead = subscribeReadReceipts(client, me, friend.id, (id) => {
-      setMessages((list) => list?.map((m) => m.id === id ? { ...m, read_at: new Date().toISOString() } : m) ?? null);
-    });
-
-    const { stop: stopTyping, sendTyping } = subscribeTyping(client, me, friend.id, setFriendTyping);
-    typingRef.current = { sendTyping };
-
-    const poll = setInterval(() => {
-      if (!alive) return;
-      loadConversation(client, me, friend.id)
-        .then((list) => { if (alive) setMessages(list); })
-        .catch(() => {});
-    }, 5000);
-
-    return () => {
-      alive = false;
-      clearInterval(poll);
-      stopIncoming();
-      stopRead();
-      stopTyping();
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sb, me, friend.id]);
-
-  useEffect(() => {
-    bottom.current?.scrollIntoView({ block: "end" });
-  }, [messages, friendTyping]);
-
-  const onSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    const body = text.trim();
-    if (!body || !sb) return;
-    setText("");
-    try {
-      const sent = await sendMessage(sb, friend.id, body);
-      setMessages((list) => [...(list ?? []), sent]);
-      setNewIds((s) => new Set(s).add(sent.id));
-      setError(null);
-    } catch {
-      setText(body);
-      setError(t("messageFailed"));
-    }
-  };
-
-  const time = (iso: string) => new Date(iso).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
-
-  const lastMine = messages ? [...messages].reverse().find((m) => m.sender_id === me) : null;
-  const showSeen = lastMine?.read_at != null;
-
-  return (
-    <>
-      <style>{`
-        @keyframes msgPop { 0%{transform:scale(0.6);opacity:0} 50%{transform:scale(1.04)} 100%{transform:scale(1);opacity:1} }
-        .msg-pop { animation: msgPop .3s cubic-bezier(.34,1.56,.64,1) both }
-        @keyframes dots { 0%,80%,100%{opacity:.3} 40%{opacity:1} }
-        .dot1{animation:dots 1.2s infinite} .dot2{animation:dots 1.2s .2s infinite} .dot3{animation:dots 1.2s .4s infinite}
-      `}</style>
-      <div className="flex-1 space-y-2 overflow-y-auto p-4">
-        {messages === null && !error && <div className="h-20 animate-pulse rounded-2xl bg-panel" />}
-        {messages?.length === 0 && (
-          <p className="py-10 text-center text-sm text-ink-mute">{t("breakIce")} @{friend.username}</p>
-        )}
-        {messages?.map((m) => {
-          const mine = m.sender_id === me;
-          const isNew = newIds.has(m.id);
-          return (
-            <div key={m.id} className={clsx("flex", mine && "justify-end")}>
-              <div className={clsx("max-w-[80%] rounded-2xl px-3.5 py-2", mine ? "rounded-br-md bg-accent text-white" : "rounded-bl-md bg-panel-2 text-ink", isNew && "msg-pop")}>
-                <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                <p className={clsx("mt-0.5 text-right text-[10px]", mine ? "text-white/70" : "text-ink-mute")}>{time(m.created_at)}</p>
-              </div>
-            </div>
-          );
-        })}
-        {showSeen && (
-          <p className="text-right text-[10px] font-semibold text-accent/70">{t("seen")}</p>
-        )}
-        {friendTyping && (
-          <div className="flex">
-            <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md bg-panel-2 px-4 py-2.5">
-              <span className="dot1 inline-block h-2 w-2 rounded-full bg-ink-mute" />
-              <span className="dot2 inline-block h-2 w-2 rounded-full bg-ink-mute" />
-              <span className="dot3 inline-block h-2 w-2 rounded-full bg-ink-mute" />
-            </div>
-          </div>
-        )}
-        <div ref={bottom} />
-      </div>
-      {error && <p className="px-4 pb-1 text-sm font-semibold text-danger">{error}</p>}
-      <form onSubmit={onSubmit} className="flex gap-2 border-t border-line p-3">
-        <input
-          value={text}
-          onChange={(e) => { setText(e.target.value); typingRef.current?.sendTyping(); }}
-          maxLength={MAX_MESSAGE}
-          placeholder={`${t("writeTo")} @${friend.username}…`}
-          className="min-w-0 flex-1 rounded-full border-2 border-line bg-panel-2 px-4 py-2.5 font-semibold outline-none focus:border-accent"
-        />
-        <button type="submit" aria-label={t("send")} disabled={!text.trim()} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-accent text-white disabled:opacity-40">
-          <ArrowUp size={20} strokeWidth={3} />
-        </button>
-      </form>
-    </>
-  );
+export function Chat(props: { me: string; friend: FriendProfile; onRead: () => void }) {
+  return <ChatView {...props} />;
 }
 
 function FriendProfileTab({ friend, me, isFollowing, followerCount, followBusy, onToggleFollow }: { friend: FriendProfile; me: string | null; isFollowing: boolean; followerCount: number; followBusy: boolean; onToggleFollow: () => void }) {

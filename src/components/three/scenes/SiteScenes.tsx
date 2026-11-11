@@ -19,7 +19,7 @@ import {
   WorkSign,
   Workbench,
 } from "../props";
-import { createRig, easeInOut, easeOut, lerp, phase, resetRig, Shadow, smoothstep, Spring, SqueakModel, walkCycle } from "../SqueakModel";
+import { createRig, easeInOut, easeOut, lerp, phase, resetRig, Shadow, smoothstep, Spring, SqueakModel, TAIL_STANDING, walkCycle } from "../SqueakModel";
 
 const PROFILE_RIGHT = Math.PI / 2;
 
@@ -57,6 +57,9 @@ function StrawHat() {
 
 const CAPE_COLS = 18;
 const CAPE_ROWS = 14;
+const TAIL_CLEARANCE = 0.14;
+const tailSpheres = new THREE.CatmullRomCurve3(TAIL_STANDING.map((p) => new THREE.Vector3(...p))).getSpacedPoints(16);
+const tmpV = new THREE.Vector3();
 
 function Cape({ flap }: { flap: RefObject<number> }) {
   const geometry = useMemo(() => {
@@ -89,7 +92,13 @@ function Cape({ flap }: { flap: RefObject<number> }) {
         const back = -1.12 * Math.sqrt(Math.max(0.03, 1 - x * x - ny * ny)) - 0.08;
         const lift = f * v * v;
         const wave = Math.sin(t * 7 - v * 6 + u * 3) * (0.035 + 0.09 * f) * v;
-        pos.setXYZ(i++, x + Math.sin(t * 4 + v * 5) * 0.02 * v, y + lift * 0.35, back - lift * 1.25 - wave);
+        tmpV.set(x + Math.sin(t * 4 + v * 5) * 0.02 * v, y + lift * 0.35, back - lift * 1.25 - wave);
+        // collision with the tail: push the cloth out of each tail sphere instead of letting it pass through
+        for (const s of tailSpheres) {
+          const d = tmpV.distanceTo(s);
+          if (d < TAIL_CLEARANCE && d > 1e-4) tmpV.sub(s).multiplyScalar(TAIL_CLEARANCE / d).add(s);
+        }
+        pos.setXYZ(i++, tmpV.x, tmpV.y, tmpV.z);
       }
     }
     pos.needsUpdate = true;
@@ -362,16 +371,21 @@ function CheeseScene() {
     if (t > 4.65 && t < 6.15) walkCycle(r, t, 10, Math.sin(phase(t, 4.65, 6.15) * Math.PI) ** 0.5);
 
     const lunge = bites.reduce((acc, b) => acc + Math.max(0, Math.sin(phase(t, b, b + 0.4) * Math.PI)), 0);
-    if (r.body) r.body.position.z = lunge * 0.3;
+    // contact, not penetration: the snout tip (1.53 ahead of the body origin, x0.8 scale) stops at the bitten face
+    const SNOUT = 1.53;
+    const edge = cheese.current.position.x - 1.6 * cheese.current.scale.x;
+    const maxReach = (edge + 0.03 - m.position.x) / 0.8 - SNOUT;
+    if (r.body) r.body.position.z = Math.min(lunge * 0.3, Math.max(0, maxReach));
     if (r.head) r.head.rotation.x = lunge * 0.25;
     const toCamera = easeInOut(phase(t, 2.4, 2.9));
     const toLeft = easeInOut(phase(t, 4.3, 4.75));
     const toRight = easeInOut(phase(t, 6.1, 6.7));
     m.rotation.y = lerp(lerp(lerp(PROFILE_RIGHT, 0.2, toCamera), -PROFILE_RIGHT, toLeft), PROFILE_RIGHT, toRight);
     const patting = smoothstep(phase(t, 2.6, 2.9)) * (1 - smoothstep(phase(t, 4.1, 4.4)));
-    const pat = Math.sin(t * 9) * 0.12;
-    if (r.armL && patting > 0) r.armL.rotation.set((-0.7 + pat) * patting, 0, 0.5 * patting);
-    if (r.armR && patting > 0) r.armR.rotation.set((-0.7 - pat) * patting, 0, -0.5 * patting);
+    // short arms reach the upper belly only with the forearms raised: pat there, paws resting on the surface
+    const pat = Math.sin(t * 9) * 0.07;
+    if (r.armL && patting > 0) r.armL.rotation.set((-1.25 + pat) * patting, 0, 0.15 * patting);
+    if (r.armR && patting > 0) r.armR.rotation.set((-1.25 - pat) * patting, 0, -0.15 * patting);
     if (r.head) r.head.rotation.y = -0.4 * smoothstep(phase(t, 3.6, 4.0)) * (1 - smoothstep(phase(t, 4.2, 4.6)));
   });
 

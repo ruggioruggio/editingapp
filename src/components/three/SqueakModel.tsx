@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, type MutableRefObject, type ReactNode, type RefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -40,33 +40,63 @@ function blinkAt(t: number) {
   return 1 - Math.sin(k * Math.PI) * 0.9;
 }
 
-function Tail() {
-  const geometry = useMemo(() => {
-    const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0, 0.45, -0.95),
-      new THREE.Vector3(0, 0.25, -1.55),
-      new THREE.Vector3(0.15, 0.7, -2.05),
-      new THREE.Vector3(0.1, 1.2, -1.85),
-      new THREE.Vector3(-0.05, 1.35, -1.5),
-    ]);
-    return new THREE.TubeGeometry(curve, 64, 0.06, 14, false);
-  }, []);
+// Standing, the tail curls up behind; sitting, it lies on the seat beside the body (a raised tail would pierce a chair back).
+export const TAIL_STANDING: [number, number, number][] = [
+  [0, 0.45, -0.95],
+  [0, 0.25, -1.55],
+  [0.15, 0.7, -2.05],
+  [0.1, 1.2, -1.85],
+  [-0.05, 1.35, -1.5],
+];
+const TAIL_SITTING: [number, number, number][] = [
+  [0.25, 0.3, -0.9],
+  [0.6, 0.15, -0.7],
+  [0.86, 0.11, -0.35],
+  [0.9, 0.11, 0.05],
+  [0.7, 0.13, 0.32],
+];
+
+function Tail({ sit }: { sit: MutableRefObject<number> }) {
+  const mesh = useRef<THREE.Mesh>(null);
   const ref = useRef<THREE.Group>(null);
+  const built = useRef(-1);
+  const points = useMemo(() => TAIL_STANDING.map((p) => new THREE.Vector3(...p)), []);
+
   useFrame((state) => {
     const t = state.clock.elapsedTime;
+    const s = sit.current;
+    // a resting tail barely moves; a standing one sways
     if (ref.current) {
-      ref.current.rotation.y = Math.sin(t * 1.7) * 0.28;
-      ref.current.rotation.x = Math.sin(t * 1.3 + 1) * 0.06;
+      ref.current.rotation.y = Math.sin(t * 1.7) * 0.28 * (1 - s * 0.85);
+      ref.current.rotation.x = Math.sin(t * 1.3 + 1) * 0.06 * (1 - s);
     }
+    if (!mesh.current || Math.abs(s - built.current) < 0.004) return;
+    built.current = s;
+    points.forEach((p, i) => p.set(...(TAIL_STANDING[i].map((v, k) => v + (TAIL_SITTING[i][k] - v) * s) as [number, number, number])));
+    const old = mesh.current.geometry;
+    mesh.current.geometry = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 64, 0.06, 14, false);
+    old.dispose();
   });
+
   return (
     <group ref={ref} position={[0, 0.45, -0.95]}>
-      <mesh geometry={geometry} position={[0, -0.45, 0.95]}>
+      <mesh ref={mesh} position={[0, -0.45, 0.95]}>
+        <tubeGeometry args={[new THREE.CatmullRomCurve3(points), 64, 0.06, 14, false]} />
         <meshPhysicalMaterial color={C.pink} roughness={0.45} sheen={0.6} />
       </mesh>
     </group>
   );
 }
+
+// Collision volumes of the body in model space (torso + belly ellipsoids, slightly inflated): paws must stay outside.
+const BODY_VOLUMES = [
+  { c: new THREE.Vector3(0, 0.9, 0), r: new THREE.Vector3(1.05, 0.93, 1.17) },
+  { c: new THREE.Vector3(0, 0.8, 0.55), r: new THREE.Vector3(0.7, 0.66, 0.48) },
+];
+const insideBody = (p: THREE.Vector3) =>
+  BODY_VOLUMES.some(({ c, r }) => ((p.x - c.x) / r.x) ** 2 + ((p.y - c.y) / r.y) ** 2 + ((p.z - c.z) / r.z) ** 2 < 1);
+const HAND_TIP = new THREE.Vector3(0, -0.6, 0);
+const tmpHand = new THREE.Vector3();
 
 function Ear({ side }: { side: 1 | -1 }) {
   const ref = useRef<THREE.Group>(null);
@@ -186,6 +216,7 @@ export function SqueakModel({
   rightHand,
   hat,
   outfit,
+  noseRef,
 }: {
   rig?: MutableRefObject<SqueakRig>;
   sitting?: boolean;
@@ -196,11 +227,14 @@ export function SqueakModel({
   rightHand?: ReactNode;
   hat?: ReactNode;
   outfit?: ReactNode;
+  /** exposes the snout tip, so scenes can keep held or nearby objects from passing through it */
+  noseRef?: RefObject<THREE.Mesh | null>;
 }) {
   const eyes = useRef<THREE.Group>(null);
   const torso = useRef<THREE.Group>(null);
   const footMeshes = useRef<(THREE.Mesh | null)[]>([]);
   const sitSpring = useMemo(() => new Spring(9, 0.9), []);
+  const sitAmount = useRef(sitting ? 1 : 0);
 
   // Scenes animate invisible proxies; the visible parts chase them with springs, so nothing ever snaps.
   const parts = useMemo(() => {
@@ -248,7 +282,19 @@ export function SqueakModel({
       const v = visual.current[key];
       if (v) parts.springs[key].follow(parts.proxy[key], v, dt);
     }
+    // no clipping: if a pose would push a paw into the body, swing that arm outward until the paw is clear
+    for (const [key, out] of [["armL", -1], ["armR", 1]] as const) {
+      const arm = visual.current[key];
+      if (!arm) continue;
+      for (let i = 0; i < 14; i++) {
+        arm.updateMatrix();
+        tmpHand.copy(HAND_TIP).applyMatrix4(arm.matrix);
+        if (!insideBody(tmpHand)) break;
+        arm.rotation.z += 0.06 * out;
+      }
+    }
     const sit = sitSpring.step(sitting ? 1 : 0, dt);
+    sitAmount.current = sit;
     for (const m of footMeshes.current) if (m) m.rotation.x = -0.9 * sit;
     const t = state.clock.elapsedTime;
     if (eyes.current) eyes.current.scale.y = sleepy ? 0.12 : angry ? 0.72 * blinkAt(t) : blinkAt(t);
@@ -291,7 +337,7 @@ export function SqueakModel({
         {rightHand}
       </Arm>
 
-      <Tail />
+      <Tail sit={sitAmount} />
 
       {/* testa: gruppo separato così può girarsi e annuire */}
       <group ref={set("head")}>
@@ -303,7 +349,7 @@ export function SqueakModel({
           <sphereGeometry args={[0.45, 48, 32]} />
           <Fur color={C.belly} rough={0.9} />
         </mesh>
-        <mesh position={[0, -0.1, 1.1]}>
+        <mesh ref={noseRef} position={[0, -0.1, 1.1]}>
           <sphereGeometry args={[0.13, 32, 24]} />
           <Gloss color={C.nose} />
         </mesh>

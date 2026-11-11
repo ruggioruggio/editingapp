@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { todayKey } from "@/lib/date";
+import { messagePreview } from "@/lib/gamification/streakFlame";
 import { useChatTarget } from "@/lib/hooks/useNotificationCount";
 import { currentStreak, todayState, useProgress } from "@/lib/progress/store";
 import { translate, type TKey } from "@/lib/settings/i18n";
@@ -142,7 +143,8 @@ export function NotificationManager() {
       if (inForeground) return;
       const lang = useSettings.getState().lang;
       const title = fill(translate(lang, "pushMsgTitle"), { user: await senderName(m.sender_id) });
-      const body = m.body.length > 120 ? `${m.body.slice(0, 117)}…` : m.body;
+      const text = messagePreview(m.kind, m.body, { photo: translate(lang, "chatPhoto"), voice: translate(lang, "chatVoice"), invite: translate(lang, "chatInviteLabel") });
+      const body = text.length > 120 ? `${text.slice(0, 117)}…` : text;
       const extra = { url: "/profile", chat: m.sender_id };
       if (ln) {
         void ln.schedule({ notifications: [{ id: 4000 + (m.id % 100000), title, body, extra }] }).catch(() => {});

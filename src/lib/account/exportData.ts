@@ -12,12 +12,16 @@ export async function collectUserData(sb: SupabaseClient, user: User) {
     return error ? null : (data as T);
   };
 
+  const [reactions, pacts] = await Promise.all([
+    pick(sb.from("message_reactions").select("message_id, emoji, created_at").eq("user_id", me)),
+    pick(sb.from("streak_pacts").select("status, started_on, created_at")),
+  ]);
   const [profile, progress, friendships, sent, received, followers, following, activity, daily, avatarReview] = await Promise.all([
     pick<Row>(sb.from("profiles").select("*").eq("id", me).maybeSingle()),
     pick<Row>(sb.from("progress").select("data, updated_at").eq("user_id", me).maybeSingle()),
     pick(sb.from("friendships").select("id, status, created_at, requester_id, addressee_id, requester:profiles!friendships_requester_id_fkey(username), addressee:profiles!friendships_addressee_id_fkey(username)")),
-    pick(sb.from("messages").select("id, body, created_at, read_at, recipient:profiles!messages_recipient_id_fkey(username)").eq("sender_id", me).order("created_at")),
-    pick(sb.from("messages").select("id, body, created_at, read_at, sender:profiles!messages_sender_id_fkey(username)").eq("recipient_id", me).order("created_at")),
+    pick(sb.from("messages").select("*, recipient:profiles!messages_recipient_id_fkey(username)").eq("sender_id", me).order("created_at")),
+    pick(sb.from("messages").select("*, sender:profiles!messages_sender_id_fkey(username)").eq("recipient_id", me).order("created_at")),
     pick(sb.from("follows").select("created_at, follower_id").eq("following_id", me)),
     pick(sb.from("follows").select("created_at, following_id").eq("follower_id", me)),
     pick(sb.from("activity_events").select("kind, data, created_at").eq("user_id", me).order("created_at")),
@@ -54,6 +58,9 @@ export async function collectUserData(sb: SupabaseClient, user: User) {
       following_count: following?.length ?? 0,
       messages_sent: sent ?? [],
       messages_received: received ?? [],
+      // photos and voice notes are referenced by media_path; they stay in your private chat storage
+      reactions: reactions ?? [],
+      shared_streaks: pacts ?? [],
     },
     activity: { events: activity ?? [], daily: daily ?? [] },
     avatar_review: avatarReview,

@@ -53,7 +53,8 @@ function Lounge({ yaw }: { yaw: () => number }) {
   const [sitting, setSitting] = useState(false);
   const sat = useRef(false);
   const handL = useRef<THREE.Group>(null);
-  const tmp = useMemo(() => ({ rest: new THREE.Vector3(), held: new THREE.Vector3(), heldL: new THREE.Vector3(), read: new THREE.Vector3(), out: new THREE.Vector3() }), []);
+  const nose = useRef<THREE.Mesh>(null);
+  const tmp = useMemo(() => ({ rest: new THREE.Vector3(), held: new THREE.Vector3(), heldL: new THREE.Vector3(), read: new THREE.Vector3(), out: new THREE.Vector3(), nose: new THREE.Vector3() }), []);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -126,6 +127,16 @@ function Lounge({ yaw }: { yaw: () => number }) {
     }
 
     tmp.out.copy(tmp.rest).lerp(tmp.held, grab).lerp(tmp.read, raise);
+    // collision: wherever the paper is, it may not reach the snout; if they overlap, the paper is kept in front of it
+    if (nose.current) {
+      nose.current.getWorldPosition(tmp.nose);
+      m.worldToLocal(tmp.nose);
+      const halfW = 0.85 * p.scale.x;
+      const halfH = 0.55 * p.scale.y;
+      if (Math.abs(tmp.nose.x - tmp.out.x) < halfW && Math.abs(tmp.nose.y - tmp.out.y) < halfH) {
+        tmp.out.z = Math.max(tmp.out.z, tmp.nose.z + 0.2);
+      }
+    }
     p.position.copy(tmp.out);
     p.rotation.set(lerp(POCKET_ROT.x, READ_ROT.x, raise), lerp(POCKET_ROT.y, READ_ROT.y, Math.max(grab * 0.4, raise)), lerp(POCKET_ROT.z, READ_ROT.z, raise));
     const openX = smoothstep(phase(t, 4.1, 4.55));
@@ -164,6 +175,7 @@ function Lounge({ yaw }: { yaw: () => number }) {
         <group ref={lean}>
           <SqueakModel
             rig={rig}
+            noseRef={nose}
             sitting={sitting}
             outfit={<Pocket anchor={pocket} />}
             rightHand={<group ref={hand} position={[0, -0.05, 0.12]} />}

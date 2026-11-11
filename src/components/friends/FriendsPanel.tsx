@@ -24,6 +24,7 @@ import {
 import { getAchievement } from "@/lib/gamification/achievements";
 import { loadFeed, loadSharedStreaks, loadUnread, subscribeIncoming, type ActivityEvent } from "@/lib/supabase/social";
 import { FriendSheet } from "./FriendSheet";
+import { StreakFlame } from "./StreakFlame";
 import { useT } from "@/lib/settings/i18n";
 
 const liveStreak = (p: FriendProfile) =>
@@ -295,7 +296,13 @@ function SignedInFriends() {
                     {!row.isMe && (
                       <span className="flex items-center gap-1 text-xs font-bold text-ink-mute">
                         <MessageCircle size={12} />
-                        {shared[row.id] ? <span className="text-[#ffb27a]">{t("sharedStreakLabel")}: {shared[row.id]} {t("days")}</span> : t("chatAndGoals")}
+                        {shared[row.id] ? (
+                          <span className="flex items-center gap-1">
+                            {t("sharedStreakLabel")}: <StreakFlame days={shared[row.id]} size={12} />
+                          </span>
+                        ) : (
+                          t("chatAndGoals")
+                        )}
                       </span>
                     )}
                   </span>

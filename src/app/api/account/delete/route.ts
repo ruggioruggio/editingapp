@@ -31,6 +31,13 @@ export async function POST(req: NextRequest) {
   const { data: files } = await service.storage.from("avatars").list("", { search: user.id });
   const own = (files ?? []).map((f) => f.name).filter((n) => n.startsWith(`${user.id}.`));
   if (own.length) await service.storage.from("avatars").remove(own);
+  // chat photos and voice notes the user sent live under chat-media/<user>/<recipient>/
+  const { data: folders } = await service.storage.from("chat-media").list(user.id, { limit: 1000 });
+  for (const folder of folders ?? []) {
+    const { data: items } = await service.storage.from("chat-media").list(`${user.id}/${folder.name}`, { limit: 1000 });
+    const paths = (items ?? []).map((f) => `${user.id}/${folder.name}/${f.name}`);
+    if (paths.length) await service.storage.from("chat-media").remove(paths);
+  }
 
   const { error } = await service.auth.admin.deleteUser(user.id);
   if (error) {

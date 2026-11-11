@@ -13,7 +13,7 @@ const csp = [
   `img-src 'self' data: blob: ${supabase}`,
   "font-src 'self' data:",
   `connect-src 'self' ${supabase} ${supabaseWs}${isDev ? " ws: wss:" : ""}`,
-  "media-src 'self' blob: data:",
+  `media-src 'self' blob: data: ${supabase}`,
   "worker-src 'self' blob:",
   "frame-src 'self'",
   "frame-ancestors 'self'",
@@ -28,7 +28,7 @@ const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "SAMEORIGIN" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), payment=(), usb=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
   ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }]),
 ];
