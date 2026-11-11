@@ -395,8 +395,9 @@ export function walkCycle(rig: SqueakRig, t: number, speed = 9, amount = 1) {
   if (rig.footL) rig.footL.position.z = 0.45 + s * 0.25;
   if (rig.footR) rig.footR.position.z = 0.45 - s * 0.25;
   if (rig.body) rig.body.position.y = Math.abs(Math.cos(t * speed)) * 0.08 * amount;
-  if (rig.armL) rig.armL.rotation.x = -s * 0.4;
-  if (rig.armR) rig.armR.rotation.x = s * 0.4;
+  // arms swing opposite to the leg on the same side
+  if (rig.armL) rig.armL.rotation.x = s * 0.4;
+  if (rig.armR) rig.armR.rotation.x = -s * 0.4;
 }
 
 export const smoothstep = (t: number) => {

@@ -11,8 +11,11 @@ import { useDragYaw } from "../useDragYaw";
 const SEAT_Y = 0.56;
 const SEAT_Z = 0.5;
 const LEAN = -0.14;
-const PAPER_Y = 1.12;
-const PAPER_Z = 1.5;
+const GRIP_Z = 0.26;
+// short arms can't hold the paper past the snout: it is read at chest height, head bent over it
+const READ_ARM = -1.0;
+const LOWER_ARM = -0.55;
+const PAPER_GRIP = new THREE.Vector3(0, -0.04, 0.22);
 const POCKET_ROT = new THREE.Euler(-0.25, 0.6, 0.12);
 const READ_ROT = new THREE.Euler(-0.1, 0, 0);
 
@@ -49,7 +52,8 @@ function Lounge({ yaw }: { yaw: () => number }) {
   const rig = useRef(createRig());
   const [sitting, setSitting] = useState(false);
   const sat = useRef(false);
-  const tmp = useMemo(() => ({ rest: new THREE.Vector3(), held: new THREE.Vector3(), read: new THREE.Vector3(0, PAPER_Y, PAPER_Z), out: new THREE.Vector3() }), []);
+  const handL = useRef<THREE.Group>(null);
+  const tmp = useMemo(() => ({ rest: new THREE.Vector3(), held: new THREE.Vector3(), heldL: new THREE.Vector3(), read: new THREE.Vector3(), out: new THREE.Vector3() }), []);
 
   useFrame((state) => {
     const t = state.clock.elapsedTime;
@@ -99,8 +103,12 @@ function Lounge({ yaw }: { yaw: () => number }) {
     // 4. paper: in the pocket -> grabbed -> raised with both hands -> unfolded
     if (pocket.current) pocket.current.getWorldPosition(tmp.rest);
     if (hand.current) hand.current.getWorldPosition(tmp.held);
+    if (handL.current) handL.current.getWorldPosition(tmp.heldL);
     m.worldToLocal(tmp.rest);
     m.worldToLocal(tmp.held);
+    m.worldToLocal(tmp.heldL);
+    // both paws grip the outer edges, which curve back toward Squeak, so the fold sits a little further out
+    tmp.read.copy(tmp.held).add(tmp.heldL).multiplyScalar(0.5).add(PAPER_GRIP);
 
     const reach = smoothstep(phase(t, 3.1, 3.55));
     const lift = smoothstep(phase(t, 3.55, 4.0));
@@ -111,9 +119,9 @@ function Lounge({ yaw }: { yaw: () => number }) {
       // right paw goes down to the pocket, then up to the chest
       const ax = lerp(lerp(0, -0.55, reach), -1.05, lift);
       const az = lerp(lerp(0, -0.25, reach), -0.1, lift);
-      r.armR.rotation.set(lerp(ax, -1.45, raise), 0, lerp(az, 0.3, raise));
-      r.armL.rotation.set(lerp(0, -1.45, raise), 0, lerp(0, -0.3, raise));
-      r.head.rotation.x = lerp(0.3 * reach * (1 - lift), 0.06, raise);
+      r.armR.rotation.set(lerp(ax, READ_ARM, raise), 0, lerp(az, GRIP_Z, raise));
+      r.armL.rotation.set(lerp(0, READ_ARM, raise), 0, lerp(0, -GRIP_Z, raise));
+      r.head.rotation.x = lerp(0.3 * reach * (1 - lift), 0.12, raise);
       r.head.rotation.y = -0.35 * reach * (1 - lift * 0.7) * (1 - raise);
     }
 
@@ -122,22 +130,23 @@ function Lounge({ yaw }: { yaw: () => number }) {
     p.rotation.set(lerp(POCKET_ROT.x, READ_ROT.x, raise), lerp(POCKET_ROT.y, READ_ROT.y, Math.max(grab * 0.4, raise)), lerp(POCKET_ROT.z, READ_ROT.z, raise));
     const openX = smoothstep(phase(t, 4.1, 4.55));
     const openY = smoothstep(phase(t, 4.25, 4.75));
-    p.scale.set(lerp(0.22, 1, openX), lerp(0.26, 1, openY), 1);
+    const sx = lerp(0.22, 1, openX);
+    p.scale.set(sx, lerp(0.26, 1, openY), sx);
 
-    // 5. reads, now and then lowers the paper to look at us
+    // 5. reads, now and then lowers the paper to look at us (the paper simply follows the paws)
     if (t >= 4.6) {
       const u = (t - 4.6) % 7;
       const down = u < 4.5 ? 0 : u < 5 ? easeInOut((u - 4.5) / 0.5) : u < 6.3 ? 1 : 1 - easeInOut((u - 6.3) / 0.7);
-      p.position.y = lerp(PAPER_Y, 0.85, down);
       p.rotation.x = lerp(-0.1, 0.25, down);
       if (r.armL && r.armR) {
-        r.armL.rotation.set(lerp(-1.45, -0.95, down), 0, -0.3);
-        r.armR.rotation.set(lerp(-1.45, -0.95, down), 0, 0.3);
+        r.armL.rotation.set(lerp(READ_ARM, LOWER_ARM, down), 0, -GRIP_Z);
+        r.armR.rotation.set(lerp(READ_ARM, LOWER_ARM, down), 0, GRIP_Z);
       }
       if (r.head) {
         const settle = smoothstep(phase(t, 4.6, 5.2));
         r.head.rotation.y = lerp(Math.sin(t * 1.4) * 0.18 * settle, state.pointer.x * 0.5, down);
-        r.head.rotation.x = lerp(0.06, -state.pointer.y * 0.3, down);
+        // eyes follow the lines while reading, then look up at us
+        r.head.rotation.x = lerp(0.12 + Math.sin(t * 0.9) * 0.03, -state.pointer.y * 0.3, down);
       }
       lean.current.position.y = Math.sin(t * 1.6) * 0.02;
     }
@@ -153,7 +162,13 @@ function Lounge({ yaw }: { yaw: () => number }) {
           <Shadow radius={1.05} />
         </group>
         <group ref={lean}>
-          <SqueakModel rig={rig} sitting={sitting} outfit={<Pocket anchor={pocket} />} rightHand={<group ref={hand} position={[0, -0.05, 0.12]} />} />
+          <SqueakModel
+            rig={rig}
+            sitting={sitting}
+            outfit={<Pocket anchor={pocket} />}
+            rightHand={<group ref={hand} position={[0, -0.05, 0.12]} />}
+            leftHand={<group ref={handL} position={[0, -0.05, 0.12]} />}
+          />
         </group>
         <group ref={paper}>
           <Newspaper />

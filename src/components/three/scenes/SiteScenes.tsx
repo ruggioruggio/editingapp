@@ -17,6 +17,7 @@ import {
   SafetyVest,
   TrafficCone,
   WorkSign,
+  Workbench,
 } from "../props";
 import { createRig, easeInOut, easeOut, lerp, phase, resetRig, Shadow, smoothstep, Spring, SqueakModel, walkCycle } from "../SqueakModel";
 
@@ -338,28 +339,40 @@ function CheeseScene() {
   const bites = [0.5, 1.2, 1.9];
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime % 5.6;
+    const t = state.clock.elapsedTime % 7.2;
     const r = rig.current;
-    if (!mouse.current || !cheese.current) return;
+    const m = mouse.current;
+    if (!m || !cheese.current) return;
     resetRig(r);
 
     // each bite takes a chunk gradually; leftovers slide away and a fresh wedge slides in off-screen
     const eaten = bites.reduce((acc, b) => acc + smoothstep(phase(t, b + 0.12, b + 0.32)), 0);
     const away = smoothstep(phase(t, 3.6, 4.4));
-    const back = 1 - easeOut(phase(t, 4.5, 5.5));
+    const back = 1 - easeOut(phase(t, 5.0, 6.4));
     cheese.current.scale.x = t < 4.45 ? Math.max(0.001, 1 - eaten * 0.2) : 1;
     cheese.current.position.x = 2.0 + (t < 4.45 ? away : back) * 3.4;
 
+    // the bitten edge recedes by 0.32 per bite: Squeak shuffles forward to keep his snout on it,
+    // then walks back to his spot (facing where he goes) while the new wedge arrives
+    const shuffle = bites.reduce((acc, b) => acc + Math.sin(phase(t, b + 0.32, b + 0.62) * Math.PI), 0);
+    const homeward = smoothstep(phase(t, 4.75, 6.05));
+    const fed = Math.min(eaten, 3) * 0.32;
+    m.position.x = -1.0 + fed * (1 - homeward);
+    if (shuffle > 0.01) walkCycle(r, t, 14, shuffle * 0.5);
+    if (t > 4.65 && t < 6.15) walkCycle(r, t, 10, Math.sin(phase(t, 4.65, 6.15) * Math.PI) ** 0.5);
+
     const lunge = bites.reduce((acc, b) => acc + Math.max(0, Math.sin(phase(t, b, b + 0.4) * Math.PI)), 0);
-    if (r.body) r.body.position.z = lunge * 0.35;
+    if (r.body) r.body.position.z = lunge * 0.3;
     if (r.head) r.head.rotation.x = lunge * 0.25;
-    const face = easeInOut(phase(t, 2.4, 2.9)) * (1 - easeInOut(phase(t, 4.8, 5.5)));
-    mouse.current.rotation.y = lerp(PROFILE_RIGHT, 0.2, face);
-    const patting = smoothstep(phase(t, 2.6, 2.9)) * (1 - smoothstep(phase(t, 4.3, 4.8)));
+    const toCamera = easeInOut(phase(t, 2.4, 2.9));
+    const toLeft = easeInOut(phase(t, 4.3, 4.75));
+    const toRight = easeInOut(phase(t, 6.1, 6.7));
+    m.rotation.y = lerp(lerp(lerp(PROFILE_RIGHT, 0.2, toCamera), -PROFILE_RIGHT, toLeft), PROFILE_RIGHT, toRight);
+    const patting = smoothstep(phase(t, 2.6, 2.9)) * (1 - smoothstep(phase(t, 4.1, 4.4)));
     const pat = Math.sin(t * 9) * 0.12;
-    if (r.armL) r.armL.rotation.set((-0.7 + pat) * patting, 0, 0.5 * patting);
-    if (r.armR) r.armR.rotation.set((-0.7 - pat) * patting, 0, -0.5 * patting);
-    if (r.head) r.head.rotation.y = -0.4 * smoothstep(phase(t, 3.6, 4.0)) * (1 - smoothstep(phase(t, 4.6, 5.2)));
+    if (r.armL && patting > 0) r.armL.rotation.set((-0.7 + pat) * patting, 0, 0.5 * patting);
+    if (r.armR && patting > 0) r.armR.rotation.set((-0.7 - pat) * patting, 0, -0.5 * patting);
+    if (r.head) r.head.rotation.y = -0.4 * smoothstep(phase(t, 3.6, 4.0)) * (1 - smoothstep(phase(t, 4.2, 4.6)));
   });
 
   return (
@@ -545,8 +558,10 @@ function RunScene() {
 
 function ConstructionScene({ lines = ["SQUEAKEDIT PRO", "IN ARRIVO"] }: { lines?: [string, string] }) {
   const mouse = useRef<THREE.Group>(null);
+  const bench = useRef<THREE.Group>(null);
+  const dust = useRef<(THREE.Mesh | null)[]>([]);
   const rig = useRef(createRig());
-  const hits = [0.55, 1.25, 1.95];
+  const hits = [0.65, 1.35, 2.05];
 
   useFrame((state) => {
     const t = state.clock.elapsedTime % 4.8;
@@ -554,22 +569,44 @@ function ConstructionScene({ lines = ["SQUEAKEDIT PRO", "IN ARRIVO"] }: { lines?
     if (!mouse.current) return;
     resetRig(r);
 
+    // arm angle -PI/2 = arm level, hammer head pointing straight down onto the bench top
+    const CONTACT = -Math.PI / 2;
+    const REST = -0.5;
     if (t < 2.4) {
       mouse.current.rotation.y = PROFILE_RIGHT * 0.85;
-      let arm = -1.3;
+      let arm = lerp(REST, -1.8, smoothstep(phase(t, 0.1, 0.25)));
       for (const h of hits) {
-        if (t > h - 0.4 && t <= h) arm = lerp(-1.3, -2.8, easeOut(phase(t, h - 0.4, h - 0.1)));
-        if (t > h && t < h + 0.12) arm = lerp(-2.8, -1.0, phase(t, h, h + 0.08));
+        if (t > h - 0.45 && t <= h - 0.15) arm = lerp(-1.8, -2.7, easeOut(phase(t, h - 0.45, h - 0.15)));
+        if (t > h - 0.15 && t <= h) arm = lerp(-2.7, CONTACT, phase(t, h - 0.15, h) ** 2);
+        if (t > h && t <= h + 0.25) arm = lerp(CONTACT, -1.8, smoothstep(phase(t, h + 0.05, h + 0.25)));
       }
-      if (r.armR) r.armR.rotation.set(arm, 0, 0.15);
+      if (t > hits[2] + 0.25) arm = lerp(-1.8, REST, smoothstep(phase(t, hits[2] + 0.25, 2.5)));
+      // left-handed: facing right, the left arm is the one on the camera side
+      if (r.armL) r.armL.rotation.set(arm, 0, 0);
+      if (r.head) r.head.rotation.x = 0.18;
     } else {
       mouse.current.rotation.y = lerp(PROFILE_RIGHT * 0.85, 0.1, easeInOut(phase(t, 2.4, 2.8)));
-      if (t > 2.8 && t < 4.4) {
-        if (r.armL) r.armL.rotation.set(-2.6, 0, -0.3 - Math.sin(t * 12) * 0.35);
-        if (r.head) r.head.rotation.z = Math.sin(t * 3) * 0.1;
-      }
+      if (r.armL) r.armL.rotation.set(REST, 0, 0);
+      const wave = smoothstep(phase(t, 2.8, 3.1)) * (1 - smoothstep(phase(t, 4.1, 4.4)));
+      if (r.armR) r.armR.rotation.set(-2.6 * wave, 0, (0.3 + Math.sin(t * 12) * 0.35) * wave);
+      if (r.head) r.head.rotation.z = Math.sin(t * 3) * 0.1 * wave;
       if (t >= 4.4) mouse.current.rotation.y = lerp(0.1, PROFILE_RIGHT * 0.85, easeInOut(phase(t, 4.4, 4.8)));
     }
+
+    // the bench takes the blow: a short dip, plus a puff of sawdust from the strike point
+    const last = hits.filter((h) => t >= h).pop();
+    const since = last === undefined ? 9 : t - last;
+    if (bench.current) bench.current.position.y = -0.018 * Math.max(0, 1 - since / 0.12);
+    dust.current.forEach((d, i) => {
+      if (!d) return;
+      const k = since / 0.7;
+      d.visible = k < 1;
+      if (!d.visible) return;
+      const a = (i / dust.current.length) * Math.PI * 2;
+      d.position.set(Math.cos(a) * 0.25 * k, 0.86 + 0.18 * k * (1.4 - k), Math.sin(a) * 0.18 * k);
+      d.scale.setScalar(0.03 + 0.03 * k);
+      (d.material as THREE.MeshStandardMaterial).opacity = 0.7 * (1 - k);
+    });
   });
 
   return (
@@ -577,7 +614,19 @@ function ConstructionScene({ lines = ["SQUEAKEDIT PRO", "IN ARRIVO"] }: { lines?
       <group position={[0, 0, -1.3]}>
         <Barrier width={3.4} />
       </group>
-      <group position={[1.7, 0, -0.2]} rotation={[0, -0.45, 0]}>
+      {/* where the hammer head lands, worked out from Squeak's pose at the moment of contact */}
+      <group position={[1.095, 0, 1.096]} rotation={[0, 1.335, 0]}>
+        <group ref={bench}>
+          <Workbench />
+        </group>
+        {Array.from({ length: 7 }, (_, i) => (
+          <mesh key={i} ref={(m) => void (dust.current[i] = m)} visible={false}>
+            <sphereGeometry args={[1, 10, 8]} />
+            <meshStandardMaterial color="#e6c79a" transparent opacity={0.7} roughness={1} />
+          </mesh>
+        ))}
+      </group>
+      <group position={[2.45, 0, -0.75]} rotation={[0, -0.45, 0]}>
         <WorkSign lines={lines} />
       </group>
       <group position={[-2.3, 0, 0.4]}>
@@ -595,11 +644,7 @@ function ConstructionScene({ lines = ["SQUEAKEDIT PRO", "IN ARRIVO"] }: { lines?
           rig={rig}
           hat={<HardHat />}
           outfit={<SafetyVest />}
-          rightHand={
-            <group rotation={[0, 0, 0]}>
-              <Hammer />
-            </group>
-          }
+          leftHand={<Hammer />}
         />
       </group>
     </Diorama>

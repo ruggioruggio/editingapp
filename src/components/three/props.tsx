@@ -88,34 +88,73 @@ export function Deckchair() {
   );
 }
 
-export function Newspaper() {
-  const page = useCanvasTexture(
-    256,
-    320,
-    (ctx) => {
-      ctx.fillStyle = "#f4f1e8";
-      ctx.fillRect(0, 0, 256, 320);
-      ctx.fillStyle = "#1d1d1d";
-      ctx.font = "900 34px Georgia, serif";
-      ctx.fillText("SQUEAK", 20, 46);
-      ctx.fillText("TIMES", 20, 84);
-      ctx.fillRect(20, 96, 216, 4);
-      ctx.fillStyle = "#9999ff";
-      ctx.fillRect(20, 112, 100, 70);
-      ctx.fillStyle = "#8a8a8a";
-      for (let y = 196; y < 300; y += 14) ctx.fillRect(20, y, 216 - ((y * 7) % 40), 6);
-      for (let y = 112; y < 182; y += 14) ctx.fillRect(132, y, 104, 6);
-    },
-    [],
+type PageKind = "front" | "back" | "inside";
+
+function drawPage(ctx: CanvasRenderingContext2D, kind: PageKind, n: number) {
+  ctx.fillStyle = "#f4f1e8";
+  ctx.fillRect(0, 0, 256, 320);
+  const lines = (x: number, y0: number, y1: number, w: number) => {
+    ctx.fillStyle = "#8a8a8a";
+    for (let y = y0; y < y1; y += 13) ctx.fillRect(x, y, w - ((y * 7 + n * 13) % 34), 5);
+  };
+  ctx.fillStyle = "#1d1d1d";
+  if (kind === "front") {
+    ctx.font = "900 36px Georgia, serif";
+    ctx.fillText("SQUEAK", 18, 46);
+    ctx.fillText("TIMES", 18, 84);
+    ctx.fillRect(18, 96, 220, 4);
+    ctx.font = "700 15px Georgia, serif";
+    ctx.fillText("Il taglio perfetto", 18, 122);
+    ctx.fillStyle = "#9999ff";
+    ctx.fillRect(18, 134, 110, 74);
+    lines(138, 138, 208, 100);
+    lines(18, 222, 306, 220);
+  } else if (kind === "back") {
+    ctx.font = "900 22px Georgia, serif";
+    ctx.fillText("METEO", 18, 36);
+    ctx.fillRect(18, 46, 220, 3);
+    ctx.fillStyle = "#ffc93c";
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc(52 + i * 76, 86, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    lines(18, 130, 300, 220);
+  } else {
+    ctx.font = "900 18px Georgia, serif";
+    ctx.fillText(n % 2 ? "MONTAGGIO" : "CINEMA", 18, 34);
+    ctx.fillRect(18, 42, 220, 2);
+    ctx.fillStyle = n % 2 ? "#3ecf8e" : "#ff9a5c";
+    ctx.fillRect(18, 56, 220, 64);
+    lines(18, 134, 300, 104);
+    lines(134, 134, 300, 104);
+  }
+}
+
+function PagePair({ outside, inside, side }: { outside: PageKind; inside: number; side: 1 | -1 }) {
+  const out = useCanvasTexture(256, 320, (ctx) => drawPage(ctx, outside, inside), [outside, inside]);
+  const inn = useCanvasTexture(256, 320, (ctx) => drawPage(ctx, "inside", inside), [inside]);
+  // hinged on the fold (x = 0); the outer edge bends toward the reader, who stands at -z
+  return (
+    <group rotation={[0, 0.3 * side, 0]}>
+      <mesh position={[0.425 * side, 0, 0]}>
+        <planeGeometry args={[0.85, 1.05]} />
+        <meshStandardMaterial map={out} roughness={0.95} />
+      </mesh>
+      <mesh position={[0.425 * side, 0, -0.004]} rotation={[0, Math.PI, 0]}>
+        <planeGeometry args={[0.85, 1.05]} />
+        <meshStandardMaterial map={inn} roughness={0.95} />
+      </mesh>
+    </group>
   );
+}
+
+/** An open newspaper seen from the outside (+z); its reader is behind it, on the -z side. */
+export function Newspaper() {
   return (
     <group>
-      {[-1, 1].map((s) => (
-        <mesh key={s} position={[0.42 * s, 0, 0.06]} rotation={[0, -0.28 * s, 0]}>
-          <planeGeometry args={[0.85, 1.05]} />
-          <meshStandardMaterial map={page} side={THREE.DoubleSide} roughness={0.95} />
-        </mesh>
-      ))}
+      <PagePair side={-1} outside="back" inside={2} />
+      <PagePair side={1} outside="front" inside={3} />
     </group>
   );
 }
@@ -412,17 +451,38 @@ export function SwimTrunks() {
   );
 }
 
+/** Held in a fist: the handle continues the forearm (-y) and the head lies across the swing (z), so it strikes face-down. */
 export function Hammer() {
   return (
-    <group rotation={[Math.PI / 2, 0, 0]}>
-      <mesh position={[0, 0.25, 0]}>
-        <cylinderGeometry args={[0.05, 0.05, 0.75, 10]} />
+    <group>
+      <mesh position={[0, -0.3, 0]}>
+        <cylinderGeometry args={[0.045, 0.05, 0.75, 12]} />
         <meshStandardMaterial color="#9a6a3c" roughness={0.8} />
       </mesh>
-      <mesh position={[0, 0.62, 0]}>
-        <boxGeometry args={[0.34, 0.14, 0.14]} />
+      <mesh position={[0, -0.62, 0]}>
+        <boxGeometry args={[0.14, 0.14, 0.34]} />
         <meshStandardMaterial color="#8d93a3" metalness={0.8} roughness={0.3} />
       </mesh>
+    </group>
+  );
+}
+
+export function Workbench() {
+  const wood = <meshStandardMaterial color="#b5834f" roughness={0.85} />;
+  return (
+    <group>
+      <mesh position={[0, 0.79, 0]}>
+        <boxGeometry args={[0.95, 0.08, 0.45]} />
+        {wood}
+      </mesh>
+      {[-0.38, 0.38].map((x) =>
+        [-0.16, 0.16].map((z) => (
+          <mesh key={`${x}${z}`} position={[x, 0.375, z]} rotation={[0, 0, x > 0 ? -0.08 : 0.08]}>
+            <boxGeometry args={[0.06, 0.76, 0.06]} />
+            <meshStandardMaterial color="#8a6238" roughness={0.9} />
+          </mesh>
+        )),
+      )}
     </group>
   );
 }
