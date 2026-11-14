@@ -376,6 +376,11 @@ alter table public.profiles drop constraint if exists profiles_avatar_size;
 alter table public.profiles add constraint profiles_avatar_size check (avatar is null or pg_column_size(avatar) < 1024);
 grant update (avatar) on public.profiles to authenticated;
 
+-- 018: questionario di onboarding solo per i nuovi utenti.
+-- I nuovi profili nascono con onboarded = false; il client lo segna true a fine questionario.
+alter table public.profiles add column if not exists onboarded boolean not null default false;
+grant update (onboarded) on public.profiles to authenticated;
+
 -- =========================================================================
 -- Classifica pubblica (ospiti)
 -- =========================================================================

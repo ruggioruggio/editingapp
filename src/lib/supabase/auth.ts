@@ -32,6 +32,8 @@ export interface Profile {
   streak_last_day: string | null;
   role: UserRole | null;
   created_at: string | null;
+  // true = account già "entrato" (niente questionario). undefined = colonna non ancora disponibile.
+  onboarded?: boolean;
 }
 
 interface AuthState {

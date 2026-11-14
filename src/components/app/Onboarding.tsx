@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import clsx from "clsx";
 import { Camera, ChevronRight, Clapperboard, Film, Globe, MonitorPlay, Moon, Scissors, Sparkles, Star, Sun, Tv, Video } from "lucide-react";
 import { useAuth } from "@/lib/supabase/auth";
@@ -94,11 +94,13 @@ export function Onboarding() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   if (!hydrated || done) return null;
-  if (status !== "user") return null;
-  if (hasProgress) {
-    setSettings({ onboardingDone: true });
-    return null;
-  }
+  if (status !== "user" || !profile) return null;
+  // Solo i NUOVI account: il flag server `onboarded` è esplicitamente false.
+  // undefined = migrazione 018 non ancora eseguita o profilo non caricato: non mostriamo nulla,
+  // così gli account già esistenti non rivedono mai il questionario.
+  if (profile.onboarded !== false) return null;
+  // Sicurezza extra: chi ha già dei progressi è comunque un utente esistente.
+  if (hasProgress) return null;
 
   const toggleSw = (id: string) => {
     const next = new Set(software);
@@ -122,6 +124,20 @@ export function Onboarding() {
     setAvatarPreview(URL.createObjectURL(file));
   };
 
+  // Segna l'account come "onboarded" così il questionario non riappare (anche su altri dispositivi).
+  const markOnboarded = async () => {
+    const sb = getSupabase();
+    if (sb && userId) {
+      try { await sb.from("profiles").update({ onboarded: true }).eq("id", userId); } catch {}
+    }
+    useAuth.setState((s) => (s.profile ? { profile: { ...s.profile, onboarded: true } } : s));
+  };
+
+  const skip = () => {
+    complete({ level: "zero", software: [], goal: "fun" });
+    void markOnboarded();
+  };
+
   const finish = async () => {
     if (!level || !goal) return;
     setSettings({ lang, theme });
@@ -129,11 +145,9 @@ export function Onboarding() {
 
     const sb = getSupabase();
     if (sb && userId) {
-      const updates: Record<string, unknown> = {};
+      const updates: Record<string, unknown> = { onboarded: true };
       if (bio.trim()) updates.bio = bio.trim();
-      if (Object.keys(updates).length) {
-        try { await sb.from("profiles").update(updates).eq("id", userId); } catch {}
-      }
+      try { await sb.from("profiles").update(updates).eq("id", userId); } catch {}
       if (avatarFile) {
         try {
           const ext = avatarFile.name.split(".").pop() ?? "jpg";
@@ -146,6 +160,8 @@ export function Onboarding() {
         } catch {}
       }
     }
+    // in locale e nello store: onboarding concluso, non riaprirlo.
+    useAuth.setState((s) => (s.profile ? { profile: { ...s.profile, onboarded: true } } : s));
   };
 
   return (
@@ -308,7 +324,7 @@ export function Onboarding() {
         </div>
 
         {/* Skip */}
-        <button type="button" onClick={() => complete({ level: "zero", software: [], goal: "fun" })} className="mt-4 block w-full text-center text-xs font-bold text-white/30 transition-colors hover:text-white/50">
+        <button type="button" onClick={skip} className="mt-4 block w-full text-center text-xs font-bold text-white/30 transition-colors hover:text-white/50">
           Skip for now
         </button>
       </div>

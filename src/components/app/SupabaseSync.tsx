@@ -91,11 +91,14 @@ export function SupabaseSync() {
       activeUser = user.id;
       useAuth.setState({ status: "user", userId: user.id, email: user.email ?? null });
 
-      const [{ data: profile }, { data: row }] = await Promise.all([
+      const [{ data: profile }, { data: row }, onbRes] = await Promise.all([
         sb.from("profiles").select("id, username, display_name, bio, avatar_url, plan, xp, streak_count, streak_last_day, role, created_at").eq("id", user.id).maybeSingle<Profile>(),
         sb.from("progress").select("data").eq("user_id", user.id).maybeSingle<{ data: unknown }>(),
+        // Letto a parte così l'app non si rompe se la migrazione 018 non è ancora stata eseguita.
+        sb.from("profiles").select("onboarded").eq("id", user.id).maybeSingle<{ onboarded: boolean }>(),
       ]);
       if (activeUser !== user.id) return;
+      const onboarded = onbRes.error ? undefined : onbRes.data?.onboarded;
 
       const local = useProgress.getState();
       const localData = local.ownerId === null || local.ownerId === user.id ? pickGameData(local) : null;
@@ -103,7 +106,7 @@ export function SupabaseSync() {
       const merged = remote && localData ? mergeGameData(localData, remote) : (remote ?? localData ?? initialGameData());
 
       useProgress.setState({ ...merged, ownerId: user.id, plan: profile?.plan ?? "free", username: profile?.username ?? null });
-      useAuth.setState({ profile: profile ?? null });
+      useAuth.setState({ profile: profile ? { ...profile, onboarded } : null });
       void loadAdminFlags(sb, user.id);
       void loadAvatar(sb, user.id);
       clearInterval(adminPoll);
