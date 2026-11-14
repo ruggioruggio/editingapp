@@ -8,6 +8,7 @@ import { Mascot } from "@/components/brand/Mascot";
 import { AeStudioEmbedded } from "@/components/studio/ae/AfterEffectsStudio";
 import { setStudioExit } from "@/components/studio/embed";
 import { PremiereStudioEmbedded } from "@/components/studio/premiere/PremiereStudio";
+import { StudioTransition } from "./StudioTransition";
 import { enterSandbox, exitSandbox } from "@/lib/lessons/sandbox";
 import type { Goal, StudioStep } from "@/lib/lessons/types";
 import { useAe } from "@/lib/studio/ae";
@@ -34,7 +35,9 @@ function useGoals(step: StudioStep, ready: boolean): boolean[] {
 export function StudioTaskView({ step, onDone }: { step: StudioStep; onDone: () => void }) {
   const app = APP[step.app];
   const [ready, setReady] = useState(false);
-  const [open, setOpen] = useState(false);
+  // macchina a stati per l'animazione di transizione (apertura e chiusura)
+  const [phase, setPhase] = useState<"closed" | "opening" | "open" | "closing">("closed");
+  const [studioVisible, setStudioVisible] = useState(false);
   const goals = useGoals(step, ready);
   const done = ready && goals.every(Boolean);
   const notified = useRef(false);
@@ -52,15 +55,27 @@ export function StudioTaskView({ step, onDone }: { step: StudioStep; onDone: () 
     }
   }, [done, onDone]);
 
+  const openStudio = () => {
+    setPhase((p) => {
+      if (p !== "closed") return p;
+      setStudioVisible(true);
+      return "opening";
+    });
+  };
+  // avvia l'animazione di chiusura; la lezione riappare quando l'overlay copre lo schermo
+  const closeStudio = () => setPhase((p) => (p === "open" || p === "opening" ? "closing" : p));
+
   useEffect(() => {
-    if (!open) return;
-    setStudioExit(() => setOpen(false));
+    if (!studioVisible) return;
+    setStudioExit(() => closeStudio());
     document.body.dataset.studioOpen = "1";
     return () => {
       setStudioExit(null);
       delete document.body.dataset.studioOpen;
     };
-  }, [open]);
+    // closeStudio è stabile (usa solo setState)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studioVisible]);
 
   const restart = () => {
     enterSandbox(step.app, step.setup());
@@ -82,15 +97,24 @@ export function StudioTaskView({ step, onDone }: { step: StudioStep; onDone: () 
         </div>
       </div>
       <GoalList step={step} goals={goals} />
-      <button type="button" onClick={() => setOpen(true)} className={clsx("duo-btn w-full", done ? "duo-ghost" : "duo-violet")}>
+      <button type="button" onClick={openStudio} disabled={phase !== "closed"} className={clsx("duo-btn w-full", done ? "duo-ghost" : "duo-violet")}>
         <MonitorPlay size={18} /> {done ? `Riapri ${app.name}` : `Apri ${app.name}`}
       </button>
-      {open &&
+      {studioVisible &&
         createPortal(
           <div className="fixed inset-0 z-[70]">
             {step.app === "premiere" ? <PremiereStudioEmbedded /> : <AeStudioEmbedded />}
-            <TaskPanel step={step} goals={goals} done={done} onClose={() => setOpen(false)} onRestart={restart} />
+            <TaskPanel step={step} goals={goals} done={done} onClose={closeStudio} onRestart={restart} />
           </div>,
+          document.body,
+        )}
+      {(phase === "opening" || phase === "closing") &&
+        createPortal(
+          <StudioTransition
+            label={app.name}
+            onCover={phase === "closing" ? () => setStudioVisible(false) : undefined}
+            onDone={() => setPhase(phase === "closing" ? "closed" : "open")}
+          />,
           document.body,
         )}
     </div>
